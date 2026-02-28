@@ -1,4 +1,4 @@
-package jp.tubeboard.controller;
+package jp.tubeboard.features.health;
 
 import java.time.LocalDateTime;
 import java.util.Map;
