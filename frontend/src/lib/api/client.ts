@@ -23,7 +23,7 @@ async function request<T>(
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include',
+    credentials: options.credentials ?? 'include',
   });
 
   if (!response.ok) {

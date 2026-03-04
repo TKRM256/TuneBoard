@@ -64,9 +64,13 @@ function App() {
     window.location.href = '/oauth2/authorization/google';
   };
 
-  const logout = () => {
-    window.location.href = '/logout';
-  };
+  const logout = useCallback (() => {
+    apiClient.post('logout')
+      .finally(() => {
+        setAuthMe(null);
+        checkAuth();
+      });
+  }, [checkAuth]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
