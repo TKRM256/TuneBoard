@@ -47,7 +47,8 @@ export const useAuth = () => {
     }, [checkAuth, exchangeTokenAfterLogin]);
     
     const loginWithGoogle = useCallback(() => {
-      const loginUrl = `/api/auth/google/login?redirect=${encodeURIComponent(window.location.origin)}`;
+      const currentPathAndQuery = `${window.location.pathname}${window.location.search}`;
+      const loginUrl = `/api/auth/google/login?redirect=${encodeURIComponent(currentPathAndQuery)}`;
       window.location.href = loginUrl;
     }, []);
     
