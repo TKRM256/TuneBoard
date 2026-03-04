@@ -36,7 +36,7 @@ async function request<T>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const credentials = options.credentials ?? 'omit';
+  const credentials = options.credentials ?? 'include';
 
   const response = await fetch(url, {
     ...options,

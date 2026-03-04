@@ -24,6 +24,9 @@ public class AuthController {
     @Value("${app.frontend-base-url:http://localhost:5173}")
     private String frontendBaseUrl;
 
+    @Value("${app.auth.cookie-secure:false}")
+    private boolean authCookieSecure;
+
     public AuthController(JwtTokenService jwtTokenService, GoogleOAuthService googleOAuthService) {
         this.jwtTokenService = jwtTokenService;
         this.googleOAuthService = googleOAuthService;
@@ -70,7 +73,7 @@ public class AuthController {
 
         ResponseCookie tokenCookie = ResponseCookie.from("auth_token", token)
                 .httpOnly(true)
-                .secure(true)
+                .secure(authCookieSecure)
                 .path("/")
                 .sameSite("Lax")
                 .build();
@@ -112,14 +115,16 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
-        ResponseCookie deleteJsessionId = ResponseCookie.from("JSESSIONID", "")
+        ResponseCookie deleteAuthToken = ResponseCookie.from("auth_token", "")
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
+                .secure(authCookieSecure)
+                .sameSite("Lax")
                 .build();
 
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, deleteJsessionId.toString())
+                .header(HttpHeaders.SET_COOKIE, deleteAuthToken.toString())
                 .build();
     }
 

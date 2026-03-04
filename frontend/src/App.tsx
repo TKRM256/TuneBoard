@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiClient, clearAccessToken, setAccessToken } from '@/lib/api/client';
+import { apiClient } from '@/lib/api/client';
+import { useAuthContext } from '@/features/auth/authContext';
 
 interface HealthStatus {
   status: string;
@@ -7,18 +8,11 @@ interface HealthStatus {
   application: string;
 }
 
-interface AuthMe {
-  authenticated: boolean;
-  name?: string;
-  email?: string;
-  picture?: string;
-}
-
 function App() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authMe, setAuthMe] = useState<AuthMe | null>(null);
+  const { authMe, loginWithGoogle, logout, refreshAuth } = useAuthContext();
 
   const checkHealth = useCallback((path: string) => {
     setLoading(true);
@@ -39,62 +33,10 @@ function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  const checkAuth = useCallback(() => {
-    apiClient
-      .get<AuthMe>('/auth/me')
-      .then((data) => {
-        if (data && typeof data === 'object' && 'authenticated' in data) {
-          setAuthMe(data as AuthMe);
-        } else {
-          setAuthMe(null);
-        }
-      })
-      .catch(() => {
-        setAuthMe(null);
-      });
-  }, []);
-
-  const exchangeTokenAfterLogin = useCallback(() => {
-    const params = new URLSearchParams(window.location.search);
-    const login = params.get('login');
-    const hash = window.location.hash.startsWith('#')
-      ? window.location.hash.substring(1)
-      : window.location.hash;
-    const hashParams = new URLSearchParams(hash);
-    const token = hashParams.get('token');
-
-    if (login !== 'success' || !token) {
-      return;
-    }
-
-    setAccessToken(token);
-    checkAuth();
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete('login');
-    url.hash = '';
-    window.history.replaceState({}, '', url.toString());
-  }, [checkAuth]);
-
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     checkHealth('/health');
-    exchangeTokenAfterLogin();
-    checkAuth();
-  }, [checkAuth, checkHealth, exchangeTokenAfterLogin]);
-
-  const loginWithGoogle = useCallback(() => {
-    const loginUrl = `/api/auth/google/login?redirect=${encodeURIComponent(window.location.origin)}`;
-    window.location.href = loginUrl;
-  }, []);
-
-  const logout = useCallback (() => {
-    clearAccessToken();
-    apiClient.post('/auth/logout').finally(() => {
-      setAuthMe(null);
-      checkAuth();
-    });
-  }, [checkAuth]);
+  }, [checkHealth]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -114,7 +56,7 @@ function App() {
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={checkAuth}
+                    onClick={refreshAuth}
                     className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
                   >
                     Refresh User
