@@ -1,8 +1,6 @@
 package jp.tubeboard.features.auth;
 
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +32,7 @@ public class AuthController {
     @GetMapping("/google/login")
     public ResponseEntity<Void> googleLogin(
             @RequestParam(value = "redirect", required = false) String redirectUrl) {
-        String frontendRedirect = isBlank(redirectUrl) ? frontendBaseUrl : redirectUrl;
+        String frontendRedirect = resolveSafeFrontendRedirect(redirectUrl);
         String state = jwtTokenService.generateOAuthState(frontendRedirect);
         String authorizationUrl = googleOAuthService.buildAuthorizationUrl(state);
 
@@ -49,7 +47,7 @@ public class AuthController {
             @RequestParam("state") String state) {
         String frontendRedirect;
         try {
-            frontendRedirect = jwtTokenService.extractFrontendRedirectFromState(state);
+            frontendRedirect = resolveSafeFrontendRedirect(jwtTokenService.extractFrontendRedirectFromState(state));
         } catch (Exception ex) {
             return ResponseEntity.status(302)
                     .location(URI.create(frontendBaseUrl + "?login=error"))
@@ -70,14 +68,19 @@ public class AuthController {
         String picture = toStringOrEmpty(userInfo.get("picture"));
         String token = jwtTokenService.generateToken(name, email, picture);
 
+        ResponseCookie tokenCookie = ResponseCookie.from("auth_token", token)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .sameSite("Lax")
+                .build();
+
         String separator = frontendRedirect.contains("?") ? "&" : "?";
-        String redirectToFrontend = frontendRedirect
-                + separator
-                + "login=success#token="
-                + URLEncoder.encode(token, StandardCharsets.UTF_8);
+        String redirectToFrontend = frontendRedirect + separator + "login=success";
 
         return ResponseEntity.status(302)
                 .location(URI.create(redirectToFrontend))
+                .header(HttpHeaders.SET_COOKIE, tokenCookie.toString())
                 .build();
     }
 
@@ -122,6 +125,64 @@ public class AuthController {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private String resolveSafeFrontendRedirect(String redirectUrl) {
+        URI frontendBaseUri = parseUriOrDefault(frontendBaseUrl, URI.create("http://localhost:5173"));
+
+        if (isBlank(redirectUrl)) {
+            return frontendBaseUri.toString();
+        }
+
+        try {
+            URI candidate = URI.create(redirectUrl);
+
+            if (!candidate.isAbsolute()) {
+                if (!redirectUrl.startsWith("/")) {
+                    return frontendBaseUri.toString();
+                }
+                return frontendBaseUri.resolve(redirectUrl).toString();
+            }
+
+            if (isSameOrigin(frontendBaseUri, candidate)) {
+                return candidate.toString();
+            }
+
+            return frontendBaseUri.toString();
+        } catch (Exception ex) {
+            return frontendBaseUri.toString();
+        }
+    }
+
+    private URI parseUriOrDefault(String value, URI defaultUri) {
+        try {
+            return URI.create(value);
+        } catch (Exception ex) {
+            return defaultUri;
+        }
+    }
+
+    private boolean isSameOrigin(URI left, URI right) {
+        String leftScheme = left.getScheme() == null ? "" : left.getScheme();
+        String rightScheme = right.getScheme() == null ? "" : right.getScheme();
+        String leftHost = left.getHost() == null ? "" : left.getHost();
+        String rightHost = right.getHost() == null ? "" : right.getHost();
+        int leftPort = normalizePort(left);
+        int rightPort = normalizePort(right);
+
+        return leftScheme.equalsIgnoreCase(rightScheme)
+                && leftHost.equalsIgnoreCase(rightHost)
+                && leftPort == rightPort;
+    }
+
+    private int normalizePort(URI uri) {
+        if (uri.getPort() != -1) {
+            return uri.getPort();
+        }
+        if ("https".equalsIgnoreCase(uri.getScheme())) {
+            return 443;
+        }
+        return 80;
     }
 
     private String toStringOrEmpty(Object value) {
