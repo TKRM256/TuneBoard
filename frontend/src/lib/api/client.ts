@@ -2,6 +2,33 @@ import { type ApiError, ApiClientError } from './type';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
+let inMemoryAccessToken: string | null = null;
+
+export function getAccessToken(): string | null {
+  return inMemoryAccessToken;
+}
+
+export function setAccessToken(token: string): void {
+  inMemoryAccessToken = token;
+}
+
+export function clearAccessToken(): void {
+  inMemoryAccessToken = null;
+}
+
+function resolveDefaultCredentials(apiBaseUrl: string): RequestCredentials {
+  if (apiBaseUrl.startsWith('/')) {
+    return 'same-origin';
+  }
+
+  try {
+    const apiOrigin = new URL(apiBaseUrl, window.location.origin).origin;
+    return apiOrigin === window.location.origin ? 'same-origin' : 'omit';
+  } catch {
+    return 'same-origin';
+  }
+}
+
 // ──────────────────────────────────────
 // Core
 // ──────────────────────────────────────
@@ -17,10 +44,18 @@ async function request<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  // const token = getToken();
-  // if (token) (headers as Record<string,string>)['Authorization'] = `Bearer ${token}`;
+  const token = getAccessToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
 
-  const response = await fetch(url, { ...options, headers });
+  const credentials = options.credentials ?? resolveDefaultCredentials(API_BASE_URL);
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials,
+  });
 
   if (!response.ok) {
     let apiError: ApiError | undefined;
@@ -44,25 +79,27 @@ async function request<T>(
 // Public API client
 // ──────────────────────────────────────
 export const apiClient = {
-  get<T>(path: string): Promise<T|void> {
-    return request<T|void>(path, { method: 'GET' });
+  get<T>(path: string, options: RequestInit = {}): Promise<T|void> {
+    return request<T|void>(path, { ...options, method: 'GET' });
   },
 
-  post<T>(path: string, body?: unknown): Promise<T|void> {
+  post<T>(path: string, body?: unknown, options: RequestInit = {}): Promise<T|void> {
     return request<T|void>(path, {
+      ...options,
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
     });
   },
 
-  put<T>(path: string, body?: unknown): Promise<T|void> {
+  put<T>(path: string, body?: unknown, options: RequestInit = {}): Promise<T|void> {
     return request<T|void>(path, {
+      ...options,
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
     });
   },
 
-  delete<T>(path: string): Promise<T|void> {
-    return request<T|void>(path, { method: 'DELETE' });
+  delete<T>(path: string, options: RequestInit = {}): Promise<T|void> {
+    return request<T|void>(path, { ...options, method: 'DELETE' });
   },
 };

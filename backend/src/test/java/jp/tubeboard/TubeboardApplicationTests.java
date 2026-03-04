@@ -1,9 +1,10 @@
 package jp.tubeboard;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+import jp.tubeboard.config.IntegrationTest;
+
+@IntegrationTest
 class TubeboardApplicationTests {
 
 	@Test
