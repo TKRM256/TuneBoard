@@ -177,5 +177,4 @@ application-*.yaml
 **/plan
 
 AGENT.md
-
-*.code-workspace
+**/workspace
