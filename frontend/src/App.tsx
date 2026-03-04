@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api/client';
-import { useAuthContext } from '@/features/auth/authContext';
 
 interface HealthStatus {
   status: string;
@@ -12,7 +11,6 @@ function App() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const { authMe, loginWithGoogle, logout, refreshAuth } = useAuthContext();
 
   const checkHealth = useCallback((path: string) => {
     setLoading(true);
@@ -46,38 +44,6 @@ function App() {
           <h2 className="text-lg font-semibold text-muted-foreground">
             System Health Check
           </h2>
-
-          <div className="space-y-2 rounded-md border p-3">
-            <p className="text-sm font-medium text-foreground">Google Login</p>
-            {authMe?.authenticated ? (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Logged in as: {authMe.name || '(no name)'} / {authMe.email || '(no email)'}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={refreshAuth}
-                    className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
-                  >
-                    Refresh User
-                  </button>
-                  <button
-                    onClick={logout}
-                    className="inline-flex items-center justify-center rounded-md bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={loginWithGoogle}
-                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
-              >
-                Login with Google
-              </button>
-            )}
-          </div>
 
           {/* Backend status */}
           {loading && (

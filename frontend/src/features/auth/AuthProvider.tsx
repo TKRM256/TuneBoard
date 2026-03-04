@@ -3,7 +3,7 @@ import { useAuth } from './useAuth';
 import { AuthContext } from './authContext';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { authMe, loginWithGoogle, logout, checkAuth } = useAuth();
+  const { authMe, loginWithGoogle, logout, checkAuth, isAuthLoading } = useAuth();
 
   return (
     <AuthContext.Provider
@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loginWithGoogle,
         logout,
         refreshAuth: checkAuth,
+        isAuthLoading,
       }}
     >
       {children}
