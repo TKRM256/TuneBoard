@@ -10,10 +10,19 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import jp.tubeboard.features.auth.JwtAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        }
 
         @Value("${app.frontend-base-url:http://localhost:5173}")
         private String frontendBaseUrl;
@@ -30,6 +39,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/health").permitAll()
                                                 .requestMatchers("/api/health/error").permitAll()
                                                 .requestMatchers("/api/auth/me").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
                                                 .requestMatchers("/oauth2/**", "/login/**").permitAll()
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
@@ -40,6 +50,7 @@ public class SecurityConfig {
                                                 .logoutSuccessUrl(frontendBaseUrl + "/?logout=success")
                                                 .invalidateHttpSession(true)
                                                 .deleteCookies("JSESSIONID"))
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
                 return http.build();

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiClient } from '@/lib/api/client';
+import { apiClient, clearAccessToken, setAccessToken } from '@/lib/api/client';
 
 interface HealthStatus {
   status: string;
@@ -12,6 +12,13 @@ interface AuthMe {
   name?: string;
   email?: string;
   picture?: string;
+}
+
+interface AuthTokenResponse {
+  authenticated: boolean;
+  tokenType?: string;
+  accessToken?: string;
+  expiresIn?: number;
 }
 
 function App() {
@@ -54,17 +61,43 @@ function App() {
       });
   }, []);
 
+  const exchangeTokenAfterLogin = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('login') !== 'success') {
+      return;
+    }
+
+    apiClient
+      .post<AuthTokenResponse>('/auth/token')
+      .then((data) => {
+        if (data && typeof data === 'object' && 'accessToken' in data && data.accessToken) {
+          setAccessToken(data.accessToken);
+          checkAuth();
+        }
+      })
+      .catch(() => {
+        clearAccessToken();
+      })
+      .finally(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('login');
+        window.history.replaceState({}, '', url.toString());
+      });
+  }, [checkAuth]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     checkHealth('/health');
+    exchangeTokenAfterLogin();
     checkAuth();
-  }, [checkAuth, checkHealth]);
+  }, [checkAuth, checkHealth, exchangeTokenAfterLogin]);
 
   const loginWithGoogle = () => {
     window.location.href = '/oauth2/authorization/google';
   };
 
   const logout = useCallback (() => {
+    clearAccessToken();
     apiClient.post('logout')
       .finally(() => {
         setAuthMe(null);

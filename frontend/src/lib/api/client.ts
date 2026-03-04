@@ -1,6 +1,19 @@
 import { type ApiError, ApiClientError } from './type';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
+const ACCESS_TOKEN_KEY = 'tb_access_token';
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export function setAccessToken(token: string): void {
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+}
+
+export function clearAccessToken(): void {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
 
 // ──────────────────────────────────────
 // Core
@@ -17,13 +30,17 @@ async function request<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  // const token = getToken();
-  // if (token) (headers as Record<string,string>)['Authorization'] = `Bearer ${token}`;
+  const token = getAccessToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const credentials = token ? 'omit' : options.credentials ?? 'include';
 
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: options.credentials ?? 'include',
+    credentials,
   });
 
   if (!response.ok) {
