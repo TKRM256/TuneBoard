@@ -20,7 +20,11 @@ async function request<T>(
   // const token = getToken();
   // if (token) (headers as Record<string,string>)['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include',
+  });
 
   if (!response.ok) {
     let apiError: ApiError | undefined;
