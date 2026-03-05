@@ -40,15 +40,14 @@ export const useAuth = () => {
         return;
       }
 
-      checkAuth();
-
       const url = new URL(window.location.href);
       url.searchParams.delete('login');
       window.history.replaceState({}, '', url.toString());
-    }, [checkAuth]);
+    }, []);
     
     useEffect(() => {
       exchangeTokenAfterLogin();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       checkAuth();
     }, [checkAuth, exchangeTokenAfterLogin]);
     
