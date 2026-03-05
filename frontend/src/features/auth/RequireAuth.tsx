@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from './authContext';
+import type { JSX } from 'react';
 
 export const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const { authMe, isAuthLoading } = useAuthContext();
