@@ -3,9 +3,10 @@ import type { AuthMe } from './useAuth';
 
 export type AuthContextValue = {
   authMe: AuthMe | null;
-  loginWithGoogle: () => void;
+  loginWithGoogle: (redirectPath?: string) => void;
   logout: () => void;
   refreshAuth: () => void;
+  isAuthLoading: boolean;
 };
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

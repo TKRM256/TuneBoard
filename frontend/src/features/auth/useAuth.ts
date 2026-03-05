@@ -11,8 +11,10 @@ export interface AuthMe {
 
 export const useAuth = () => {
     const [authMe, setAuthMe] = useState<AuthMe | null>(null);
+    const [isAuthLoading, setIsAuthLoading] = useState(true);
 
     const checkAuth = useCallback(() => {
+      setIsAuthLoading(true);
       apiClient
         .get<AuthMe>('/auth/me')
         .then((data) => {
@@ -24,6 +26,9 @@ export const useAuth = () => {
         })
         .catch(() => {
           setAuthMe(null);
+        })
+        .finally(() => {
+          setIsAuthLoading(false);
         });
     }, []);
     
@@ -35,20 +40,23 @@ export const useAuth = () => {
         return;
       }
 
-      checkAuth();
-
       const url = new URL(window.location.href);
       url.searchParams.delete('login');
       window.history.replaceState({}, '', url.toString());
-    }, [checkAuth]);
+    }, []);
     
     useEffect(() => {
       exchangeTokenAfterLogin();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      checkAuth();
     }, [checkAuth, exchangeTokenAfterLogin]);
     
-    const loginWithGoogle = useCallback(() => {
-      const currentPathAndQuery = `${window.location.pathname}${window.location.search}`;
-      const loginUrl = `/api/auth/google/login?redirect=${encodeURIComponent(currentPathAndQuery)}`;
+    const loginWithGoogle = useCallback((redirectPath?: string) => {
+      const fallback = `${window.location.pathname}${window.location.search}`;
+      const redirectTarget = redirectPath && redirectPath.startsWith('/')
+        ? redirectPath
+        : fallback;
+      const loginUrl = `/api/auth/google/login?redirect=${encodeURIComponent(redirectTarget)}`;
       window.location.href = loginUrl;
     }, []);
     
@@ -60,5 +68,5 @@ export const useAuth = () => {
       });
     }, [checkAuth]);
 
-    return { loginWithGoogle, logout, authMe, checkAuth };
+    return { loginWithGoogle, logout, authMe, checkAuth, isAuthLoading };
 }
