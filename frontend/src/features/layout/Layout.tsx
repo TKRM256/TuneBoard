@@ -11,7 +11,7 @@ export const Layout = () => {
     return (
         <div className="min-h-screen bg-background">
             <header className="border-b bg-card">
-                <div className="flex h-14 max-w-screen items-center justify-between px-4">
+                <div className="flex h-14 max-w-full items-center justify-between px-4">
                     <Link to="/" className="text-xl font-bold" aria-label="TuneBoard">
                         TuneBoard
                     </Link>
@@ -33,7 +33,7 @@ export const Layout = () => {
                     </div>
                 </div>
             </header>
-            <main className="mx-auto max-full p-4">
+            <main className="mx-auto max-w-full p-4">
                 <Outlet />
             </main>
         </div>

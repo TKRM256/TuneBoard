@@ -9,9 +9,10 @@ export const Login = () => {
   const { authMe, loginWithGoogle, isAuthLoading } = useAuthContext();
   const [searchParams] = useSearchParams();
 
-  const fallback = `${window.location.pathname}${window.location.search}`;
+  const currentPath = window.location.pathname;
+  const defaultFallback = currentPath === '/login' ? '/' : `${currentPath}${window.location.search}`;
   const redirectParams = searchParams.get('redirect');
-  const redirect = redirectParams && redirectParams.startsWith('/') ? redirectParams : fallback;
+  const redirect = redirectParams && redirectParams.startsWith('/') ? redirectParams : defaultFallback;
 
   if (!isAuthLoading && authMe?.authenticated) {
     return <Navigate to={redirect} replace />;
