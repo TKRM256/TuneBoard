@@ -40,6 +40,9 @@ async function request<T>(
 
   const headers = new Headers(options.headers);
 
+  console.log("Request URL:", url);
+  console.log("Request Options:", options);
+
   if(!headers.has('Content-Type') && options.body && typeof options.body === 'string') {
     headers.set('Content-Type', 'application/json');
   }

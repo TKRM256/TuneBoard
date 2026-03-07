@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import jp.tubeboard.features.tenants.dto.requeest.TenantsCreateRequest;
+import jp.tubeboard.features.tenants.dto.requeest.TenantsDeleteRequest;
 import jp.tubeboard.features.tenants.dto.requeest.TenantsUpdateRequest;
 import jp.tubeboard.features.tenants.dto.response.TenantsCreateResponse;
 import jp.tubeboard.features.tenants.dto.response.TenantsUpdateResponse;
@@ -46,8 +47,8 @@ public class TenantsController {
     }
 
     @PostMapping("/delete")
-    public ResponseEntity<Void> delete(@RequestParam UUID id) {
-        tenantsService.delete(id);
+    public ResponseEntity<Void> delete(@RequestBody @Valid TenantsDeleteRequest request) {
+        tenantsService.delete(request.id());
         return ResponseEntity.noContent().build();
     }
 

@@ -83,7 +83,9 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
                       </FieldGroup>
                       <div className="flex justify-end gap-2">
                         <ConfirmButton onClick={onSubmit}>更新</ConfirmButton>
-                        <ConfirmButton onClick={handleDelete}>削除</ConfirmButton>
+                        <ConfirmButton onClick={handleDelete} defaultVariant="outline" confirmVariant="destructive">
+                          削除
+                        </ConfirmButton>
                       </div>
                     </motion.div>
                 </CardFooter>
