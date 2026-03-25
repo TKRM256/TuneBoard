@@ -138,4 +138,4 @@ public class SettingSheetConfigService {
                                 formBuilderHelper.safeText(request.recordLabelFieldId()),
                                 helper.normalizeBlocks(request.blocks(), defaults));
         }
-}}}
+}
