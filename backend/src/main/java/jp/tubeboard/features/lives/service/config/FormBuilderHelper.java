@@ -74,7 +74,7 @@ public class FormBuilderHelper {
 
     public FormBlockResponse sectionBlock(String id, String label, String description,
             List<FormBlockResponse> children) {
-        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_SECTION, label, description, false, false, false,
+        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_SECTION, label, description, false, false,
                 false, false,
                 SettingSheetConstants.APPEARANCE_PLAIN, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
@@ -82,7 +82,7 @@ public class FormBuilderHelper {
     }
 
     public FormBlockResponse textBlock(String id, String label, boolean required, LayoutResponse layout) {
-        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_SHORT_TEXT, label, "", false, false, false,
+        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_SHORT_TEXT, label, "", false, false,
                 required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
@@ -90,7 +90,7 @@ public class FormBuilderHelper {
     }
 
     public FormBlockResponse longTextBlock(String id, String label, boolean required, LayoutResponse layout) {
-        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_LONG_TEXT, label, "", false, false, false,
+        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_LONG_TEXT, label, "", false, false,
                 required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
@@ -98,7 +98,7 @@ public class FormBuilderHelper {
     }
 
     public FormBlockResponse booleanBlock(String id, String label, String description, LayoutResponse layout) {
-        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_BOOLEAN, label, description, false, false, false,
+        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_BOOLEAN, label, description, false, false,
                 false, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
@@ -107,7 +107,7 @@ public class FormBuilderHelper {
 
     public FormBlockResponse selectBlock(String id, String type, String label, boolean required, List<String> options,
             OptionSourceResponse optionSource, LayoutResponse layout) {
-        return new FormBlockResponse(id, type, label, "", false, false, false, required, false,
+        return new FormBlockResponse(id, type, label, "", false, false, required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, options, 0, "", "",
                 "",
                 List.of(), layout, optionSource);
@@ -116,7 +116,7 @@ public class FormBuilderHelper {
     public FormBlockResponse groupBlock(String id, String label, String description, boolean required,
             boolean collapsible, int minItems, String addButtonLabel, String entryTitle, String titleSourceFieldId,
             LayoutResponse layout, List<FormBlockResponse> fields) {
-        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_REPEATABLE_GROUP, label, description, false, false,
+        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_REPEATABLE_GROUP, label, description, false,
                 false, required, collapsible, SettingSheetConstants.APPEARANCE_SUBTLE,
                 SettingSheetConstants.APPEARANCE_OUTLINE,
                 List.of(), minItems, addButtonLabel, entryTitle, titleSourceFieldId, fields, layout, null);

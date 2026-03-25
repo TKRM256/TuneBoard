@@ -83,7 +83,7 @@ describe('lives type utilities', () => {
     );
   });
 
-  it('normalizeSettingSheetConfig はセクションの publicVisible/tableVisible を保持する', () => {
+  it('normalizeSettingSheetConfig はセクションの publicVisible を保持する', () => {
     const normalized = normalizeSettingSheetConfig({
       title: 'test',
       description: '',
@@ -98,7 +98,6 @@ describe('lives type utilities', () => {
           description: '',
           hidden: false,
           publicVisible: true,
-          tableVisible: true,
           required: false,
           collapsible: false,
           appearance: 'plain',
@@ -116,6 +115,5 @@ describe('lives type utilities', () => {
     });
 
     expect(normalized.blocks[0].publicVisible).toBe(true);
-    expect(normalized.blocks[0].tableVisible).toBe(true);
   });
 });

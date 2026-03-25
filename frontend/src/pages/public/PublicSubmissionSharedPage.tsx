@@ -45,15 +45,14 @@ export const PublicSubmissionSharedPage = () => {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [liveResponse, submissionResponse] = await Promise.all([
-          apiClient.get<PublicLiveResponse>(`/public/lives/${publicToken}`),
-          apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/public/lives/${publicToken}/setting-sheet/submissions/shared`),
-        ]);
+        const liveResponse = await apiClient.get<PublicLiveResponse>(`/public/lives/${publicToken}`);
+        const submissionResponse = submissionId
+          ? await apiClient.get<PublicSettingSheetSubmissionDetailResponse>(`/public/lives/${publicToken}/setting-sheet/submissions/${submissionId}/shared`).then((r) => r ? [r] : [])
+          : await apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/public/lives/${publicToken}/setting-sheet/submissions/shared`).then((r) => r ?? []);
 
         if (!cancelled) {
           setLive(liveResponse ?? null);
-          const allSubmissions = submissionResponse ?? [];
-          setSubmissions(submissionId ? allSubmissions.filter((item) => item.id === submissionId) : allSubmissions);
+          setSubmissions(submissionResponse);
           setErrorMessage('');
         }
       } catch (error: unknown) {
@@ -79,7 +78,7 @@ export const PublicSubmissionSharedPage = () => {
   }, [publicToken, submissionId]);
 
   const config = live?.settingSheetConfig ?? null;
-  const columns = useMemo(() => collectColumns(config, 'publicVisible'), [config]);
+  const columns = useMemo(() => collectColumns(config), [config]);
   const hasVisibleColumns = columns.length > 0;
 
   const filteredSubmissions = useMemo(() => {
@@ -196,7 +195,7 @@ export const PublicSubmissionSharedPage = () => {
   );
 };
 
-function collectColumns(config: SettingSheetConfigResponse | null, visibilityKey: 'publicVisible' | 'tableVisible'): ColumnDef[] {
+function collectColumns(config: SettingSheetConfigResponse | null): ColumnDef[] {
   if (!config) {
     return [];
   }
@@ -207,7 +206,7 @@ function collectColumns(config: SettingSheetConfigResponse | null, visibilityKey
       const nextLabelTrail = isSectionBlock(block.type) ? [...labelTrail, block.label] : labelTrail;
       const nextAnswerPath = isSectionBlock(block.type) ? answerPath : [...answerPath, block.id];
 
-      if (block[visibilityKey] && !isSectionBlock(block.type)) {
+      if (block.publicVisible && !isSectionBlock(block.type)) {
         columns.push({
           id: block.id,
           label: [...labelTrail, block.label].join(' / '),

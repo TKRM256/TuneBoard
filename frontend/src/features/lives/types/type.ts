@@ -35,7 +35,6 @@ export interface SettingSheetBlock {
   description: string;
   hidden: boolean;
   publicVisible?: boolean;
-  tableVisible?: boolean;
   required: boolean;
   collapsible: boolean;
   appearance: SettingSheetBlockAppearance;
@@ -150,19 +149,19 @@ function createId() {
 export function createBlockTemplate(type: SettingSheetBlockType): SettingSheetBlock {
   switch (type) {
     case 'SECTION':
-      return { id: createId(), type, label: 'セクション見出し', description: '', hidden: false, publicVisible: false, tableVisible: false, required: false, collapsible: false, appearance: 'plain', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null };
+      return { id: createId(), type, label: 'セクション見出し', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'plain', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null };
     case 'SHORT_TEXT':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, tableVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null };
     case 'LONG_TEXT':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, tableVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null };
     case 'SINGLE_SELECT':
     case 'MULTI_SELECT':
     case 'CHECKBOX':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, tableVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: ['選択肢1'], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', type === 'SINGLE_SELECT' ? 1 : 2, false), optionSource: null };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: ['選択肢1'], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', type === 'SINGLE_SELECT' ? 1 : 2, false), optionSource: null };
     case 'BOOLEAN':
-      return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, tableVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null };
+      return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null };
     case 'REPEATABLE_GROUP':
-      return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, tableVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null };
+      return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null };
   }
 }
 
@@ -342,7 +341,6 @@ function normalizeBlock(block: SettingSheetBlock, fallbackId: string): SettingSh
     description: block.description?.trim() ?? '',
     hidden: block.hidden === true,
     publicVisible: block.publicVisible === true,
-    tableVisible: block.tableVisible === true,
     required,
     collapsible: isRepeatableGroupBlock(type) ? block.collapsible === true : false,
     appearance: block.appearance === 'plain' || block.appearance === 'subtle' || block.appearance === 'outline' ? block.appearance : template.appearance,

@@ -22,6 +22,7 @@ import jp.tubeboard.features.lives.model.LiveStatus;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
+import jp.tubeboard.features.lives.service.SettingSheetConstants;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.tenants.dto.request.TenantsCreateRequest;
 import jp.tubeboard.features.tenants.dto.request.TenantsUpdateRequest;
@@ -146,7 +147,7 @@ public class TenantsService implements ITenantsService {
                 return SettingSheetSubmission.builder()
                                 .live(live)
                                 .recordLabel(bandName)
-                                .submissionStatus("submitted")
+                                .submissionStatus(SettingSheetConstants.SUBMISSION_STATUS)
                                 .payloadJson(toPayloadJson(bandName, songTitle, artist))
                                 .build();
         }

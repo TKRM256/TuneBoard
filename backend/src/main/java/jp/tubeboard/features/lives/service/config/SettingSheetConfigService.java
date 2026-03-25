@@ -127,8 +127,9 @@ public class SettingSheetConfigService {
 
         public SettingSheetConfigResponse normalizeSettingSheetConfig(SettingSheetConfigUpdateRequest request) {
                 SettingSheetConfigResponse defaults = defaultSettingSheetConfig();
-                Boolean publicSubmissionEnabled = resolvePublicSubmissionEnabled(request,
-                                defaults.publicSubmissionEnabled());
+                Boolean publicSubmissionEnabled = request.publicSubmissionEnabled() != null
+                                ? request.publicSubmissionEnabled()
+                                : defaults.publicSubmissionEnabled();
                 return new SettingSheetConfigResponse(
                                 formBuilderHelper.safeTextOrDefault(request.title(), "バンド申請フォーム"),
                                 formBuilderHelper.safeTextOrDefault(request.description(), "出演情報、メンバー、演奏曲を入力してください。"),
@@ -137,16 +138,4 @@ public class SettingSheetConfigService {
                                 formBuilderHelper.safeText(request.recordLabelFieldId()),
                                 helper.normalizeBlocks(request.blocks(), defaults));
         }
-
-        private Boolean resolvePublicSubmissionEnabled(SettingSheetConfigUpdateRequest request, Boolean fallback) {
-                try {
-                        Object value = request.getClass().getMethod("publicSubmissionEnabled").invoke(request);
-                        if (value instanceof Boolean booleanValue) {
-                                return booleanValue;
-                        }
-                } catch (ReflectiveOperationException ignored) {
-                        return fallback;
-                }
-                return fallback;
-        }
-}
+}}}

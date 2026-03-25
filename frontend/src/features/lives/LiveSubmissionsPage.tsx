@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Copy, ExternalLink, Music2, Search } from 'lucide-react';
+import { ChevronLeft, Copy, ExternalLink, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -38,13 +38,6 @@ interface ColumnDef {
   label: string;
   path: string[];
   type: SettingSheetBlock['type'];
-}
-
-interface DuplicateSongCandidate {
-  key: string;
-  title: string;
-  artist: string;
-  bands: string[];
 }
 
 export const LiveSubmissionsPage = () => {
@@ -103,9 +96,8 @@ export const LiveSubmissionsPage = () => {
   }, [liveId]);
 
   const recordLabel = useMemo(() => resolveRecordLabel(config), [config]);
-  const tableColumns = useMemo(() => collectColumns(config, 'publicVisible'), [config]);
+  const tableColumns = useMemo(() => collectColumns(config), [config]);
   const hasVisibleColumns = tableColumns.length > 0;
-  const duplicateSongs = useMemo(() => collectDuplicateSongs(details), [details]);
 
   const filteredDetails = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -201,15 +193,16 @@ export const LiveSubmissionsPage = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Music2 className="size-5" />
-                <CardTitle className="text-base sm:text-lg">曲の被り候補</CardTitle>
-              </div>
-              <p className="text-sm text-muted-foreground">全提出から自動的に被り候補を検出します。</p>
+              <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {hasVisibleColumns
+                  ? '共有ページと同じ公開項目のみ表示。行をクリックすると詳細を確認できます。'
+                  : '共有ページで公開する項目を設定すると、その項目だけがここでも一覧表示されます。'}
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={copySharedLink}>
                 <Copy className="size-4" />
                 共有一覧リンクをコピー
@@ -222,50 +215,9 @@ export const LiveSubmissionsPage = () => {
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {duplicateSongs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">現時点で被り候補はありません。</p>
-          ) : (
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>曲名</TableHead>
-                    <TableHead>アーティスト</TableHead>
-                    <TableHead>重複提出</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {duplicateSongs.map((song) => (
-                    <TableRow key={song.key}>
-                      <TableCell className="font-medium">{song.title}</TableCell>
-                      <TableCell className="whitespace-normal text-muted-foreground">{song.artist || '未入力'}</TableCell>
-                      <TableCell className="whitespace-normal">{song.bands.join(' / ')}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {hasVisibleColumns
-                  ? '共有ページと同じ公開項目のみ表示。行をクリックすると詳細を確認できます。'
-                  : '共有ページで公開する項目を設定すると、その項目だけがここでも一覧表示されます。'}
-              </p>
-            </div>
-            <div className="relative w-full sm:max-w-sm">
-              <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
-              <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-8" placeholder="公開項目で検索" disabled={!hasVisibleColumns} />
-            </div>
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
+            <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-8" placeholder="公開項目で検索" disabled={!hasVisibleColumns} />
           </div>
         </CardHeader>
         <CardContent>
@@ -343,7 +295,7 @@ export const LiveSubmissionsPage = () => {
   );
 };
 
-function collectColumns(config: SettingSheetConfigResponse | null, visibilityKey: 'publicVisible' | 'tableVisible'): ColumnDef[] {
+function collectColumns(config: SettingSheetConfigResponse | null): ColumnDef[] {
   if (!config) {
     return [];
   }
@@ -354,7 +306,7 @@ function collectColumns(config: SettingSheetConfigResponse | null, visibilityKey
       const nextLabelTrail = isSectionBlock(block.type) ? [...labelTrail, block.label] : labelTrail;
       const nextAnswerPath = isSectionBlock(block.type) ? answerPath : [...answerPath, block.id];
 
-      if (block[visibilityKey] && !isSectionBlock(block.type)) {
+      if (block.publicVisible && !isSectionBlock(block.type)) {
         columns.push({
           id: block.id,
           label: [...labelTrail, block.label].join(' / '),
@@ -400,84 +352,6 @@ function extractCellValue(
     .filter((value) => value !== '未入力');
 
   return nestedValues.length === 0 ? '未入力' : nestedValues.join('\n');
-}
-
-function collectDuplicateSongs(submissions: PublicSettingSheetSubmissionDetailResponse[]): DuplicateSongCandidate[] {
-  const songMap = new Map<string, { title: string; artist: string; bands: Set<string> }>();
-
-  for (const submission of submissions) {
-    const songs = collectSongsFromAnswers(submission.answers);
-    const uniqueKeysInSubmission = new Set<string>();
-
-    for (const song of songs) {
-      if (uniqueKeysInSubmission.has(song.key)) {
-        continue;
-      }
-      uniqueKeysInSubmission.add(song.key);
-
-      const existing = songMap.get(song.key);
-      if (existing) {
-        existing.bands.add(submission.recordLabel);
-      } else {
-        songMap.set(song.key, { title: song.title, artist: song.artist, bands: new Set([submission.recordLabel]) });
-      }
-    }
-  }
-
-  return Array.from(songMap.entries())
-    .filter(([, value]) => value.bands.size > 1)
-    .map(([key, value]) => ({ key, title: value.title, artist: value.artist, bands: Array.from(value.bands) }))
-    .sort((left, right) => right.bands.length - left.bands.length || left.title.localeCompare(right.title, 'ja'));
-}
-
-function collectSongsFromAnswers(answers: PublicSettingSheetSubmissionDetailResponse['answers']) {
-  const songs: Array<{ key: string; title: string; artist: string }> = [];
-
-  const walk = (currentAnswers: PublicSettingSheetSubmissionDetailResponse['answers']) => {
-    for (const answer of currentAnswers) {
-      if (answer.fieldId === 'songs') {
-        for (const item of answer.items) {
-          const title = findAnswerValue(item.answers, 'song-title', 'title');
-          const artist = findAnswerValue(item.answers, 'song-artist', 'artist');
-          if (!title) {
-            continue;
-          }
-          songs.push({
-            key: normalizeSongKey(title, artist),
-            title,
-            artist,
-          });
-        }
-      }
-
-      for (const item of answer.items) {
-        walk(item.answers);
-      }
-    }
-  };
-
-  walk(answers);
-  return songs;
-}
-
-function findAnswerValue(
-  answers: PublicSettingSheetSubmissionDetailResponse['answers'],
-  exactFieldId: string,
-  fallbackToken: string,
-) {
-  const exact = answers.find((answer) => answer.fieldId === exactFieldId)?.values[0]?.trim();
-  if (exact) {
-    return exact;
-  }
-
-  const fallback = answers.find((answer) => answer.fieldId.includes(fallbackToken))?.values[0]?.trim();
-  return fallback ?? '';
-}
-
-function normalizeSongKey(title: string, artist: string) {
-  const normalizedTitle = title.trim().toLowerCase();
-  const normalizedArtist = artist.trim().toLowerCase();
-  return `${normalizedTitle}::${normalizedArtist}`;
 }
 
 function formatSubmittedAt(value: string) {
