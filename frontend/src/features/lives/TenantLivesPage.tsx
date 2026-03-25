@@ -90,7 +90,7 @@ export const TenantLivesPage = () => {
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
-              <h1 className="break-word text-xl font-semibold sm:text-2xl">{tenant.name} のライブ管理</h1>
+              <h1 className="break-words text-xl font-semibold sm:text-2xl">{tenant.name} のライブ管理</h1>
             </div>
             <Button asChild className="w-full md:w-auto" variant="outline">
               <Link to="/tenants">
