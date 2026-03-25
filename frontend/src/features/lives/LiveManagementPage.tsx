@@ -350,15 +350,17 @@ function flattenVisibilityTargets(blocks: SettingSheetBlock[], parentLabel = '')
   const targets: VisibilityTarget[] = [];
   for (const block of blocks) {
     const path = parentLabel ? `${parentLabel} / ${block.label}` : block.label;
-    targets.push({
-      id: block.id,
-      label: block.label,
-      path,
-      type: block.type,
-      publicVisible: block.publicVisible === true,
-      hidden: block.hidden === true,
-      typeLabel: resolveTypeLabel(block.type),
-    });
+    if (block.type !== 'SECTION') {
+      targets.push({
+        id: block.id,
+        label: block.label,
+        path,
+        type: block.type,
+        publicVisible: block.publicVisible === true,
+        hidden: block.hidden === true,
+        typeLabel: resolveTypeLabel(block.type),
+      });
+    }
     if (block.fields.length > 0) {
       targets.push(...flattenVisibilityTargets(block.fields, path));
     }
