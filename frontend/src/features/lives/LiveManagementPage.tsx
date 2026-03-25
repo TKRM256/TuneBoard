@@ -372,16 +372,58 @@ function updateBlockVisibilityTree(
   field: 'publicVisible' | 'hidden',
   nextValue: boolean,
 ): SettingSheetBlock[] {
-  return blocks.map((block) => {
-    const nextFields = block.fields.length > 0 ? updateBlockVisibilityTree(block.fields, blockId, field, nextValue) : block.fields;
+  const [nextBlocks] = updateBlockVisibilityTreeInternal(blocks, blockId, field, nextValue);
+  return nextBlocks;
+}
+
+function updateBlockVisibilityTreeInternal(
+  blocks: SettingSheetBlock[],
+  blockId: string,
+  field: 'publicVisible' | 'hidden',
+  nextValue: boolean,
+): [SettingSheetBlock[], boolean] {
+  let updated = false;
+  let result: SettingSheetBlock[] | null = null;
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+
+    let nextBlock = block;
+    let fieldsUpdated = false;
+
+    if (block.fields.length > 0) {
+      const [nextFields, childUpdated] = updateBlockVisibilityTreeInternal(block.fields, blockId, field, nextValue);
+      fieldsUpdated = childUpdated;
+      if (childUpdated) {
+        nextBlock = { ...nextBlock, fields: nextFields };
+      }
+    }
+
     if (block.id === blockId) {
-      return { ...block, [field]: nextValue, fields: nextFields };
+      if (nextBlock[field] !== nextValue) {
+        nextBlock = { ...nextBlock, [field]: nextValue };
+      }
+      updated = true;
+    } else if (fieldsUpdated) {
+      updated = true;
     }
-    if (nextFields !== block.fields) {
-      return { ...block, fields: nextFields };
+
+    if (result !== null) {
+      // すでにどこかで変更が発生しているので、新しい配列にプッシュする
+      result.push(nextBlock);
+    } else if (nextBlock !== block) {
+      // ここで初めて変更が発生したので、先頭〜直前までをコピーして新配列を作る
+      result = blocks.slice(0, i);
+      result.push(nextBlock);
     }
-    return block;
-  });
+  }
+
+  if (result === null) {
+    // 1件も変更がなければ元の配列参照をそのまま返す
+    return [blocks, false];
+  }
+
+  return [result, updated];
 }
 
 function resolveTypeLabel(type: SettingSheetBlock['type']) {
