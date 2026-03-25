@@ -38,8 +38,19 @@ public interface ILivesService {
         SettingSheetSubmissionResponse submitPublicSettingSheet(String publicToken,
                         PublicSettingSheetSubmissionRequest request);
 
+        List<SettingSheetSubmissionResponse> listOwnedSettingSheetSubmissions(UUID liveId);
+
+        List<PublicSettingSheetSubmissionDetailResponse> listOwnedSettingSheetSubmissionDetails(UUID liveId);
+
+        PublicSettingSheetSubmissionDetailResponse getOwnedSettingSheetSubmission(UUID liveId, UUID submissionId);
+
         PublicSettingSheetSubmissionDetailResponse getPublicSettingSheetSubmission(String publicToken,
                         UUID submissionId);
+
+        PublicSettingSheetSubmissionDetailResponse getPublicSharedSettingSheetSubmission(String publicToken,
+                        UUID submissionId);
+
+        List<PublicSettingSheetSubmissionDetailResponse> listPublicSharedSettingSheetSubmissions(String publicToken);
 
         SettingSheetSubmissionResponse updatePublicSettingSheetSubmission(String publicToken,
                         UUID submissionId,

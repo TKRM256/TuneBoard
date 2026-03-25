@@ -6,10 +6,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
 @EnableJpaAuditing
-public class TubeboardApplication {
+public class TuneboardApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(TubeboardApplication.class, args);
+	public static void main(String... args) {
+		SpringApplication.run(TuneboardApplication.class, args);
 	}
 
 }

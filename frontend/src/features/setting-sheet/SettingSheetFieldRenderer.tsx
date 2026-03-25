@@ -104,10 +104,21 @@ export const SettingSheetFieldRenderer = ({
 
   return (
     <section className={`${appearanceClass(block.appearance, 'field')} ${fieldWidthClass(block.layout.width)}`}>
-      <Label htmlFor={inputId} className="text-sm font-medium text-foreground">
-        {block.label}
-        {block.required ? <span className="ml-1 text-destructive">*</span> : null}
-      </Label>
+      {block.type === 'BOOLEAN' ? (
+          <div className="flex items-center gap-3">
+            <Label htmlFor={inputId} className="text-sm font-medium text-foreground">
+              {block.label}
+              {block.required ? <span className="ml-1 text-destructive">*</span> : null}
+            </Label>
+            <Switch id={inputId} checked={values[0] === 'true'} onCheckedChange={(checked) => setScopedAnswer(block.id, toBooleanValue(checked))} />
+          </div>
+        ) : (
+          <Label htmlFor={inputId} className="text-sm font-medium text-foreground">
+            {block.label}
+            {block.required ? <span className="ml-1 text-destructive">*</span> : null}
+          </Label>
+        )
+      }
       {block.description ? <p className="mt-1 text-sm leading-6 text-muted-foreground">{block.description}</p> : null}
 
       {block.type === 'SHORT_TEXT' ? (
@@ -152,13 +163,6 @@ export const SettingSheetFieldRenderer = ({
           {options.length === 0 ? <p className="text-sm text-muted-foreground">まだ選択肢がありません。</p> : null}
         </div>
       ) : null}
-
-      {block.type === 'BOOLEAN' ? (
-        <div className="mt-3 flex items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3">
-          <Switch id={inputId} checked={firstValue === 'true'} onCheckedChange={(checked) => setScopedAnswer(block.id, checked ? { values: ['true'], items: [] } : emptyValue())} />
-        </div>
-      ) : null}
-
       {errorMap[pathKey] ? <p className="mt-2 text-sm text-destructive">{errorMap[pathKey]}</p> : null}
     </section>
   );
@@ -361,4 +365,12 @@ function emptyValue(): SettingSheetFieldValue {
 
 function toSingleValue(value: string): SettingSheetFieldValue {
   return value.trim() ? { values: [value], items: [] } : emptyValue();
+}
+
+function toBooleanValue(value: boolean): SettingSheetFieldValue {
+  if (value === true || value === false) {
+    return { values: [value.toString()], items: [] };
+  }
+
+  return emptyValue();
 }

@@ -17,7 +17,9 @@ import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
+import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
 import lombok.AllArgsConstructor;
 
@@ -74,5 +76,24 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SettingSheetConfigUpdateRequest request) {
         return ResponseEntity.ok(livesService.updateSettingSheetConfig(id, request));
+    }
+
+    @GetMapping("/{id}/setting-sheet/submissions")
+    public ResponseEntity<List<SettingSheetSubmissionResponse>> listSettingSheetSubmissions(
+            @PathVariable(name = "id") UUID id) {
+        return ResponseEntity.ok(livesService.listOwnedSettingSheetSubmissions(id));
+    }
+
+    @GetMapping("/{id}/setting-sheet/submissions/details")
+    public ResponseEntity<List<PublicSettingSheetSubmissionDetailResponse>> listSettingSheetSubmissionDetails(
+            @PathVariable(name = "id") UUID id) {
+        return ResponseEntity.ok(livesService.listOwnedSettingSheetSubmissionDetails(id));
+    }
+
+    @GetMapping("/{id}/setting-sheet/submissions/{submissionId}")
+    public ResponseEntity<PublicSettingSheetSubmissionDetailResponse> getSettingSheetSubmission(
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "submissionId") UUID submissionId) {
+        return ResponseEntity.ok(livesService.getOwnedSettingSheetSubmission(id, submissionId));
     }
 }

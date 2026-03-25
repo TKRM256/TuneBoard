@@ -36,8 +36,8 @@ public class SettingSheetSubmission extends Audit {
     @JoinColumn(name = "live_id", nullable = false)
     private Live live;
 
-    @Column(name = "band_name", nullable = false, length = 255)
-    private String bandName;
+    @Column(name = "record_label", nullable = false, length = 255)
+    private String recordLabel;
 
     @Column(name = "submission_status", nullable = false, length = 40)
     private String submissionStatus;

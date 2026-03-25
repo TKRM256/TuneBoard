@@ -44,6 +44,8 @@ const baseLive: PublicLiveResponse = {
     title: 'バンド申請フォーム',
     description: '',
     submitButtonLabel: '送信する',
+    publicSubmissionEnabled: false,
+    recordLabelFieldId: 'band-name',
     blocks: [
       {
         id: 'band-name',
@@ -87,7 +89,7 @@ describe('SettingSheetForm', () => {
   it('新規送信後に提出済みシートの編集 URL へ遷移する', async () => {
     mockPost.mockResolvedValue({
       id: 'submission-1',
-      bandName: 'The Testers',
+      recordLabel: 'The Testers',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
     });
@@ -119,7 +121,7 @@ describe('SettingSheetForm', () => {
   it('提出済みシートを初期表示して更新 API を呼ぶ', async () => {
     const submission: PublicSettingSheetSubmissionDetailResponse = {
       id: 'submission-42',
-      bandName: 'Saved Band',
+      recordLabel: 'Saved Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
       answers: [
@@ -132,7 +134,7 @@ describe('SettingSheetForm', () => {
     };
     mockPut.mockResolvedValue({
       id: 'submission-42',
-      bandName: 'Updated Band',
+      recordLabel: 'Updated Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
     });
@@ -168,6 +170,8 @@ describe('SettingSheetForm', () => {
         title: '出演者フォーム',
         description: '',
         submitButtonLabel: '更新する',
+        publicSubmissionEnabled: false,
+        recordLabelFieldId: '',
         blocks: [
           {
             id: 'members',
@@ -246,7 +250,7 @@ describe('SettingSheetForm', () => {
 
     const submission: PublicSettingSheetSubmissionDetailResponse = {
       id: 'submission-99',
-      bandName: 'Section Band',
+      recordLabel: 'Section Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
       answers: [
@@ -271,5 +275,84 @@ describe('SettingSheetForm', () => {
     render(<SettingSheetForm publicToken="public-token" live={live} submission={submission} />);
 
     expect(await screen.findByDisplayValue('Alice')).toBeInTheDocument();
+  });
+
+  it('BOOLEAN 項目で false を選んで送信できる', async () => {
+    const live: PublicLiveResponse = {
+      ...baseLive,
+      settingSheetConfig: {
+        ...baseLive.settingSheetConfig,
+        blocks: [
+          ...baseLive.settingSheetConfig.blocks,
+          {
+            id: 'is-bring-amp',
+            type: 'BOOLEAN',
+            label: 'アンプ持ち込み',
+            description: '',
+            hidden: false,
+            required: true,
+            collapsible: false,
+            appearance: 'outline',
+            itemAppearance: 'plain',
+            options: [],
+            minItems: 0,
+            addButtonLabel: '',
+            entryTitle: '',
+            titleSourceFieldId: '',
+            fields: [],
+            layout: {
+              width: 'half',
+              optionColumns: 1,
+              optionFitContent: false,
+            },
+            optionSource: null,
+          },
+        ],
+      },
+    };
+
+    mockPost.mockResolvedValue({
+      id: 'submission-bool',
+      recordLabel: 'The Testers',
+      submissionStatus: 'SUBMITTED',
+      submittedAt: '2026-03-11T20:00:00',
+    });
+
+    render(<SettingSheetForm publicToken="public-token" live={live} submission={null} />);
+
+    await userEvent.type(screen.getByRole('textbox', { name: /バンド名/ }), 'The Testers');
+    const switchEl = screen.getByRole('switch', { name: /アンプ持ち込み/ });
+    await userEvent.click(switchEl); // ON (true)
+    await userEvent.click(switchEl); // OFF (false) → values: ['false']
+    await userEvent.click(screen.getByRole('button', { name: '送信する' }));
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith('/public/lives/public-token/setting-sheet/submissions', {
+        answers: [
+          {
+            fieldId: 'band-name',
+            values: ['The Testers'],
+            items: [],
+          },
+          {
+            fieldId: 'is-bring-amp',
+            values: ['false'],
+            items: [],
+          },
+        ],
+      });
+    });
+  });
+
+  it('締切済みライブでは送信ボタンが無効になる', () => {
+    const live: PublicLiveResponse = {
+      ...baseLive,
+      deadlineAt: '2020-01-01T00:00:00',
+    };
+
+    render(<SettingSheetForm publicToken="public-token" live={live} submission={null} />);
+
+    expect(screen.getByText('現在は送信できません')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '送信する' })).toBeDisabled();
   });
 });

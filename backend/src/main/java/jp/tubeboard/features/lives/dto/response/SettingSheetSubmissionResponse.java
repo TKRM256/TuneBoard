@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record SettingSheetSubmissionResponse(
-        UUID id,
-        String bandName,
-        String submissionStatus,
-        LocalDateTime submittedAt) {
+                UUID id,
+                String recordLabel,
+                String submissionStatus,
+                LocalDateTime submittedAt) {
 }

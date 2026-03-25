@@ -5,10 +5,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 import { AddBlockMenu } from './AddBlockMenu';
-import { createBlockTemplate, createEmptySettingSheetConfig, normalizeSettingSheetConfig, type SettingSheetConfigResponse } from '../types/type';
+import { collectRecordLabelCandidates, createBlockTemplate, createEmptySettingSheetConfig, normalizeSettingSheetConfig, type SettingSheetConfigResponse } from '../types/type';
 
 interface FormEditorSidebarProps {
   tenantId: string;
@@ -83,6 +84,24 @@ export const FormEditorSidebar = ({
               <div>
                 <p className="text-sm font-medium">フォーム説明</p>
                 <Textarea value={config.description} onChange={(event) => setConfig((current) => current ? { ...current, description: event.target.value } : current)} rows={4} className="mt-2" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">レコード表示項目</p>
+                <p className="mt-1 text-xs text-muted-foreground">提出一覧や共有ページで各レコードの見出しとして表示する項目を選択します。</p>
+                <Select
+                  value={config.recordLabelFieldId || '__none__'}
+                  onValueChange={(value) => setConfig((current) => current ? { ...current, recordLabelFieldId: value === '__none__' ? '' : value } : current)}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="未設定（最初の回答値を使用）" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">未設定（最初の回答値を使用）</SelectItem>
+                    {collectRecordLabelCandidates(config.blocks).map((candidate) => (
+                      <SelectItem key={candidate.id} value={candidate.id}>{candidate.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </AccordionContent>
           </AccordionItem>

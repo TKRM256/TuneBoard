@@ -1,9 +1,11 @@
 package jp.tubeboard.features.lives.service.crud;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
+import jp.tubeboard.common.exception.BadRequestException;
 import jp.tubeboard.features.auth.User;
 import jp.tubeboard.features.auth.UserService;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
@@ -55,9 +57,18 @@ public class LiveServiceHelper {
                                 .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
         }
 
+        public SettingSheetSubmission findOwnedSubmission(UUID liveId, UUID submissionId) {
+                User currentUser = userService.getCurrentUser();
+                return settingSheetSubmissionRepository
+                                .findByIdAndLiveIdAndLiveTenantUserIdAndLiveDeletedAtIsNull(submissionId, liveId,
+                                                currentUser.getId())
+                                .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
+        }
+
         public SettingSheetSubmissionResponse saveSubmission(Live live,
                         PublicSettingSheetSubmissionRequest request,
                         SettingSheetSubmission submission) {
+                assertAcceptingPublicSubmission(live);
                 PublicSettingSheetSubmissionRequest normalizedRequest = settingSheetSubmissionService
                                 .normalizeSubmissionRequest(request);
                 SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
@@ -68,7 +79,7 @@ public class LiveServiceHelper {
                 SettingSheetSubmission target = submission == null
                                 ? SettingSheetSubmission.builder().live(live).build()
                                 : submission;
-                target.setBandName(summary);
+                target.setRecordLabel(summary);
                 target.setSubmissionStatus(SettingSheetConstants.SUBMISSION_STATUS);
                 target.setPayloadJson(settingSheetSubmissionService.writeSubmissionPayload(normalizedRequest));
 
@@ -91,8 +102,19 @@ public class LiveServiceHelper {
         public SettingSheetSubmissionResponse toSubmissionResponse(SettingSheetSubmission submission) {
                 return new SettingSheetSubmissionResponse(
                                 submission.getId(),
-                                submission.getBandName(),
+                                submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt());
+        }
+
+        private void assertAcceptingPublicSubmission(Live live) {
+                if (live.getStatus() != LiveStatus.PUBLISHED) {
+                        throw new BadRequestException("このライブは現在回答を受け付けていません");
+                }
+
+                LocalDateTime deadlineAt = live.getDeadlineAt();
+                if (deadlineAt != null && deadlineAt.isBefore(LocalDateTime.now())) {
+                        throw new BadRequestException("回答受付は終了しました");
+                }
         }
 }

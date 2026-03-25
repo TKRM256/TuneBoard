@@ -17,6 +17,7 @@ import { AddBlockMenu } from './AddBlockMenu';
 interface BlockEditorTreeProps {
   blocks: SettingSheetBlock[];
   rootBlocks: SettingSheetBlock[];
+  mainDisplayFieldId: string;
   optionSourceCandidates: Array<{ value: string; label: string }>;
   onMove: (parentId: string | null, blockIndex: number, direction: 'up' | 'down') => void;
   onRemove: (blockId: string) => void;
@@ -25,11 +26,13 @@ interface BlockEditorTreeProps {
   onChangeType: (blockId: string, nextType: SettingSheetBlock['type']) => void;
   onApplyGroupAppearance: (blockId: string, appearance: SettingSheetBlock['appearance']) => void;
   onUpdateOptionSource: (blockId: string, source: SettingSheetOptionSource | null) => void;
+  onSetMainDisplayFieldId: (fieldId: string) => void;
 }
 
 export const BlockEditorTree = ({
   blocks,
   rootBlocks,
+  mainDisplayFieldId,
   optionSourceCandidates,
   onMove,
   onRemove,
@@ -38,6 +41,7 @@ export const BlockEditorTree = ({
   onChangeType,
   onApplyGroupAppearance,
   onUpdateOptionSource,
+  onSetMainDisplayFieldId,
 }: BlockEditorTreeProps) => {
   const renderBlockEditor = (block: SettingSheetBlock, index: number, parentId: string | null, depth = 0) => {
     const blockTypeLabel = SETTING_SHEET_BLOCK_OPTIONS.find((option) => option.value === block.type)?.label;
@@ -51,6 +55,7 @@ export const BlockEditorTree = ({
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{blockTypeLabel}</Badge>
                 {isRepeatableGroupBlock(block.type) && block.titleSourceFieldId ? <Badge variant="outline">タイトル連動</Badge> : null}
+                {mainDisplayFieldId === block.id ? <Badge variant="outline">主表示</Badge> : null}
                 {block.hidden ? <Badge variant="outline">非表示</Badge> : null}
               </div>
               <div>
@@ -87,6 +92,8 @@ export const BlockEditorTree = ({
                 onChangeType={onChangeType}
                 onApplyGroupAppearance={onApplyGroupAppearance}
                 onUpdateOptionSource={onUpdateOptionSource}
+                isMainDisplayField={mainDisplayFieldId === block.id}
+                onSetMainDisplayFieldId={onSetMainDisplayFieldId}
                 renderNestedBlock={(child, childIndex, nestedParentId, nestedDepth) => renderBlockEditor(child, childIndex, nestedParentId, nestedDepth)}
               />              
             </AccordionContent>

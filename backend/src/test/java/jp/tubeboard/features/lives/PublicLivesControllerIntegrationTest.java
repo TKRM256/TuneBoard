@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -77,7 +78,7 @@ class PublicLivesControllerIntegrationTest {
                                                 .content(objectMapper.writeValueAsString(
                                                                 createSubmissionRequest("Original Band"))))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.bandName").value("Original Band"))
+                                .andExpect(jsonPath("$.recordLabel").value("Original Band"))
                                 .andReturn();
 
                 JsonNode submitJson = objectMapper.readTree(submitResult.getResponse().getContentAsString());
@@ -112,11 +113,11 @@ class PublicLivesControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(createSubmissionRequest("Updated Band"))))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.id").value(submissionId.toString()))
-                                .andExpect(jsonPath("$.bandName").value("Updated Band"));
+                                .andExpect(jsonPath("$.recordLabel").value("Updated Band"));
 
                 SettingSheetSubmission savedSubmission = settingSheetSubmissionRepository.findById(submissionId)
                                 .orElseThrow();
-                assertThat(savedSubmission.getBandName()).isEqualTo("Updated Band");
+                assertThat(savedSubmission.getRecordLabel()).isEqualTo("Updated Band");
                 assertThat(savedSubmission.getPayloadJson()).contains("Updated Band");
         }
 
@@ -169,7 +170,89 @@ class PublicLivesControllerIntegrationTest {
                                 .contentType(APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.bandName").value("Recursive Band"));
+                                .andExpect(jsonPath("$.recordLabel").value("Recursive Band"));
+        }
+
+        @Test
+        void 主表示項目に指定したフィールドを提出一覧名として使う() throws Exception {
+                Live live = createPublicLive(createCustomMainDisplayConfig());
+
+                PublicSettingSheetSubmissionRequest request = new PublicSettingSheetSubmissionRequest(List.of(
+                                new FieldAnswerRequest("entry-name", List.of("Display Name"), List.of()),
+                                new FieldAnswerRequest("note", List.of("memo"), List.of())));
+
+                mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.recordLabel").value("Display Name"));
+        }
+
+        @Test
+        void 共有提出一覧はpublicVisibleがtrueの項目だけを返す() throws Exception {
+                Live live = createPublicLive(createSharedBandOnlyConfig());
+
+                PublicSettingSheetSubmissionRequest request = new PublicSettingSheetSubmissionRequest(List.of(
+                                new FieldAnswerRequest("band-name", List.of("Visible Band"), List.of()),
+                                new FieldAnswerRequest("submission-status", List.of("完成"), List.of()),
+                                new FieldAnswerRequest("detail", List.of("hidden memo"), List.of())));
+
+                mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk());
+
+                mockMvc.perform(get("/api/public/lives/{publicToken}/setting-sheet/submissions/shared",
+                                live.getPublicToken()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].recordLabel").value("Visible Band"))
+                                .andExpect(jsonPath("$[0].answers.length()").value(1))
+                                .andExpect(jsonPath("$[0].answers[0].fieldId").value("band-name"))
+                                .andExpect(jsonPath("$[0].answers[0].values[0]").value("Visible Band"));
+        }
+
+        @Test
+        void 共有提出一覧のrecordLabelは非公開項目を漏らさない() throws Exception {
+                Live live = createPublicLive(createSharedHiddenRecordLabelConfig());
+
+                PublicSettingSheetSubmissionRequest request = new PublicSettingSheetSubmissionRequest(List.of(
+                                new FieldAnswerRequest("submission-status", List.of("完成"), List.of()),
+                                new FieldAnswerRequest("detail", List.of("公開メモ"), List.of())));
+
+                mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk());
+
+                mockMvc.perform(get("/api/public/lives/{publicToken}/setting-sheet/submissions/shared",
+                                live.getPublicToken()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].recordLabel").value("公開メモ"))
+                                .andExpect(jsonPath("$[0].answers.length()").value(1))
+                                .andExpect(jsonPath("$[0].answers[0].fieldId").value("detail"));
+        }
+
+        @Test
+        void 下書きライブには公開送信できない() throws Exception {
+                Live live = createPublicLive(createSimpleConfig(), LiveStatus.DRAFT, null);
+
+                mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createSubmissionRequest("Draft Band"))))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("このライブは現在回答を受け付けていません"));
+        }
+
+        @Test
+        void 締切後のライブには公開送信できない() throws Exception {
+                Live live = createPublicLive(createSimpleConfig(), LiveStatus.PUBLISHED,
+                                LocalDateTime.now().minusMinutes(5));
+
+                mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createSubmissionRequest("Late Band"))))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("回答受付は終了しました"));
         }
 
         private Live createPublicLive() throws Exception {
@@ -177,6 +260,11 @@ class PublicLivesControllerIntegrationTest {
         }
 
         private Live createPublicLive(SettingSheetConfigResponse config) throws Exception {
+                return createPublicLive(config, LiveStatus.PUBLISHED, null);
+        }
+
+        private Live createPublicLive(SettingSheetConfigResponse config, LiveStatus status, LocalDateTime deadlineAt)
+                        throws Exception {
                 User user = userRepository.save(User.builder()
                                 .sub("test-sub")
                                 .email("test@example.com")
@@ -192,7 +280,8 @@ class PublicLivesControllerIntegrationTest {
                                 .tenant(tenant)
                                 .publicToken(UUID.randomUUID().toString())
                                 .name("Test Live")
-                                .status(LiveStatus.PUBLISHED)
+                                .status(status)
+                                .deadlineAt(deadlineAt)
                                 .settingsJson(objectMapper.writeValueAsString(config))
                                 .build());
         }
@@ -202,11 +291,14 @@ class PublicLivesControllerIntegrationTest {
                                 "公開フォーム",
                                 "",
                                 "送信する",
+                                false,
+                                "band-name",
                                 List.of(new FormBlockResponse(
                                                 "band-name",
                                                 "SHORT_TEXT",
                                                 "バンド名",
                                                 "",
+                                                false,
                                                 false,
                                                 true,
                                                 false,
@@ -227,11 +319,14 @@ class PublicLivesControllerIntegrationTest {
                                 "公開フォーム",
                                 "",
                                 "送信する",
+                                false,
+                                "band-name",
                                 List.of(new FormBlockResponse(
                                                 "section-1",
                                                 "SECTION",
                                                 "セクション",
                                                 "",
+                                                false,
                                                 false,
                                                 false,
                                                 false,
@@ -247,6 +342,7 @@ class PublicLivesControllerIntegrationTest {
                                                                 "SHORT_TEXT",
                                                                 "バンド名",
                                                                 "",
+                                                                false,
                                                                 false,
                                                                 true,
                                                                 false,
@@ -269,11 +365,14 @@ class PublicLivesControllerIntegrationTest {
                                 "公開フォーム",
                                 "",
                                 "送信する",
+                                false,
+                                "band-name",
                                 List.of(new FormBlockResponse(
                                                 "section-1",
                                                 "SECTION",
                                                 "セクション",
                                                 "",
+                                                false,
                                                 false,
                                                 false,
                                                 false,
@@ -290,6 +389,7 @@ class PublicLivesControllerIntegrationTest {
                                                                 "バンド名",
                                                                 "",
                                                                 true,
+                                                                false,
                                                                 true,
                                                                 false,
                                                                 "outline",
@@ -311,12 +411,15 @@ class PublicLivesControllerIntegrationTest {
                                 "公開フォーム",
                                 "",
                                 "送信する",
+                                false,
+                                "band-name",
                                 List.of(
                                                 new FormBlockResponse(
                                                                 "section-1",
                                                                 "SECTION",
                                                                 "セクション",
                                                                 "",
+                                                                false,
                                                                 false,
                                                                 false,
                                                                 false,
@@ -332,6 +435,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "SHORT_TEXT",
                                                                                 "バンド名",
                                                                                 "",
+                                                                                false,
                                                                                 false,
                                                                                 true,
                                                                                 false,
@@ -355,6 +459,7 @@ class PublicLivesControllerIntegrationTest {
                                                                 false,
                                                                 false,
                                                                 false,
+                                                                false,
                                                                 "subtle",
                                                                 "outline",
                                                                 List.of(),
@@ -367,6 +472,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "SHORT_TEXT",
                                                                                 "氏名",
                                                                                 "",
+                                                                                false,
                                                                                 false,
                                                                                 true,
                                                                                 false,
@@ -390,6 +496,7 @@ class PublicLivesControllerIntegrationTest {
                                                                 false,
                                                                 false,
                                                                 false,
+                                                                false,
                                                                 "subtle",
                                                                 "outline",
                                                                 List.of(),
@@ -402,6 +509,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "SHORT_TEXT",
                                                                                 "曲名",
                                                                                 "",
+                                                                                false,
                                                                                 false,
                                                                                 true,
                                                                                 false,
@@ -417,6 +525,205 @@ class PublicLivesControllerIntegrationTest {
                                                                                 null)),
                                                                 new LayoutResponse("full", 1, false),
                                                                 null)));
+        }
+
+        private SettingSheetConfigResponse createCustomMainDisplayConfig() {
+                return new SettingSheetConfigResponse(
+                                "公開フォーム",
+                                "",
+                                "送信する",
+                                false,
+                                "entry-name",
+                                List.of(
+                                                new FormBlockResponse(
+                                                                "entry-name",
+                                                                "SHORT_TEXT",
+                                                                "表示名",
+                                                                "",
+                                                                false,
+                                                                false,
+                                                                true,
+                                                                false,
+                                                                "outline",
+                                                                "plain",
+                                                                List.of(),
+                                                                0,
+                                                                "",
+                                                                "",
+                                                                "",
+                                                                List.of(),
+                                                                new LayoutResponse("half", 1, false),
+                                                                null),
+                                                new FormBlockResponse(
+                                                                "note",
+                                                                "LONG_TEXT",
+                                                                "備考",
+                                                                "",
+                                                                false,
+                                                                false,
+                                                                false,
+                                                                false,
+                                                                "outline",
+                                                                "plain",
+                                                                List.of(),
+                                                                0,
+                                                                "",
+                                                                "",
+                                                                "",
+                                                                List.of(),
+                                                                new LayoutResponse("full", 1, false),
+                                                                null)));
+        }
+
+        private SettingSheetConfigResponse createSharedBandOnlyConfig() {
+                return new SettingSheetConfigResponse(
+                                "公開フォーム",
+                                "",
+                                "送信する",
+                                true,
+                                "band-name",
+                                List.of(new FormBlockResponse(
+                                                "section-band",
+                                                "SECTION",
+                                                "バンド基本情報",
+                                                "",
+                                                false,
+                                                false,
+                                                false,
+                                                false,
+                                                "plain",
+                                                "plain",
+                                                List.of(),
+                                                0,
+                                                "",
+                                                "",
+                                                "",
+                                                List.of(
+                                                                new FormBlockResponse(
+                                                                                "band-name",
+                                                                                "SHORT_TEXT",
+                                                                                "バンド名",
+                                                                                "",
+                                                                                false,
+                                                                                true,
+                                                                                true,
+                                                                                false,
+                                                                                "outline",
+                                                                                "plain",
+                                                                                List.of(),
+                                                                                0,
+                                                                                "",
+                                                                                "",
+                                                                                "",
+                                                                                List.of(),
+                                                                                new LayoutResponse("half", 1, false),
+                                                                                null),
+                                                                new FormBlockResponse(
+                                                                                "submission-status",
+                                                                                "SINGLE_SELECT",
+                                                                                "提出状況",
+                                                                                "",
+                                                                                false,
+                                                                                false,
+                                                                                true,
+                                                                                false,
+                                                                                "outline",
+                                                                                "plain",
+                                                                                List.of("未完成", "完成"),
+                                                                                0,
+                                                                                "",
+                                                                                "",
+                                                                                "",
+                                                                                List.of(),
+                                                                                new LayoutResponse("half", 1, false),
+                                                                                null),
+                                                                new FormBlockResponse(
+                                                                                "detail",
+                                                                                "LONG_TEXT",
+                                                                                "備考",
+                                                                                "",
+                                                                                false,
+                                                                                false,
+                                                                                false,
+                                                                                false,
+                                                                                "outline",
+                                                                                "plain",
+                                                                                List.of(),
+                                                                                0,
+                                                                                "",
+                                                                                "",
+                                                                                "",
+                                                                                List.of(),
+                                                                                new LayoutResponse("full", 1, false),
+                                                                                null)),
+                                                new LayoutResponse("full", 1, false),
+                                                null)));
+        }
+
+        private SettingSheetConfigResponse createSharedHiddenRecordLabelConfig() {
+                return new SettingSheetConfigResponse(
+                                "公開フォーム",
+                                "",
+                                "送信する",
+                                true,
+                                "submission-status",
+                                List.of(new FormBlockResponse(
+                                                "section-band",
+                                                "SECTION",
+                                                "バンド基本情報",
+                                                "",
+                                                false,
+                                                false,
+                                                false,
+                                                false,
+                                                "plain",
+                                                "plain",
+                                                List.of(),
+                                                0,
+                                                "",
+                                                "",
+                                                "",
+                                                List.of(
+                                                                new FormBlockResponse(
+                                                                                "submission-status",
+                                                                                "SINGLE_SELECT",
+                                                                                "提出状況",
+                                                                                "",
+                                                                                false,
+                                                                                false,
+                                                                                true,
+                                                                                false,
+                                                                                "outline",
+                                                                                "plain",
+                                                                                List.of("未完成", "完成"),
+                                                                                0,
+                                                                                "",
+                                                                                "",
+                                                                                "",
+                                                                                List.of(),
+                                                                                new LayoutResponse("half", 1, false),
+                                                                                null),
+                                                                new FormBlockResponse(
+                                                                                "detail",
+                                                                                "LONG_TEXT",
+                                                                                "備考",
+                                                                                "",
+                                                                                false,
+                                                                                true,
+                                                                                false,
+                                                                                false,
+                                                                                "outline",
+                                                                                "plain",
+                                                                                List.of(),
+                                                                                0,
+                                                                                "",
+                                                                                "",
+                                                                                "",
+                                                                                List.of(),
+                                                                                new LayoutResponse("full", 1, false),
+                                                                                null)),
+                                                new LayoutResponse("full", 1, false),
+                                                null)));
         }
 
         private PublicSettingSheetSubmissionRequest createSubmissionRequest(String bandName) {

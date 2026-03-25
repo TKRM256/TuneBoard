@@ -46,6 +46,19 @@ public class PublicLivesController {
         return ResponseEntity.ok(livesService.getPublicSettingSheetSubmission(publicToken, submissionId));
     }
 
+    @GetMapping("/{publicToken}/setting-sheet/submissions/{submissionId}/shared")
+    public ResponseEntity<PublicSettingSheetSubmissionDetailResponse> findSharedSubmission(
+            @PathVariable(name = "publicToken") String publicToken,
+            @PathVariable(name = "submissionId") UUID submissionId) {
+        return ResponseEntity.ok(livesService.getPublicSharedSettingSheetSubmission(publicToken, submissionId));
+    }
+
+    @GetMapping("/{publicToken}/setting-sheet/submissions/shared")
+    public ResponseEntity<java.util.List<PublicSettingSheetSubmissionDetailResponse>> listSharedSubmissions(
+            @PathVariable(name = "publicToken") String publicToken) {
+        return ResponseEntity.ok(livesService.listPublicSharedSettingSheetSubmissions(publicToken));
+    }
+
     @PutMapping("/{publicToken}/setting-sheet/submissions/{submissionId}")
     public ResponseEntity<SettingSheetSubmissionResponse> updateSubmission(
             @PathVariable(name = "publicToken") String publicToken,

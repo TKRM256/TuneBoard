@@ -3,6 +3,8 @@ import { toast } from 'sonner';
 
 import {
   DEFAULT_SETTING_SHEET_CONFIG,
+  getPublicSubmissionStatusMessage,
+  isPublicSubmissionClosed,
   normalizeSettingSheetConfig,
   type PublicLiveResponse,
   type PublicSettingSheetSubmissionDetailResponse,
@@ -44,24 +46,24 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
       : createDefaultSettingSheetValues(settingSheetConfig.blocks),
     [settingSheetConfig.blocks, submission],
   );
-
-  const [formValues, setFormValues] = useState<SettingSheetFormValues>(() => {
+  const initialDraft = useMemo(() => {
     const draft = window.localStorage.getItem(storageKey);
-    return draft ? parseSettingSheetDraft(draft, settingSheetConfig.blocks).values : initialValues;
-  });
+    return draft ? parseSettingSheetDraft(draft, settingSheetConfig.blocks) : null;
+  }, [settingSheetConfig.blocks, storageKey]);
+
+  const [formValues, setFormValues] = useState<SettingSheetFormValues>(() => initialDraft?.values ?? initialValues);
   const [issues, setIssues] = useState<SettingSheetIssue[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(() => initialDraft?.savedAt ?? null);
 
-  useEffect(() => {
-    const draft = window.localStorage.getItem(storageKey);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFormValues(draft ? parseSettingSheetDraft(draft, settingSheetConfig.blocks).values : initialValues);
-  }, [initialValues, settingSheetConfig.blocks, storageKey]);
+  const isSubmissionClosed = isPublicSubmissionClosed(live);
+  const submissionStatusMessage = getPublicSubmissionStatusMessage(live);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const nextSavedAt = new Date().toISOString();
       window.localStorage.setItem(storageKey, JSON.stringify({ savedAt: nextSavedAt, values: formValues }));
+      setDraftSavedAt(nextSavedAt);
     }, 400);
 
     return () => window.clearTimeout(timer);
@@ -90,7 +92,11 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
       return;
     }
 
-    const nextIssues = Object.entries(serverFieldErrors).map(([key, message]) => ({ key, label: key, message }));
+    const nextIssues = Object.entries(serverFieldErrors).map(([key, message]) => ({
+      key,
+      label: resolveIssueLabel(key, settingSheetConfig),
+      message,
+    }));
     setIssues(nextIssues);
     if (nextIssues.length > 0) {
       focusIssue(nextIssues[0]);
@@ -107,6 +113,11 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
   });
 
   const handleSubmit = () => {
+    if (isSubmissionClosed) {
+      toast.error(submissionStatusMessage || '現在は回答を受け付けていません。', { position: 'top-center' });
+      return;
+    }
+
     const nextIssues = validateSettingSheetForm(formValues, settingSheetConfig);
     setIssues(nextIssues);
 
@@ -129,6 +140,7 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
       .then((response) => {
         setIssues([]);
         window.localStorage.removeItem(storageKey);
+        setDraftSavedAt(null);
 
         if (submission) {
           toast.success('提出済みシートを更新しました。', { position: 'top-center' });
@@ -163,9 +175,38 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
     handleSubmit,
     initialValues,
     isSubmitting,
+    isSubmissionClosed,
     issues,
+    draftSavedAt,
     setFormValues,
     settingSheetConfig,
+    submissionStatusMessage,
     updateScopedAnswers,
   };
+}
+
+function resolveIssueLabel(key: string, config: typeof DEFAULT_SETTING_SHEET_CONFIG) {
+  const fieldId = key.match(/answers\.(.+?)(?:\.items|$)/)?.[1];
+  if (!fieldId) {
+    return key;
+  }
+
+  return findBlockLabel(config.blocks, fieldId) ?? fieldId;
+}
+
+function findBlockLabel(blocks: typeof DEFAULT_SETTING_SHEET_CONFIG.blocks, fieldId: string): string | null {
+  for (const block of blocks) {
+    if (block.id === fieldId) {
+      return block.label;
+    }
+
+    if (block.fields.length > 0) {
+      const nested = findBlockLabel(block.fields, fieldId);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+
+  return null;
 }

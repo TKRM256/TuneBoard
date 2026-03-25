@@ -6,6 +6,7 @@ import {
   formatDeadline,
   formatLiveDate,
   formatOptionalText,
+  normalizeSettingSheetConfig,
   toLiveCreatePayload,
   toLiveUpdatePayload,
   type LiveResponse,
@@ -80,5 +81,39 @@ describe('lives type utilities', () => {
     expect(formatDeadline('2025-04-05T12:34:00')).toBe(
       new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date('2025-04-05T12:34:00')),
     );
+  });
+
+  it('normalizeSettingSheetConfig はセクションの publicVisible を保持する', () => {
+    const normalized = normalizeSettingSheetConfig({
+      title: 'test',
+      description: '',
+      submitButtonLabel: '送信',
+      publicSubmissionEnabled: false,
+      recordLabelFieldId: '',
+      blocks: [
+        {
+          id: 'section-1',
+          type: 'SECTION',
+          label: '見出し',
+          description: '',
+          hidden: false,
+          publicVisible: true,
+          required: false,
+          collapsible: false,
+          appearance: 'plain',
+          itemAppearance: 'plain',
+          options: [],
+          minItems: 0,
+          addButtonLabel: '',
+          entryTitle: '',
+          titleSourceFieldId: '',
+          fields: [],
+          layout: { width: 'full', optionColumns: 1, optionFitContent: false },
+          optionSource: null,
+        },
+      ],
+    });
+
+    expect(normalized.blocks[0].publicVisible).toBe(true);
   });
 });
