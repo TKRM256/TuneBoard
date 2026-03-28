@@ -17,6 +17,7 @@ import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
+import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
@@ -24,6 +25,7 @@ import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
+import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
 import jp.tubeboard.features.tenants.model.Tenants;
 import lombok.AllArgsConstructor;
 
@@ -37,6 +39,7 @@ public class LivesService implements ILivesService {
         private final SettingSheetConfigService settingSheetConfigService;
         private final SettingSheetSubmissionService settingSheetSubmissionService;
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
+        private final SongDuplicateDetectionService songDuplicateDetectionService;
 
         private final LiveServiceHelper helper;
 
@@ -159,7 +162,9 @@ public class LivesService implements ILivesService {
                         PublicSettingSheetSubmissionRequest request) {
                 Live live = liveRepository.findByPublicTokenAndDeletedAtIsNull(publicToken)
                                 .orElseThrow(() -> new LivesNotFoundException("公開ライブが見つかりません"));
-                return helper.saveSubmission(live, request, null);
+                SettingSheetSubmissionResponse response = helper.saveSubmission(live, request, null);
+                helper.triggerDuplicateDetection(live.getId());
+                return response;
         }
 
         @Override
@@ -287,6 +292,31 @@ public class LivesService implements ILivesService {
                         UUID submissionId,
                         PublicSettingSheetSubmissionRequest request) {
                 SettingSheetSubmission submission = helper.findPublicSubmission(publicToken, submissionId);
-                return helper.saveSubmission(submission.getLive(), request, submission);
+                SettingSheetSubmissionResponse response = helper.saveSubmission(submission.getLive(), request,
+                                submission);
+                helper.triggerDuplicateDetection(submission.getLive().getId());
+                return response;
+        }
+
+        @Override
+        @Transactional
+        public SongDuplicateResponse detectSongDuplicates(UUID liveId) {
+                helper.findOwnedLive(liveId);
+                return songDuplicateDetectionService.getCachedResult(liveId)
+                                .orElseGet(() -> songDuplicateDetectionService.computeAndStoreSync(liveId));
+        }
+
+        @Override
+        @Transactional
+        public SongDuplicateResponse refreshSongDuplicates(UUID liveId) {
+                helper.findOwnedLive(liveId);
+                return songDuplicateDetectionService.forceComputeAndStoreSync(liveId);
+        }
+
+        @Override
+        @Transactional
+        public SongDuplicateResponse toggleDismissSongDuplicate(UUID liveId, String normalizedTitle) {
+                helper.findOwnedLive(liveId);
+                return songDuplicateDetectionService.toggleDismiss(liveId, normalizedTitle);
         }
 }

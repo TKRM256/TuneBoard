@@ -78,15 +78,20 @@ public class FormBuilderHelper {
                 false, false,
                 SettingSheetConstants.APPEARANCE_PLAIN, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                children, layoutFull(1), null);
+                children, layoutFull(1), null, "");
     }
 
     public FormBlockResponse textBlock(String id, String label, boolean required, LayoutResponse layout) {
+        return textBlock(id, label, required, layout, "");
+    }
+
+    public FormBlockResponse textBlock(String id, String label, boolean required, LayoutResponse layout,
+            String duplicateDetectionRole) {
         return new FormBlockResponse(id, SettingSheetConstants.BLOCK_SHORT_TEXT, label, "", false, false,
                 required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                List.of(), layout, null);
+                List.of(), layout, null, normalizeDuplicateDetectionRole(duplicateDetectionRole));
     }
 
     public FormBlockResponse longTextBlock(String id, String label, boolean required, LayoutResponse layout) {
@@ -94,7 +99,7 @@ public class FormBuilderHelper {
                 required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                List.of(), layout, null);
+                List.of(), layout, null, "");
     }
 
     public FormBlockResponse booleanBlock(String id, String label, String description, LayoutResponse layout) {
@@ -102,7 +107,7 @@ public class FormBuilderHelper {
                 false, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                List.of(), layout, null);
+                List.of(), layout, null, "");
     }
 
     public FormBlockResponse selectBlock(String id, String type, String label, boolean required, List<String> options,
@@ -110,7 +115,7 @@ public class FormBuilderHelper {
         return new FormBlockResponse(id, type, label, "", false, false, required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, options, 0, "", "",
                 "",
-                List.of(), layout, optionSource);
+                List.of(), layout, optionSource, "");
     }
 
     public FormBlockResponse groupBlock(String id, String label, String description, boolean required,
@@ -119,7 +124,7 @@ public class FormBuilderHelper {
         return new FormBlockResponse(id, SettingSheetConstants.BLOCK_REPEATABLE_GROUP, label, description, false,
                 false, required, collapsible, SettingSheetConstants.APPEARANCE_SUBTLE,
                 SettingSheetConstants.APPEARANCE_OUTLINE,
-                List.of(), minItems, addButtonLabel, entryTitle, titleSourceFieldId, fields, layout, null);
+                List.of(), minItems, addButtonLabel, entryTitle, titleSourceFieldId, fields, layout, null, "");
     }
 
     public OptionSourceResponse optionSource(String blockId, String fieldId) {
@@ -149,5 +154,10 @@ public class FormBuilderHelper {
     public String safeTextOrDefault(String value, String fallback) {
         String sanitized = safeText(value);
         return sanitized.isBlank() ? fallback : sanitized;
+    }
+
+    public String normalizeDuplicateDetectionRole(String value) {
+        String normalized = safeText(value).toUpperCase();
+        return SettingSheetConstants.DUPLICATE_DETECTION_ROLES.contains(normalized) ? normalized : "";
     }
 }

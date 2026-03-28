@@ -7,7 +7,6 @@ public record SettingSheetConfigUpdateRequest(
                 String description,
                 String submitButtonLabel,
                 Boolean publicSubmissionEnabled,
-                String recordLabelFieldId,
                 List<FormBlockRequest> blocks) {
 
         public record FormBlockRequest(
@@ -28,7 +27,8 @@ public record SettingSheetConfigUpdateRequest(
                         String titleSourceFieldId,
                         List<FormBlockRequest> fields,
                         LayoutRequest layout,
-                        OptionSourceRequest optionSource) {
+                        OptionSourceRequest optionSource,
+                        String duplicateDetectionRole) {
         }
 
         public record LayoutRequest(

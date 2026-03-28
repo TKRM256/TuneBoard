@@ -53,6 +53,13 @@ public final class SettingSheetConstants {
                         APPEARANCE_OUTLINE,
                         APPEARANCE_SUBTLE);
 
+        public static final String DUPLICATE_ROLE_NONE = "";
+        public static final String DUPLICATE_ROLE_SONG_TITLE = "SONG_TITLE";
+        public static final String DUPLICATE_ROLE_SONG_ARTIST = "SONG_ARTIST";
+        public static final Set<String> DUPLICATE_DETECTION_ROLES = Set.of(
+                        DUPLICATE_ROLE_SONG_TITLE,
+                        DUPLICATE_ROLE_SONG_ARTIST);
+
         private SettingSheetConstants() {
         }
 }

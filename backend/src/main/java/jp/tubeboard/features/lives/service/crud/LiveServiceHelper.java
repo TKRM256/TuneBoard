@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import jp.tubeboard.common.exception.BadRequestException;
 import jp.tubeboard.features.auth.User;
@@ -25,6 +27,7 @@ import lombok.AllArgsConstructor;
 import jp.tubeboard.features.lives.service.SettingSheetConstants;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
+import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
 
 @Component
 @AllArgsConstructor
@@ -35,6 +38,7 @@ public class LiveServiceHelper {
         private final LiveRepository liveRepository;
         private final SettingSheetConfigService settingSheetConfigService;
         private final SettingSheetSubmissionService settingSheetSubmissionService;
+        private final SongDuplicateDetectionService songDuplicateDetectionService;
 
         public Tenants findTenant(UUID tenantId, Long userId) {
                 return tenantsRepository.findByIdAndUserIdAndDeletedAtIsNull(tenantId, userId)
@@ -84,6 +88,15 @@ public class LiveServiceHelper {
                 target.setPayloadJson(settingSheetSubmissionService.writeSubmissionPayload(normalizedRequest));
 
                 return toSubmissionResponse(settingSheetSubmissionRepository.save(target));
+        }
+
+        public void triggerDuplicateDetection(UUID liveId) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                                songDuplicateDetectionService.computeAndStoreAsync(liveId);
+                        }
+                });
         }
 
         public LiveResponse toResponse(Live live) {

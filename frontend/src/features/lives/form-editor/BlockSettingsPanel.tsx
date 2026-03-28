@@ -15,6 +15,8 @@ import {
 } from './utils';
 import {
   canContainBlocks,
+  DUPLICATE_DETECTION_ROLE_OPTIONS,
+  type DuplicateDetectionRole,
   isInputBlock,
   isOptionBlock,
   isRepeatableGroupBlock,
@@ -35,8 +37,6 @@ interface BlockSettingsPanelProps {
   onChangeType: (blockId: string, nextType: SettingSheetBlock['type']) => void;
   onApplyGroupAppearance: (blockId: string, appearance: SettingSheetBlock['appearance']) => void;
   onUpdateOptionSource: (blockId: string, source: SettingSheetOptionSource | null) => void;
-  isMainDisplayField: boolean;
-  onSetMainDisplayFieldId: (fieldId: string) => void;
   renderNestedBlock: (child: SettingSheetBlock, childIndex: number, nestedParentId: string | null, nestedDepth: number) => ReactNode;
 }
 
@@ -49,14 +49,11 @@ export const BlockSettingsPanel = ({
   onChangeType,
   onApplyGroupAppearance,
   onUpdateOptionSource,
-  isMainDisplayField,
-  onSetMainDisplayFieldId,
   renderNestedBlock,
 }: BlockSettingsPanelProps) => {
   const usesOptions = isOptionBlock(block.type);
   const usesRequired = isInputBlock(block.type) || isRepeatableGroupBlock(block.type);
   const usesChildren = canContainBlocks(block.type);
-  const canUseAsMainDisplay = isInputBlock(block.type);
   const titleSourceCandidates = isRepeatableGroupBlock(block.type) ? collectTitleSourceCandidates(block.fields) : [];
   const sharedChildAppearance = resolveSharedChildAppearance(block);
 
@@ -151,19 +148,27 @@ export const BlockSettingsPanel = ({
                   今はこのブロックを公開フォームで非表示にする
                 </div>
               </div>
-              <div className="lg:col-span-2 rounded-xl border bg-muted/30 p-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Checkbox checked={block.publicVisible === true} onCheckedChange={(checked) => onUpdateBlock(block.id, { publicVisible: checked === true })} />
-                  共有・提出一覧でこの項目を表示する
-                </div>
-              </div>
-              {canUseAsMainDisplay ? (
+              {!canContainBlocks(block.type) ? (
                 <div className="lg:col-span-2 rounded-xl border bg-muted/30 p-3">
                   <div className="flex items-center gap-3 text-sm">
-                    <Checkbox checked={isMainDisplayField} onCheckedChange={(checked) => onSetMainDisplayFieldId(checked === true ? block.id : '')} />
-                    提出一覧の主表示項目にする
+                    <Checkbox checked={block.publicVisible === true} onCheckedChange={(checked) => onUpdateBlock(block.id, { publicVisible: checked === true })} />
+                    共有・提出一覧でこの項目を表示する
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">このラベルが提出一覧や共有一覧の先頭列見出しになります。</p>
+                </div>
+              ) : null}
+              {isInputBlock(block.type) ? (
+                <div>
+                  <p className="text-xs text-muted-foreground">曲かぶり検知の役割</p>
+                  <Select value={block.duplicateDetectionRole || '__none__'} onValueChange={(value) => onUpdateBlock(block.id, { duplicateDetectionRole: (value === '__none__' ? '' : value) as DuplicateDetectionRole })}>
+                    <SelectTrigger className="mt-1 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DUPLICATE_DETECTION_ROLE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value || '__none__'} value={option.value || '__none__'}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               ) : null}
             </div>

@@ -12,6 +12,7 @@ const TenantLivesPage = lazy(() => import('./features/lives/TenantLivesPage').th
 const LiveManagementPage = lazy(() => import('./features/lives/LiveManagementPage').then((module) => ({ default: module.LiveManagementPage })));
 const LiveFormEditorPage = lazy(() => import('./features/lives/LiveFormEditorPage').then((module) => ({ default: module.LiveFormEditorPage })));
 const LiveSubmissionsPage = lazy(() => import('./features/lives/LiveSubmissionsPage').then((module) => ({ default: module.LiveSubmissionsPage })));
+const LiveVisibilitySettingsPage = lazy(() => import('./features/lives/LiveVisibilitySettingsPage').then((module) => ({ default: module.LiveVisibilitySettingsPage })));
 
 const routeFallback = (
   <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
@@ -43,6 +44,7 @@ function App() {
             <Route path="tenants/:tenantId/lives/:liveId" element={<Suspense fallback={routeFallback}><LiveManagementPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/form" element={<Suspense fallback={routeFallback}><LiveFormEditorPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/submissions" element={<Suspense fallback={routeFallback}><LiveSubmissionsPage /></Suspense>} />
+            <Route path="tenants/:tenantId/lives/:liveId/settings" element={<Suspense fallback={routeFallback}><LiveVisibilitySettingsPage /></Suspense>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

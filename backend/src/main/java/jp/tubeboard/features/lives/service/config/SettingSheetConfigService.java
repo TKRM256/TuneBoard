@@ -44,9 +44,11 @@ public class SettingSheetConfigService {
                                                 formBuilderHelper.layoutThird(1)));
 
                 List<FormBlockResponse> songFields = List.of(
-                                formBuilderHelper.textBlock("song-title", "曲名", true, formBuilderHelper.layoutHalf(1)),
+                                formBuilderHelper.textBlock("song-title", "曲名", true, formBuilderHelper.layoutHalf(1),
+                                                SettingSheetConstants.DUPLICATE_ROLE_SONG_TITLE),
                                 formBuilderHelper.textBlock("song-artist", "アーティスト名", true,
-                                                formBuilderHelper.layoutHalf(1)),
+                                                formBuilderHelper.layoutHalf(1),
+                                                SettingSheetConstants.DUPLICATE_ROLE_SONG_ARTIST),
                                 formBuilderHelper.selectBlock("song-parts", SettingSheetConstants.BLOCK_MULTI_SELECT,
                                                 "使うパート", true,
                                                 List.of("Vo", "Gt", "Ba", "Dr", "Key", "Cho", "SE", "同期"), null,
@@ -76,7 +78,6 @@ public class SettingSheetConfigService {
                                 "出演情報、メンバー、演奏曲を入力してください。",
                                 "送信する",
                                 true,
-                                "band-name",
                                 List.of(
                                                 formBuilderHelper.sectionBlock("section-band", "バンド基本情報",
                                                                 "バンド名、提出状況、備考を入力します。", bandFields),
@@ -109,7 +110,6 @@ public class SettingSheetConfigService {
                                         parsed.publicSubmissionEnabled() == null
                                                         ? defaults.publicSubmissionEnabled()
                                                         : parsed.publicSubmissionEnabled(),
-                                        formBuilderHelper.safeText(parsed.recordLabelFieldId()),
                                         helper.normalizeBlocks(helper.mapToFormBlockRequests(parsed.blocks()),
                                                         defaults));
                 } catch (JsonProcessingException ex) {
@@ -135,7 +135,6 @@ public class SettingSheetConfigService {
                                 formBuilderHelper.safeTextOrDefault(request.description(), "出演情報、メンバー、演奏曲を入力してください。"),
                                 formBuilderHelper.safeTextOrDefault(request.submitButtonLabel(), "送信する"),
                                 publicSubmissionEnabled,
-                                formBuilderHelper.safeText(request.recordLabelFieldId()),
                                 helper.normalizeBlocks(request.blocks(), defaults));
         }
 }

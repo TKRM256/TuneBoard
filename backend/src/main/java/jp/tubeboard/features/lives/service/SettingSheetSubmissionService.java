@@ -45,13 +45,6 @@ public class SettingSheetSubmissionService {
     public String resolveSubmissionSummary(SettingSheetConfigResponse config,
             PublicSettingSheetSubmissionRequest request,
             String fallback) {
-        String fieldId = config.recordLabelFieldId();
-        if (fieldId != null && !fieldId.isBlank()) {
-            String value = findFirstValueByFieldId(config.blocks(), request.answers(), fieldId);
-            if (!value.isBlank()) {
-                return value;
-            }
-        }
         String firstAnswer = findFirstSubmittedValue(config.blocks(), request.answers());
         return firstAnswer.isBlank() ? fallback + " の回答" : firstAnswer;
     }
@@ -92,13 +85,6 @@ public class SettingSheetSubmissionService {
 
     public String resolveSharedRecordLabel(SettingSheetConfigResponse config,
             PublicSettingSheetSubmissionRequest sharedRequest) {
-        String fieldId = safeText(config.recordLabelFieldId());
-        if (!fieldId.isBlank() && isSharedVisibleField(config.blocks(), fieldId, true)) {
-            String value = findFirstValueByFieldId(config.blocks(), sharedRequest.answers(), fieldId);
-            if (!value.isBlank()) {
-                return value;
-            }
-        }
         return findFirstSubmittedValue(config.blocks(), sharedRequest.answers());
     }
 

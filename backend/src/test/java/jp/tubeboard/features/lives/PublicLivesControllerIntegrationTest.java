@@ -292,7 +292,6 @@ class PublicLivesControllerIntegrationTest {
                                 "",
                                 "送信する",
                                 false,
-                                "band-name",
                                 List.of(new FormBlockResponse(
                                                 "band-name",
                                                 "SHORT_TEXT",
@@ -311,7 +310,7 @@ class PublicLivesControllerIntegrationTest {
                                                 "",
                                                 List.of(),
                                                 new LayoutResponse("half", 1, false),
-                                                null)));
+                                                null, "")));
         }
 
         private SettingSheetConfigResponse createVisibleSectionConfig() {
@@ -320,7 +319,6 @@ class PublicLivesControllerIntegrationTest {
                                 "",
                                 "送信する",
                                 false,
-                                "band-name",
                                 List.of(new FormBlockResponse(
                                                 "section-1",
                                                 "SECTION",
@@ -355,9 +353,9 @@ class PublicLivesControllerIntegrationTest {
                                                                 "",
                                                                 List.of(),
                                                                 new LayoutResponse("half", 1, false),
-                                                                null)),
+                                                                null, "")),
                                                 new LayoutResponse("full", 1, false),
-                                                null)));
+                                                null, "")));
         }
 
         private SettingSheetConfigResponse createHiddenSectionConfig() {
@@ -366,7 +364,6 @@ class PublicLivesControllerIntegrationTest {
                                 "",
                                 "送信する",
                                 false,
-                                "band-name",
                                 List.of(new FormBlockResponse(
                                                 "section-1",
                                                 "SECTION",
@@ -401,9 +398,9 @@ class PublicLivesControllerIntegrationTest {
                                                                 "",
                                                                 List.of(),
                                                                 new LayoutResponse("half", 1, false),
-                                                                null)),
+                                                                null, "")),
                                                 new LayoutResponse("full", 1, false),
-                                                null)));
+                                                null, "")));
         }
 
         private SettingSheetConfigResponse createSectionAndRepeatableGroupConfig() {
@@ -412,7 +409,6 @@ class PublicLivesControllerIntegrationTest {
                                 "",
                                 "送信する",
                                 false,
-                                "band-name",
                                 List.of(
                                                 new FormBlockResponse(
                                                                 "section-1",
@@ -448,9 +444,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null)),
+                                                                                null, "")),
                                                                 new LayoutResponse("full", 1, false),
-                                                                null),
+                                                                null, ""),
                                                 new FormBlockResponse(
                                                                 "members",
                                                                 "REPEATABLE_GROUP",
@@ -485,9 +481,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null)),
+                                                                                null, "")),
                                                                 new LayoutResponse("full", 1, false),
-                                                                null),
+                                                                null, ""),
                                                 new FormBlockResponse(
                                                                 "songs",
                                                                 "REPEATABLE_GROUP",
@@ -522,9 +518,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null)),
+                                                                                null, "")),
                                                                 new LayoutResponse("full", 1, false),
-                                                                null)));
+                                                                null, "")));
         }
 
         private SettingSheetConfigResponse createCustomMainDisplayConfig() {
@@ -533,7 +529,6 @@ class PublicLivesControllerIntegrationTest {
                                 "",
                                 "送信する",
                                 false,
-                                "entry-name",
                                 List.of(
                                                 new FormBlockResponse(
                                                                 "entry-name",
@@ -553,7 +548,7 @@ class PublicLivesControllerIntegrationTest {
                                                                 "",
                                                                 List.of(),
                                                                 new LayoutResponse("half", 1, false),
-                                                                null),
+                                                                null, ""),
                                                 new FormBlockResponse(
                                                                 "note",
                                                                 "LONG_TEXT",
@@ -572,7 +567,7 @@ class PublicLivesControllerIntegrationTest {
                                                                 "",
                                                                 List.of(),
                                                                 new LayoutResponse("full", 1, false),
-                                                                null)));
+                                                                null, "")));
         }
 
         private SettingSheetConfigResponse createSharedBandOnlyConfig() {
@@ -581,7 +576,6 @@ class PublicLivesControllerIntegrationTest {
                                 "",
                                 "送信する",
                                 true,
-                                "band-name",
                                 List.of(new FormBlockResponse(
                                                 "section-band",
                                                 "SECTION",
@@ -617,7 +611,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null),
+                                                                                null, ""),
                                                                 new FormBlockResponse(
                                                                                 "submission-status",
                                                                                 "SINGLE_SELECT",
@@ -636,7 +630,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null),
+                                                                                null, ""),
                                                                 new FormBlockResponse(
                                                                                 "detail",
                                                                                 "LONG_TEXT",
@@ -655,9 +649,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("full", 1, false),
-                                                                                null)),
+                                                                                null, "")),
                                                 new LayoutResponse("full", 1, false),
-                                                null)));
+                                                null, "")));
         }
 
         private SettingSheetConfigResponse createSharedHiddenRecordLabelConfig() {
@@ -666,7 +660,6 @@ class PublicLivesControllerIntegrationTest {
                                 "",
                                 "送信する",
                                 true,
-                                "submission-status",
                                 List.of(new FormBlockResponse(
                                                 "section-band",
                                                 "SECTION",
@@ -702,7 +695,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null),
+                                                                                null, ""),
                                                                 new FormBlockResponse(
                                                                                 "detail",
                                                                                 "LONG_TEXT",
@@ -721,9 +714,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("full", 1, false),
-                                                                                null)),
+                                                                                null, "")),
                                                 new LayoutResponse("full", 1, false),
-                                                null)));
+                                                null, "")));
         }
 
         private PublicSettingSheetSubmissionRequest createSubmissionRequest(String bandName) {

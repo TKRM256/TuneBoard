@@ -68,7 +68,11 @@ public class SettingSheetConfigServiceHelper {
                                 (repeatableGroup || sectionBlock) ? normalizeBlocks(block.fields(), defaultConfig)
                                                 : List.of(),
                                 formBuilderHelper.normalizeLayout(block.layout()),
-                                optionSource);
+                                optionSource,
+                                valueBlock
+                                                ? formBuilderHelper.normalizeDuplicateDetectionRole(
+                                                                block.duplicateDetectionRole())
+                                                : "");
         }
 
         public List<FormBlockRequest> mapToFormBlockRequests(List<FormBlockResponse> blocks) {
@@ -98,7 +102,8 @@ public class SettingSheetConfigServiceHelper {
                                                                 block.layout().optionFitContent()),
                                 block.optionSource() == null ? null
                                                 : new OptionSourceRequest(block.optionSource().blockId(),
-                                                                block.optionSource().fieldId())))
+                                                                block.optionSource().fieldId()),
+                                block.duplicateDetectionRole()))
                                 .toList();
         }
 }

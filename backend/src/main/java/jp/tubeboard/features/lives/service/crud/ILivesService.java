@@ -12,6 +12,7 @@ import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
+import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 
 public interface ILivesService {
 
@@ -55,4 +56,10 @@ public interface ILivesService {
         SettingSheetSubmissionResponse updatePublicSettingSheetSubmission(String publicToken,
                         UUID submissionId,
                         PublicSettingSheetSubmissionRequest request);
+
+        SongDuplicateResponse detectSongDuplicates(UUID liveId);
+
+        SongDuplicateResponse refreshSongDuplicates(UUID liveId);
+
+        SongDuplicateResponse toggleDismissSongDuplicate(UUID liveId, String normalizedTitle);
 }

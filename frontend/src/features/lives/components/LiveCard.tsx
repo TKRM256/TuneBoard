@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarDays, Copy, ExternalLink, MapPin, Settings2 } from 'lucide-react';
+import { CalendarDays, Copy, ExternalLink, MapPin, MoreHorizontal, Pencil, Settings2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -9,6 +9,12 @@ import { InlineEditPanel } from '@/components/original/InlineEditPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -114,53 +120,60 @@ export const LiveCard = ({ live, tenantId, onUpdateSuccess, onDelete }: LiveCard
     <motion.div layout>
     <Card className={isEditing ? 'border-primary/30 shadow-md shadow-primary/5' : undefined}>
       <CardHeader>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0 space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
             <div className="flex items-center gap-2">
-              <h3 className="break-words text-lg font-semibold sm:text-xl">{live.name}</h3>
+              <h3 className="break-words text-lg font-semibold">{live.name}</h3>
               <Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>
             </div>
+            <p className="text-sm text-muted-foreground">
+              {formatLiveDate(live.date)} · {formatOptionalText(live.location)}
+            </p>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-            <Button className="w-full sm:w-auto" type="button" variant="outline" size="sm" onClick={() => window.open(publicUrl, '_blank', 'noopener,noreferrer')}>
-              <ExternalLink className="size-4" />
-              公開ページ
-            </Button>
-            <Button asChild className="w-full sm:w-auto" type="button" variant="outline" size="sm">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button asChild size="sm">
               <Link to={`/tenants/${tenantId}/lives/${live.id}`}>
                 <Settings2 className="size-4" />
                 管理
               </Link>
             </Button>
-            <Button className="w-full sm:w-auto" type="button" variant="outline" size="sm" onClick={handleCopy}>
-              <Copy className="size-4" />
-              URLコピー
+            <Button variant="ghost" size="icon" className="size-8" onClick={() => setIsEditing((prev) => !prev)}>
+              <Pencil className="size-4" />
             </Button>
-            <Button className="col-span-2 w-full sm:col-span-1 sm:w-auto" type="button" variant='outline' size="sm" onClick={() => setIsEditing((prev) => !prev)}>
-              {isEditing ? 'キャンセル' : '編集'}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8">
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => window.open(publicUrl, '_blank', 'noopener,noreferrer')}>
+                  <ExternalLink className="size-4" />
+                  公開ページを開く
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopy}>
+                  <Copy className="size-4" />
+                  URLをコピー
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
-        <div className="grid gap-3 text-sm md:grid-cols-2">
-          <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
-            <CalendarDays className="size-4 text-muted-foreground" />
-            <span className="min-w-0 break-words">{formatLiveDate(live.date)}</span>
+        <div className="grid gap-3 text-sm sm:grid-cols-2">
+          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+            <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0">
+              <span className="text-xs text-muted-foreground">回答締切: </span>
+              <span className="font-medium">{formatDeadline(live.deadlineAt)}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2">
-            <MapPin className="size-4 text-muted-foreground" />
-            <span className="min-w-0 break-words">{formatOptionalText(live.location)}</span>
+          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+            <Copy className="size-4 shrink-0 text-muted-foreground" />
+            <p className="min-w-0 truncate text-xs text-muted-foreground">{publicUrl}</p>
           </div>
-        </div>
-        <div className="rounded-md border px-3 py-2 text-sm">
-          <p className="font-medium">回答締切</p>
-          <p className="text-muted-foreground">{formatDeadline(live.deadlineAt)}</p>
-        </div>
-        <div className="rounded-md border px-3 py-2 text-sm">
-          <p className="font-medium">公開URL</p>
-          <p className="break-all text-muted-foreground">{publicUrl}</p>
         </div>
       </CardContent>
 

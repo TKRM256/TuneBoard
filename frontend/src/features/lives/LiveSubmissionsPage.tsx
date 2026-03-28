@@ -1,6 +1,6 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Copy, ExternalLink, Search } from 'lucide-react';
+import { ChevronLeft, Copy, ExternalLink, MoreHorizontal, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -16,6 +16,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -25,13 +31,14 @@ import {
   formatLiveDate,
   isSectionBlock,
   isRepeatableGroupBlock,
-  resolveRecordLabel,
   type LiveResponse,
   type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetBlock,
   type SettingSheetConfigResponse,
   type SettingSheetSubmissionAnswerResponse,
+  type SongDuplicateResponse,
 } from './types/type';
+import { SongDuplicatesPanel } from './SongDuplicatesPanel';
 
 interface ColumnDef {
   id: string;
@@ -49,6 +56,8 @@ export const LiveSubmissionsPage = () => {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
+  const [isDuplicateLoading, setIsDuplicateLoading] = useState(false);
 
   useEffect(() => {
     if (!liveId) {
@@ -60,10 +69,11 @@ export const LiveSubmissionsPage = () => {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [liveResponse, configResponse, detailsResponse] = await Promise.all([
+        const [liveResponse, configResponse, detailsResponse, duplicatesResponse] = await Promise.all([
           apiClient.get<LiveResponse>(`/lives/${liveId}`),
           apiClient.get<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`),
           apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`),
+          apiClient.get<SongDuplicateResponse>(`/lives/${liveId}/songs/duplicates`),
         ]);
 
         if (!liveResponse || !configResponse) {
@@ -77,6 +87,7 @@ export const LiveSubmissionsPage = () => {
         setLive(liveResponse);
         setConfig(configResponse);
         setDetails(detailsResponse ?? []);
+        setDuplicates(duplicatesResponse ?? null);
       } catch {
         if (!cancelled) {
           toast.error('提出情報の取得に失敗しました', { position: 'top-center' });
@@ -95,9 +106,48 @@ export const LiveSubmissionsPage = () => {
     };
   }, [liveId]);
 
-  const recordLabel = useMemo(() => resolveRecordLabel(config), [config]);
+  const recordLabel = '回答';
   const tableColumns = useMemo(() => collectColumns(config), [config]);
   const hasVisibleColumns = tableColumns.length > 0;
+
+  const duplicateMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    if (!duplicates) return map;
+    for (const group of duplicates.groups) {
+      if (group.dismissed) continue;
+      for (const entry of group.entries) {
+        const existing = map.get(entry.submissionId) ?? [];
+        existing.push(group.normalizedTitle);
+        map.set(entry.submissionId, existing);
+      }
+    }
+    return map;
+  }, [duplicates]);
+
+  const refreshDuplicates = useCallback(async () => {
+    setIsDuplicateLoading(true);
+    try {
+      const response = await apiClient.post<SongDuplicateResponse>(`/lives/${liveId}/songs/duplicates/refresh`);
+      setDuplicates(response ?? null);
+      toast.success('曲かぶり検出を再実行しました', { position: 'top-center' });
+    } catch {
+      toast.error('曲かぶり検出の再実行に失敗しました', { position: 'top-center' });
+    } finally {
+      setIsDuplicateLoading(false);
+    }
+  }, [liveId]);
+
+  const handleDismiss = useCallback(async (normalizedTitle: string) => {
+    try {
+      const response = await apiClient.post<SongDuplicateResponse>(
+        `/lives/${liveId}/songs/duplicates/dismiss`,
+        { normalizedTitle },
+      );
+      setDuplicates(response ?? null);
+    } catch {
+      toast.error('除外設定に失敗しました', { position: 'top-center' });
+    }
+  }, [liveId]);
 
   const filteredDetails = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -176,24 +226,47 @@ export const LiveSubmissionsPage = () => {
 
       <Card>
         <CardHeader className="gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <h1 className="text-xl font-semibold sm:text-2xl">提出済みSettingSheet</h1>
               <p className="text-sm text-muted-foreground">{live.name} / {formatLiveDate(live.date)} / 全{details.length}件</p>
             </div>
-            <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
-                <ChevronLeft className="size-4" />
-                ライブ管理へ戻る
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
+                  <ChevronLeft className="size-4" />
+                  戻る
+                </Link>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-8">
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={copySharedLink}>
+                    <Copy className="size-4" />
+                    共有一覧リンクをコピー
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href={sharedListUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="size-4" />
+                      共有一覧を開く
+                    </a>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </CardHeader>
       </Card>
 
+      <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={handleDismiss} />
+
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
             <div className="space-y-1">
               <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
               <p className="text-xs text-muted-foreground">
@@ -202,22 +275,10 @@ export const LiveSubmissionsPage = () => {
                   : '共有ページで公開する項目を設定すると、その項目だけがここでも一覧表示されます。'}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={copySharedLink}>
-                <Copy className="size-4" />
-                共有一覧リンクをコピー
-              </Button>
-              <Button asChild size="sm">
-                <a href={sharedListUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink className="size-4" />
-                  共有一覧を開く
-                </a>
-              </Button>
+            <div className="relative w-full sm:max-w-sm">
+              <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
+              <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-8" placeholder="公開項目で検索" disabled={!hasVisibleColumns} />
             </div>
-          </div>
-          <div className="relative w-full sm:max-w-sm">
-            <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
-            <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-8" placeholder="公開項目で検索" disabled={!hasVisibleColumns} />
           </div>
         </CardHeader>
         <CardContent>
@@ -234,6 +295,9 @@ export const LiveSubmissionsPage = () => {
                       {tableColumns.map((column) => (
                         <TableHead key={column.id} className="w-[220px] whitespace-normal bg-background">{column.label}</TableHead>
                       ))}
+                      {duplicateMap.size > 0 && (
+                        <TableHead className="w-[100px] bg-background text-center">曲かぶり</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -248,6 +312,15 @@ export const LiveSubmissionsPage = () => {
                             {extractCellValue(detail.answers, column.path, column.type)}
                           </TableCell>
                         ))}
+                        {duplicateMap.size > 0 && (
+                          <TableCell className="w-[100px] text-center align-top">
+                            {duplicateMap.has(detail.id) && (
+                              <Badge variant="destructive" className="text-xs">
+                                {duplicateMap.get(detail.id)!.length}曲
+                              </Badge>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

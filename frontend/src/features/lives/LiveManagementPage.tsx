@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { CalendarDays, ChevronLeft, Copy, ExternalLink, FileCheck2, Link2, MapPin, Search, Settings2, Wrench } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock, Copy, ExternalLink, FileCheck2, Link2, MapPin, MoreHorizontal, Music, Settings2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -11,12 +11,17 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { apiClient } from '@/lib/api/client';
 import {
   buildPublicLiveUrl,
   formatDeadline,
@@ -25,46 +30,33 @@ import {
   LIVE_STATUS_LABELS,
   normalizeSettingSheetConfig,
   type LiveResponse,
-  type SettingSheetBlock,
+  type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetConfigResponse,
+  type SongDuplicateResponse,
 } from './types/type';
-import { apiClient } from '@/lib/api/client';
-import { Badge } from '@/components/ui/badge';
-
-interface VisibilityTarget {
-  id: string;
-  label: string;
-  path: string;
-  type: SettingSheetBlock['type'];
-  publicVisible: boolean;
-  hidden: boolean;
-  typeLabel: string;
-}
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
   const [live, setLive] = useState<LiveResponse | null>(null);
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
+  const [submissionCount, setSubmissionCount] = useState(0);
+  const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
-  const [filterQuery, setFilterQuery] = useState('');
 
   useEffect(() => {
-    if (!liveId) {
-      return;
-    }
+    if (!liveId) return;
 
-    apiClient.get<LiveResponse>(`/lives/${liveId}`)
-      .then((liveResponse) => {
-        if (liveResponse) {
-          setLive(liveResponse);
-        }
-        return apiClient.get<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`);
-      })
-      .then((configResponse) => {
-        if (configResponse) {
-          setConfig(normalizeSettingSheetConfig(configResponse));
-        }
+    Promise.all([
+      apiClient.get<LiveResponse>(`/lives/${liveId}`),
+      apiClient.get<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`),
+      apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`),
+      apiClient.get<SongDuplicateResponse>(`/lives/${liveId}/songs/duplicates`),
+    ])
+      .then(([liveRes, configRes, detailsRes, dupRes]) => {
+        if (liveRes) setLive(liveRes);
+        if (configRes) setConfig(normalizeSettingSheetConfig(configRes));
+        setSubmissionCount(detailsRes?.length ?? 0);
+        setDuplicates(dupRes ?? null);
       })
       .catch(() => {
         toast.error('ライブ情報の取得に失敗しました', { position: 'top-center' });
@@ -74,74 +66,30 @@ export const LiveManagementPage = () => {
       });
   }, [liveId]);
 
-  if (!tenantId || !liveId) {
-    return <Navigate to="/tenants" replace />;
-  }
-
-  if (isLoading) {
-    return <div className="py-12 text-center text-sm text-muted-foreground">ライブ情報を読み込み中です...</div>;
-  }
-
-  if (!live) {
-    return <Navigate to={`/tenants/${tenantId}/lives`} replace />;
-  }
+  if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
+  if (isLoading) return <div className="py-12 text-center text-sm text-muted-foreground">読み込み中...</div>;
+  if (!live) return <Navigate to={`/tenants/${tenantId}/lives`} replace />;
 
   const publicUrl = buildPublicLiveUrl(live.publicToken);
-  const publicSubmissionListUrl = `${window.location.origin}/public/lives/${live.publicToken}/submissions/shared`;
+  const sharedListUrl = `${window.location.origin}/public/lives/${live.publicToken}/submissions/shared`;
   const badgeVariant = live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary';
-  const visibilityTargets = config ? flattenVisibilityTargets(config.blocks) : [];
-  const filteredTargets = visibilityTargets.filter((target) => {
-    const query = filterQuery.trim().toLowerCase();
-    if (!query) {
-      return true;
+  const hasDuplicates = (duplicates?.totalDuplicateGroups ?? 0) > 0;
+
+  const copyPublicUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast.success('公開URLをコピーしました', { position: 'top-center' });
+    } catch {
+      toast.error('コピーに失敗しました', { position: 'top-center' });
     }
-    return target.label.toLowerCase().includes(query) || target.path.toLowerCase().includes(query);
-  });
-  const publicVisibleCount = visibilityTargets.filter((target) => target.publicVisible).length;
-  const visibleInFormCount = visibilityTargets.filter((target) => !target.hidden).length;
-
-  const updateTargetVisibility = (blockId: string, field: 'publicVisible' | 'hidden', nextValue: boolean) => {
-    setConfig((current) => {
-      if (!current) {
-        return current;
-      }
-      return {
-        ...current,
-        blocks: updateBlockVisibilityTree(current.blocks, blockId, field, nextValue),
-      };
-    });
-  };
-
-  const togglePublicSubmissionEnabled = (nextValue: boolean) => {
-    setConfig((current) => (current ? { ...current, publicSubmissionEnabled: nextValue } : current));
-  };
-
-  const saveVisibility = () => {
-    if (!config) {
-      return;
-    }
-    setIsSavingVisibility(true);
-    apiClient.post<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`, config)
-      .then((response) => {
-        if (response) {
-          setConfig(normalizeSettingSheetConfig(response));
-        }
-        toast.success('公開共有の表示項目を更新しました', { position: 'top-center' });
-      })
-      .catch(() => {
-        toast.error('公開共有の表示項目更新に失敗しました', { position: 'top-center' });
-      })
-      .finally(() => {
-        setIsSavingVisibility(false);
-      });
   };
 
   const copySharedListLink = async () => {
     try {
-      await navigator.clipboard.writeText(publicSubmissionListUrl);
+      await navigator.clipboard.writeText(sharedListUrl);
       toast.success('共有一覧リンクをコピーしました', { position: 'top-center' });
     } catch {
-      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
+      toast.error('コピーに失敗しました', { position: 'top-center' });
     }
   };
 
@@ -167,178 +115,139 @@ export const LiveManagementPage = () => {
         </BreadcrumbList>
       </Breadcrumb>
 
+      {/* Header */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold">{live.name}</h1>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-semibold sm:text-2xl">{live.name}</h1>
                 <Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>
               </div>
+              <p className="text-sm text-muted-foreground">{formatLiveDate(live.date)} · {formatOptionalText(live.location)}</p>
             </div>
-            <Button asChild variant="outline">
-              <Link to={`/tenants/${tenantId}/lives`}>
-                <ChevronLeft className="size-4" />
-                ライブ一覧へ戻る
-              </Link>
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/tenants/${tenantId}/lives`}>戻る</Link>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="size-9">
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={copyPublicUrl}>
+                    <Copy className="size-4" />
+                    公開URLをコピー
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {config?.publicSubmissionEnabled === true ? (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <a href={sharedListUrl} target="_blank" rel="noreferrer">
+                          <ExternalLink className="size-4" />
+                          共有提出一覧を開く
+                        </a>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={copySharedListLink}>
+                        <Copy className="size-4" />
+                        共有リンクをコピー
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      <ExternalLink className="size-4" />
+                      共有一覧（非公開中）
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex items-center gap-3 rounded-lg bg-muted/40 px-4 py-3">
-              <CalendarDays className="size-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">開催日</p>
-                <p className="font-medium">{formatLiveDate(live.date)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg bg-muted/40 px-4 py-3">
-              <MapPin className="size-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">会場</p>
-                <p className="font-medium">{formatOptionalText(live.location)}</p>
-              </div>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border px-4 py-3">
-              <p className="text-sm text-muted-foreground">回答締切</p>
-              <p className="font-medium">{formatDeadline(live.deadlineAt)}</p>
-            </div>
-            <div className="rounded-lg border px-4 py-3">
-              <p className="text-sm text-muted-foreground">公開URL</p>
-              <p className="break-all font-medium">{publicUrl}</p>
-            </div>
-          </div>
-        </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Settings2 className="size-5" />
-            <h2 className="text-lg font-semibold">ライブ管理</h2>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>フォーム構成は別ページのビルダーで自由に組み立てます。現在の高機能バンド申請フォームもテンプレートとして適用できます。</p>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <a href={publicUrl} target="_blank" rel="noreferrer">
-                <Link2 className="size-4" />
-                公開フォームを開く
-              </a>
-            </Button>
-            <Button asChild>
-              <Link to={`/tenants/${tenantId}/lives/${liveId}/form`}>
-                <Wrench className="size-4" />
-                ライブフォーム作成
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>
-                <FileCheck2 className="size-4" />
-                提出確認
-              </Link>
-            </Button>
-            {config?.publicSubmissionEnabled === true ? (
-              <Button asChild variant="outline">
-                <a href={publicSubmissionListUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink className="size-4" />
-                  共有提出一覧を開く
-                </a>
-              </Button>
-            ) : (
-              <Button variant="outline" disabled>
-                <ExternalLink className="size-4" />
-                共有提出一覧を開く
-              </Button>
-            )}
-            <Button variant="outline" onClick={copySharedListLink} disabled={config?.publicSubmissionEnabled !== true}>
-              <Copy className="size-4" />
-              共有提出一覧リンクをコピー
-            </Button>
-          </div>
-          {config?.publicSubmissionEnabled !== true ? <p className="text-xs text-muted-foreground">共有提出一覧は現在非公開です。下の「提出済みデータを公開する」をONにすると利用できます。</p> : null}
-        </CardContent>
-      </Card>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />
+        <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
+        <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />
+        <QuickActionExternal icon={<ExternalLink className="size-5" />} label="公開フォーム" href={publicUrl} />
+      </div>
 
-      <Card>
-        <CardHeader>
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold">公開・非表示設定</h2>
-            <p className="text-sm text-muted-foreground">項目一覧から必要なものだけを切り替えます。変更は保存するまで反映されません。</p>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
-            <div className="rounded-lg border">
-              <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium">提出済みデータを公開する</p>
-                  <p className="text-xs text-muted-foreground">共有用提出確認一覧をまとめて公開します。</p>
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard icon={<FileCheck2 className="size-4" />} label="提出数" value={`${submissionCount}件`} />
+        <StatCard
+          icon={<Music className="size-4" />}
+          label="曲かぶり"
+          value={hasDuplicates ? `${duplicates!.totalDuplicateGroups}件` : 'なし'}
+          variant={hasDuplicates ? 'warning' : undefined}
+        />
+        <StatCard icon={<Clock className="size-4" />} label="回答締切" value={formatDeadline(live.deadlineAt)} />
+        <StatCard
+          icon={<Link2 className="size-4" />}
+          label="共有公開"
+          value={config?.publicSubmissionEnabled ? 'ON' : 'OFF'}
+        />
+      </div>
+
+      {/* Duplicate Summary */}
+      {hasDuplicates && duplicates && (
+        <Card className="border-amber-300 dark:border-amber-700">
+          <CardHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <AlertTriangle className="size-5 text-amber-500" />
+              <h2 className="text-base font-semibold">曲かぶり検出</h2>
+              <Badge variant="destructive">{duplicates.totalDuplicateGroups}件の重複</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {duplicates.groups.filter((g) => !g.dismissed).map((group, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                    重複 {i + 1}
+                  </Badge>
+                  <span className="font-medium">{group.normalizedTitle}</span>
+                  {group.normalizedArtist && (
+                    <span className="text-muted-foreground">— {group.normalizedArtist}</span>
+                  )}
+                  <Badge
+                    variant="outline"
+                    className={
+                      group.confidence === 'HIGH'
+                        ? 'border-green-300 text-green-700 dark:border-green-700 dark:text-green-400'
+                        : group.confidence === 'MEDIUM'
+                          ? 'border-yellow-300 text-yellow-700 dark:border-yellow-700 dark:text-yellow-400'
+                          : 'text-muted-foreground'
+                    }
+                  >
+                    {group.confidence === 'HIGH' ? '高確信' : group.confidence === 'MEDIUM' ? '中確信' : '低確信'}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">({group.entries.length}件)</span>
                 </div>
-                <Switch checked={config?.publicSubmissionEnabled === true} onCheckedChange={togglePublicSubmissionEnabled} />
-              </div>
-              <div className="grid gap-3 px-4 py-3 sm:grid-cols-3">
-                <SummaryBlock label="対象項目" value={`${visibilityTargets.length}`} />
-                <SummaryBlock label="共有表示中" value={`${publicVisibleCount}`} />
-                <SummaryBlock label="フォーム表示中" value={`${visibleInFormCount}`} />
-              </div>
+              ))}
             </div>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
-              <Input value={filterQuery} onChange={(event) => setFilterQuery(event.target.value)} className="pl-9" placeholder="項目名で絞り込み" />
-            </div>
-          </div>
+            <Button asChild variant="link" size="sm" className="mt-3 h-auto p-0">
+              <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>提出確認ページで詳細を見る →</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-          {visibilityTargets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">表示対象の項目がありません。</p>
-          ) : filteredTargets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">該当する項目がありません。</p>
-          ) : (
-            <div className="rounded-lg border">
-              <ScrollArea className="h-[440px]">
-                <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-background">
-                    <TableRow>
-                      <TableHead className="w-[220px]">項目</TableHead>
-                      <TableHead className="w-[280px]">階層</TableHead>
-                      <TableHead className="w-[120px]">種別</TableHead>
-                      <TableHead className="w-[140px] text-center">共有に表示</TableHead>
-                      <TableHead className="w-[140px] text-center">フォームに表示</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTargets.map((target) => (
-                      <TableRow key={target.id}>
-                        <TableCell className="whitespace-normal">
-                          <p className="font-medium">{target.label}</p>
-                        </TableCell>
-                        <TableCell className="whitespace-normal text-muted-foreground">{target.path}</TableCell>
-                        <TableCell>{target.typeLabel}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex justify-center">
-                            <Switch checked={target.publicVisible} onCheckedChange={(checked) => updateTargetVisibility(target.id, 'publicVisible', checked)} />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex justify-center">
-                            <Switch checked={!target.hidden} onCheckedChange={(checked) => updateTargetVisibility(target.id, 'hidden', !checked)} />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between gap-3 border-t pt-4">
-            <p className="text-xs text-muted-foreground">共有に表示は公開共有ページ、フォームに表示は回答フォーム側の表示状態です。</p>
-            <Button onClick={saveVisibility} disabled={isSavingVisibility}>{isSavingVisibility ? '保存中...' : '設定を保存する'}</Button>
+      {/* Live Info */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold">ライブ情報</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoRow icon={CalendarDays} label="開催日" value={formatLiveDate(live.date)} />
+            <InfoRow icon={MapPin} label="会場" value={formatOptionalText(live.location)} />
+            <InfoRow icon={Clock} label="回答締切" value={formatDeadline(live.deadlineAt)} />
+            <InfoRow icon={Link2} label="公開URL" value={publicUrl} truncate />
           </div>
         </CardContent>
       </Card>
@@ -346,114 +255,57 @@ export const LiveManagementPage = () => {
   );
 };
 
-function flattenVisibilityTargets(blocks: SettingSheetBlock[], parentLabel = '') {
-  const targets: VisibilityTarget[] = [];
-  for (const block of blocks) {
-    const path = parentLabel ? `${parentLabel} / ${block.label}` : block.label;
-    if (block.type !== 'SECTION') {
-      targets.push({
-        id: block.id,
-        label: block.label,
-        path,
-        type: block.type,
-        publicVisible: block.publicVisible === true,
-        hidden: block.hidden === true,
-        typeLabel: resolveTypeLabel(block.type),
-      });
-    }
-    if (block.fields.length > 0) {
-      targets.push(...flattenVisibilityTargets(block.fields, path));
-    }
-  }
-  return targets;
-}
-
-function updateBlockVisibilityTree(
-  blocks: SettingSheetBlock[],
-  blockId: string,
-  field: 'publicVisible' | 'hidden',
-  nextValue: boolean,
-): SettingSheetBlock[] {
-  const [nextBlocks] = updateBlockVisibilityTreeInternal(blocks, blockId, field, nextValue);
-  return nextBlocks;
-}
-
-function updateBlockVisibilityTreeInternal(
-  blocks: SettingSheetBlock[],
-  blockId: string,
-  field: 'publicVisible' | 'hidden',
-  nextValue: boolean,
-): [SettingSheetBlock[], boolean] {
-  let updated = false;
-  let result: SettingSheetBlock[] | null = null;
-
-  for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-
-    let nextBlock = block;
-    let fieldsUpdated = false;
-
-    if (block.fields.length > 0) {
-      const [nextFields, childUpdated] = updateBlockVisibilityTreeInternal(block.fields, blockId, field, nextValue);
-      fieldsUpdated = childUpdated;
-      if (childUpdated) {
-        nextBlock = { ...nextBlock, fields: nextFields };
-      }
-    }
-
-    if (block.id === blockId) {
-      if (nextBlock[field] !== nextValue) {
-        nextBlock = { ...nextBlock, [field]: nextValue };
-      }
-      updated = true;
-    } else if (fieldsUpdated) {
-      updated = true;
-    }
-
-    if (result !== null) {
-      // すでにどこかで変更が発生しているので、新しい配列にプッシュする
-      result.push(nextBlock);
-    } else if (nextBlock !== block) {
-      // ここで初めて変更が発生したので、先頭〜直前までをコピーして新配列を作る
-      result = blocks.slice(0, i);
-      result.push(nextBlock);
-    }
-  }
-
-  if (result === null) {
-    // 1件も変更がなければ元の配列参照をそのまま返す
-    return [blocks, false];
-  }
-
-  return [result, updated];
-}
-
-function resolveTypeLabel(type: SettingSheetBlock['type']) {
-  switch (type) {
-    case 'SECTION':
-      return 'セクション';
-    case 'SHORT_TEXT':
-      return '短文';
-    case 'LONG_TEXT':
-      return '長文';
-    case 'SINGLE_SELECT':
-      return '単一選択';
-    case 'MULTI_SELECT':
-      return '複数選択';
-    case 'CHECKBOX':
-      return 'チェック';
-    case 'BOOLEAN':
-      return '真偽';
-    case 'REPEATABLE_GROUP':
-      return '繰返し';
-  }
-}
-
-function SummaryBlock({ label, value }: { label: string; value: string }) {
+function QuickActionLink({ icon, label, to }: { icon: ReactNode; label: string; to: string }) {
   return (
-    <div className="rounded-md bg-muted/40 px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-lg font-semibold">{value}</p>
+    <Link
+      to={to}
+      className="flex flex-col items-center justify-center gap-1.5 rounded-lg border bg-card px-2 py-4 text-card-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+    >
+      {icon}
+      <span className="text-xs font-medium">{label}</span>
+    </Link>
+  );
+}
+
+function QuickActionExternal({ icon, label, href }: { icon: ReactNode; label: string; href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="flex flex-col items-center justify-center gap-1.5 rounded-lg border bg-card px-2 py-4 text-card-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+    >
+      {icon}
+      <span className="text-xs font-medium">{label}</span>
+    </a>
+  );
+}
+
+function StatCard({ icon, label, value, variant }: { icon: ReactNode; label: string; value: string; variant?: 'warning' }) {
+  const isWarning = variant === 'warning';
+  return (
+    <Card className={isWarning ? 'border-amber-300 dark:border-amber-700' : ''}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className={`rounded-md p-2 ${isWarning ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400' : 'bg-muted text-muted-foreground'}`}>
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="truncate text-lg font-semibold">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InfoRow({ icon: Icon, label, value, truncate }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; truncate?: boolean }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg bg-muted/40 px-4 py-3">
+      <Icon className="size-5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={`text-sm font-medium ${truncate ? 'truncate' : ''}`}>{value}</p>
+      </div>
     </div>
   );
 }
