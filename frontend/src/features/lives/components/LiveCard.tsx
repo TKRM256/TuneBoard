@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarDays, Copy, ExternalLink, MapPin, MoreHorizontal, Pencil, Settings2, Trash2 } from 'lucide-react';
+import { CalendarDays, Copy, ExternalLink, MoreHorizontal, Pencil, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';

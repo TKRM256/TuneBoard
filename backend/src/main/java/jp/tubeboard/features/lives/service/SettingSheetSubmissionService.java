@@ -121,32 +121,6 @@ public class SettingSheetSubmissionService {
         return List.copyOf(filtered);
     }
 
-    private boolean isSharedVisibleField(List<FormBlockResponse> blocks, String fieldId, boolean ancestorsVisible) {
-        for (FormBlockResponse block : blocks) {
-            if (Boolean.TRUE.equals(block.hidden())) {
-                continue;
-            }
-
-            if (SettingSheetConstants.BLOCK_SECTION.equals(block.type())) {
-                if (isSharedVisibleField(block.fields(), fieldId, ancestorsVisible)) {
-                    return true;
-                }
-                continue;
-            }
-
-            boolean currentVisible = ancestorsVisible && Boolean.TRUE.equals(block.publicVisible());
-            if (block.id().equals(fieldId)) {
-                return currentVisible;
-            }
-
-            if ((SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type()))
-                    && isSharedVisibleField(block.fields(), fieldId, currentVisible)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void validateAnswers(List<FormBlockResponse> blocks,
             List<FieldAnswerRequest> answers,
             String pathPrefix,
@@ -296,40 +270,6 @@ public class SettingSheetSubmissionService {
             }
         }
         return List.copyOf(values);
-    }
-
-    private String findFirstValueByFieldId(List<FormBlockResponse> blocks, List<FieldAnswerRequest> answers,
-            String fieldId) {
-        Map<String, FieldAnswerRequest> answerMap = toAnswerMap(answers);
-        for (FormBlockResponse block : blocks) {
-            if (Boolean.TRUE.equals(block.hidden())) {
-                continue;
-            }
-            FieldAnswerRequest answer = answerMap.getOrDefault(block.id(), emptyAnswer(block.id()));
-            if (SettingSheetConstants.BLOCK_SECTION.equals(block.type())) {
-                String nested = findFirstValueByFieldId(block.fields(), answers, fieldId);
-                if (!nested.isBlank()) {
-                    return nested;
-                }
-                continue;
-            }
-            if (block.id().equals(fieldId)) {
-                for (String value : answer.values()) {
-                    if (!value.isBlank()) {
-                        return value;
-                    }
-                }
-            }
-            if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
-                for (GroupItemRequest item : answer.items()) {
-                    String nested = findFirstValueByFieldId(block.fields(), item.answers(), fieldId);
-                    if (!nested.isBlank()) {
-                        return nested;
-                    }
-                }
-            }
-        }
-        return "";
     }
 
     private String findFirstSubmittedValue(List<FormBlockResponse> blocks, List<FieldAnswerRequest> answers) {
