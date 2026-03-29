@@ -33,7 +33,7 @@ import {
   type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetConfigResponse,
   type SongDuplicateResponse,
-} from './types/type';
+} from '../types/live-types';
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();

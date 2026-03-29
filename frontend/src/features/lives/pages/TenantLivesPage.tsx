@@ -13,10 +13,10 @@ import {
 } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
-import { CreateLiveCard } from './components/CreateLiveCard';
-import { LiveListCard } from './components/LiveListCard';
-import type { LiveResponse } from './types/type';
-import type { TenantsResponse } from '@/features/tenants/type/type';
+import { CreateLiveCard } from '../components/CreateLiveCard';
+import { LiveListCard } from '../components/LiveListCard';
+import type { LiveResponse } from '../types/live-types';
+import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import { apiClient } from '@/lib/api/client';
 
 export const TenantLivesPage = () => {

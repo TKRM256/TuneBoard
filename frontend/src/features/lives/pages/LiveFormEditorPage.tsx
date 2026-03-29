@@ -13,8 +13,8 @@ import {
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { apiClient } from '@/lib/api/client';
 
-import { BlockEditorTree } from './form-editor/BlockEditorTree';
-import { FormEditorSidebar } from './form-editor/FormEditorSidebar';
+import { BlockEditorTree } from '../form-editor/BlockEditorTree';
+import { FormEditorSidebar } from '../form-editor/FormEditorSidebar';
 import {
   collectOptionSourceCandidates,
   convertBlockForType,
@@ -22,7 +22,7 @@ import {
   moveBlockTree,
   removeBlockTree,
   updateBlockTree,
-} from './form-editor/utils';
+} from '../form-editor/utils';
 import {
   canAddBlock,
   canContainBlocks,
@@ -35,7 +35,7 @@ import {
   type SettingSheetBlock,
   type SettingSheetConfigResponse,
   type SettingSheetOptionSource,
-} from './types/type';
+} from '../types/live-types';
 
 export const LiveFormEditorPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();

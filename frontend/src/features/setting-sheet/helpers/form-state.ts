@@ -3,7 +3,7 @@ import {
   isSectionBlock,
   type SettingSheetBlock,
   type SettingSheetSubmissionAnswerResponse,
-} from '@/features/lives/types/type';
+} from '@/features/lives/types/live-types';
 
 export interface SettingSheetGroupItemValue {
   id: string;

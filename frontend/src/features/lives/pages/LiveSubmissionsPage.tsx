@@ -1,9 +1,9 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+/** Live submissions list with detail dialog and song duplicate detection. */
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Copy, ExternalLink, MoreHorizontal, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,7 +15,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,28 +23,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiClient } from '@/lib/api/client';
 import {
   formatLiveDate,
-  isSectionBlock,
-  isRepeatableGroupBlock,
   type LiveResponse,
   type PublicSettingSheetSubmissionDetailResponse,
-  type SettingSheetBlock,
   type SettingSheetConfigResponse,
-  type SettingSheetSubmissionAnswerResponse,
   type SongDuplicateResponse,
-} from './types/type';
-import { SongDuplicatesPanel } from './SongDuplicatesPanel';
-
-interface ColumnDef {
-  id: string;
-  label: string;
-  path: string[];
-  type: SettingSheetBlock['type'];
-}
+} from '../types/live-types';
+import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
+import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
+import { collectColumns, extractCellValue } from '../helpers/submission-table-helpers';
 
 export const LiveSubmissionsPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -331,215 +320,15 @@ export const LiveSubmissionsPage = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-h-[90dvh] w-[95vw] max-w-3xl overflow-hidden p-0 sm:w-full">
-          <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
-            <DialogTitle>提出詳細</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[70dvh] px-4 sm:px-6">
-            {!selectedDetail ? (
-              <p className="py-4 text-sm text-muted-foreground">提出を選択してください。</p>
-            ) : (
-              <div className="space-y-4 pb-4">
-                <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-3 sm:p-4">
-                  <SummaryItem label={recordLabel} value={selectedDetail.recordLabel} />
-                  <SummaryItem label="状態" value={<Badge variant="secondary">{selectedDetail.submissionStatus}</Badge>} />
-                  <SummaryItem label="提出日時" value={formatSubmittedAt(selectedDetail.submittedAt)} />
-                </div>
-                <Separator />
-                <div className="space-y-3">
-                  {config ? renderSubmissionBlocks(config.blocks, selectedDetail.answers, selectedDetail.id) : null}
-                </div>
-              </div>
-            )}
-          </ScrollArea>
-          <DialogFooter className="flex-row justify-between gap-2 border-t px-4 py-3 sm:justify-between sm:px-6">
-            {selectedDetail ? (
-              <Button variant="outline" size="sm" onClick={() => copyEditLink(selectedDetail.id)}>
-                <Copy className="size-4" />
-                編集リンクをコピー
-              </Button>
-            ) : <span />}
-            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>閉じる</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SubmissionDetailDialog
+        open={isDetailDialogOpen}
+        onOpenChange={setIsDetailDialogOpen}
+        detail={selectedDetail}
+        config={config}
+        recordLabel={recordLabel}
+        onCopyEditLink={copyEditLink}
+      />
     </div>
   );
 };
 
-function collectColumns(config: SettingSheetConfigResponse | null): ColumnDef[] {
-  if (!config) {
-    return [];
-  }
-  const columns: ColumnDef[] = [];
-
-  const visit = (blocks: SettingSheetConfigResponse['blocks'], labelTrail: string[], answerPath: string[]) => {
-    for (const block of blocks) {
-      const nextLabelTrail = isSectionBlock(block.type) ? [...labelTrail, block.label] : labelTrail;
-      const nextAnswerPath = isSectionBlock(block.type) ? answerPath : [...answerPath, block.id];
-
-      if (block.publicVisible && !isSectionBlock(block.type)) {
-        columns.push({
-          id: block.id,
-          label: [...labelTrail, block.label].join(' / '),
-          path: [...answerPath, block.id],
-          type: block.type,
-        });
-      }
-
-      if (block.fields.length > 0) {
-        visit(block.fields, nextLabelTrail, nextAnswerPath);
-      }
-    }
-  };
-
-  visit(config.blocks, [], []);
-  return columns;
-}
-
-function extractCellValue(
-  answers: SettingSheetSubmissionAnswerResponse[],
-  path: string[],
-  blockType: SettingSheetBlock['type'],
-): string {
-  if (path.length === 0) {
-    return '未入力';
-  }
-
-  const [currentId, ...restPath] = path;
-  const answer = answers.find((entry) => entry.fieldId === currentId);
-  if (!answer) {
-    return '未入力';
-  }
-
-  if (restPath.length === 0) {
-    if (blockType === 'REPEATABLE_GROUP') {
-      return answer.items.length === 0 ? '未入力' : `${answer.items.length}件`;
-    }
-    return answer.values.length > 0 ? answer.values.join(' / ') : '未入力';
-  }
-
-  const nestedValues = answer.items
-    .map((item) => extractCellValue(item.answers, restPath, blockType))
-    .filter((value) => value !== '未入力');
-
-  return nestedValues.length === 0 ? '未入力' : nestedValues.join('\n');
-}
-
-function formatSubmittedAt(value: string) {
-  return new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
-}
-
-function formatAnswerValue(values: string[], blockType: SettingSheetBlock['type']) {
-  if (values.length === 0) {
-    return '未入力';
-  }
-  if (blockType === 'BOOLEAN') {
-    return values[0] === 'true' ? 'はい' : values[0] === 'false' ? 'いいえ' : values.join(' / ');
-  }
-  return values.join(' / ');
-}
-
-function resolveItemTitle(
-  block: SettingSheetBlock,
-  itemAnswers: SettingSheetSubmissionAnswerResponse[],
-  itemIndex: number,
-) {
-  if (block.titleSourceFieldId) {
-    const source = itemAnswers.find((a) => a.fieldId === block.titleSourceFieldId);
-    if (source && source.values.length > 0 && source.values[0].trim()) {
-      return source.values[0].trim();
-    }
-  }
-  return `${block.entryTitle || block.label} ${itemIndex + 1}`;
-}
-
-function renderSubmissionBlocks(
-  blocks: SettingSheetBlock[],
-  answers: PublicSettingSheetSubmissionDetailResponse['answers'],
-  path: string,
-) {
-  const answerMap = new Map(answers.map((a) => [a.fieldId, a]));
-
-  return blocks.map((block, index) => {
-    const key = `${path}-${block.id}-${index}`;
-    const answer = answerMap.get(block.id);
-
-    if (isSectionBlock(block.type)) {
-      return (
-        <Accordion key={key} type="single" collapsible defaultValue={`${key}-open`}>
-          <AccordionItem value={`${key}-open`} className="border rounded-lg">
-            <AccordionTrigger className="px-4 py-3 hover:no-underline">
-              <div className="text-left">
-                <p className="text-sm font-semibold sm:text-base">{block.label}</p>
-                {block.description ? <p className="mt-0.5 text-xs text-muted-foreground">{block.description}</p> : null}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 pb-4">
-              {block.fields.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2">{renderSubmissionBlocks(block.fields, answers, key)}</div>
-              ) : null}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      );
-    }
-
-    if (isRepeatableGroupBlock(block.type)) {
-      const items = answer?.items ?? [];
-      return (
-        <div key={key} className="space-y-2 sm:col-span-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">{block.label}</p>
-            <Badge variant="outline">{items.length}件</Badge>
-          </div>
-          {items.length === 0 ? (
-            <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">未入力</p>
-          ) : block.collapsible ? (
-            <Accordion type="single" collapsible className="space-y-2">
-              {items.map((item, itemIndex) => {
-                const itemTitle = resolveItemTitle(block, item.answers, itemIndex);
-                return (
-                  <AccordionItem key={`${key}-item-${itemIndex}`} value={`${key}-item-${itemIndex}`} className="rounded-lg border">
-                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                      <span className="text-sm font-medium">{itemTitle}</span>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
-                      <div className="grid gap-3 sm:grid-cols-2">{renderSubmissionBlocks(block.fields, item.answers, `${key}-item-${itemIndex}`)}</div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          ) : (
-            <div className="space-y-3">
-              {items.map((item, itemIndex) => (
-                <div key={`${key}-item-${itemIndex}`} className="rounded-lg border bg-muted/30 p-3 sm:p-4">
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">{resolveItemTitle(block, item.answers, itemIndex)}</p>
-                  <div className="grid gap-3 sm:grid-cols-2">{renderSubmissionBlocks(block.fields, item.answers, `${key}-item-${itemIndex}`)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div key={key} className="space-y-1 rounded-lg border p-3">
-        <p className="text-xs font-medium text-muted-foreground">{block.label}</p>
-        <p className="whitespace-pre-wrap wrap-break-word text-sm font-medium leading-6">{formatAnswerValue(answer?.values ?? [], block.type)}</p>
-      </div>
-    );
-  });
-}
-
-function SummaryItem({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <div className="text-sm font-medium">{value}</div>
-    </div>
-  );
-}

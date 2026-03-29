@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { SongDuplicateGroup, SongDuplicateResponse } from './types/type';
+import type { SongDuplicateGroup, SongDuplicateResponse } from '../types/live-types';
 
 interface SongDuplicatesPanelProps {
   data: SongDuplicateResponse | null;

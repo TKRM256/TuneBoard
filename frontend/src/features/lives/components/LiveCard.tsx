@@ -38,7 +38,7 @@ import {
   type LiveFormValues,
   type LiveResponse,
   toLiveUpdatePayload,
-} from '../types/type';
+} from '../types/live-types';
 
 interface LiveCardProps {
   live: LiveResponse;

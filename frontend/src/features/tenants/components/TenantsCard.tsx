@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import type { TenantsFormValues, TenantsResponse } from "../type/type";
+import { Card, CardHeader } from "@/components/ui/card"
+import type { TenantsFormValues, TenantsResponse } from "../types/tenant-types";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";

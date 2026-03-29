@@ -15,7 +15,7 @@ import {
   isRepeatableGroupBlock,
   isSectionBlock,
   type SettingSheetBlock,
-} from '@/features/lives/types/type';
+} from '@/features/lives/types/live-types';
 import { cn } from '@/lib/utils';
 
 import {
@@ -25,8 +25,8 @@ import {
   fieldIdFromKey,
   type SettingSheetFieldValue,
   type SettingSheetGroupItemValue,
-} from './types';
-import { appearanceClass, fieldWidthClass, formatGroupItemTitle, moveItem, optionLayoutClass } from './SettingSheetForm.helpers';
+} from '../types';
+import { appearanceClass, fieldWidthClass, formatGroupItemTitle, moveItem, optionLayoutClass } from '../helpers/layout-classes';
 
 interface SettingSheetFieldRendererProps {
   block: SettingSheetBlock;

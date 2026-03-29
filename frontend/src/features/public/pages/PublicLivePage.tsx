@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { SettingSheetForm } from '@/features/setting-sheet/SettingSheetForm';
-import { usePublicLiveData } from './usePublicLiveData';
+import { SettingSheetForm } from '@/features/setting-sheet/components/SettingSheetForm';
+import { usePublicLiveData } from '../hooks/usePublicLiveData';
 
 export const PublicLivePage = () => {
   const { publicToken, submissionId } = useParams<{ publicToken: string; submissionId?: string }>();

@@ -24,7 +24,7 @@ import {
   SETTING_SHEET_BLOCK_OPTIONS,
   type SettingSheetBlock,
   type SettingSheetOptionSource,
-} from '../types/type';
+} from '../types/live-types';
 
 interface BlockSettingsPanelProps {
   block: SettingSheetBlock;

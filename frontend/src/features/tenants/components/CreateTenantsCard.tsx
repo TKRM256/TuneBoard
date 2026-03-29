@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api/client";
 import { useState } from "react";
 import type { ApiClientError } from "@/lib/api/type";
-import type { TenantsFormValues, TenantsResponse } from "../type/type";
+import type { TenantsFormValues, TenantsResponse } from "../types/tenant-types";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ConfirmButton } from "@/components/original/ConfirmButton";

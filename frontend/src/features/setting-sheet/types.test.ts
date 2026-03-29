@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { SettingSheetConfigResponse } from '@/features/lives/types/type';
+import type { SettingSheetConfigResponse } from '@/features/lives/types/live-types';
 
 import { createDefaultSettingSheetValues, toSettingSheetSubmissionPayload, validateSettingSheetForm ,createSettingSheetValuesFromSubmissionAnswers} from './types';
 

@@ -3,7 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-import type { SettingSheetBlock, SettingSheetOptionSource } from '../types/type';
+import type { SettingSheetBlock, SettingSheetOptionSource } from '../types/live-types';
 
 interface BlockOptionEditorProps {
   block: SettingSheetBlock;

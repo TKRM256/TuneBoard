@@ -1,4 +1,4 @@
-import type { SettingSheetBlock } from '@/features/lives/types/type';
+import type { SettingSheetBlock } from '@/features/lives/types/live-types';
 
 export const optionLayoutClass = (columnCount: number, fitContent: boolean) => {
   if (fitContent) {

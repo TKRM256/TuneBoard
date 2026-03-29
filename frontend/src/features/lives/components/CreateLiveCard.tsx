@@ -14,7 +14,7 @@ import {
   type LiveFormValues,
   type LiveResponse,
   toLiveCreatePayload,
-} from '../types/type';
+} from '../types/live-types';
 import {
   Select,
   SelectContent,

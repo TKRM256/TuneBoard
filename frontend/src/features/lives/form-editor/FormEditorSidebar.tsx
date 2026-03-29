@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import { AddBlockMenu } from './AddBlockMenu';
-import { createBlockTemplate, createEmptySettingSheetConfig, normalizeSettingSheetConfig, type SettingSheetConfigResponse } from '../types/type';
+import { createBlockTemplate, createEmptySettingSheetConfig, normalizeSettingSheetConfig, type SettingSheetConfigResponse } from '../types/live-types';
 
 interface FormEditorSidebarProps {
   tenantId: string;

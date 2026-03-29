@@ -9,7 +9,7 @@ import {
   type PublicLiveResponse,
   type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetSubmissionResponse,
-} from '@/features/lives/types/type';
+} from '@/features/lives/types/live-types';
 import { apiClient } from '@/lib/api/client';
 import type { ApiClientError } from '@/lib/api/type';
 
@@ -23,7 +23,7 @@ import {
   type SettingSheetFieldValue,
   type SettingSheetFormValues,
   type SettingSheetIssue,
-} from './types';
+} from '../types';
 
 interface UseSettingSheetFormParams {
   publicToken: string;

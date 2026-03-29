@@ -1,6 +1,6 @@
 import { CreateTenantsCard } from "@/features/tenants/components/CreateTenantsCard";
 import { ListTenantsCard } from "@/features/tenants/components/ListTenantsCard";
-import type { TenantsResponse } from "@/features/tenants/type/type";
+import type { TenantsResponse } from "@/features/tenants/types/tenant-types";
 import { apiClient } from "@/lib/api/client";
 import { useEffect, useState } from "react";
 

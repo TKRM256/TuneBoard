@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { type PublicLiveResponse, type PublicSettingSheetSubmissionDetailResponse } from '@/features/lives/types/type';
+import { type PublicLiveResponse, type PublicSettingSheetSubmissionDetailResponse } from '@/features/lives/types/live-types';
 import { apiClient } from '@/lib/api/client';
 import { ApiClientError } from '@/lib/api/type';
 

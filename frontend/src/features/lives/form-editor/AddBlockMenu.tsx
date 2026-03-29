@@ -3,7 +3,7 @@ import { ChevronDown, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-import type { SettingSheetBlock } from '../types/type';
+import type { SettingSheetBlock } from '../types/live-types';
 
 interface AddBlockMenuProps {
   options: Array<{ value: SettingSheetBlock['type']; label: string }>;

@@ -17,7 +17,7 @@ import {
   type SettingSheetBlock,
   type SettingSheetSubmissionAnswerResponse,
   type SettingSheetConfigResponse,
-} from '@/features/lives/types/type';
+} from '@/features/lives/types/live-types';
 
 interface ColumnDef {
   id: string;

@@ -2,9 +2,9 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { PublicLiveResponse, PublicSettingSheetSubmissionDetailResponse } from '@/features/lives/types/type';
+import type { PublicLiveResponse, PublicSettingSheetSubmissionDetailResponse } from '@/features/lives/types/live-types';
 
-import { SettingSheetForm } from './SettingSheetForm';
+import { SettingSheetForm } from './components/SettingSheetForm';
 
 const { mockNavigate, mockPost, mockPut } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
@@ -36,9 +36,9 @@ vi.mock('sonner', () => ({
 
 const baseLive: PublicLiveResponse = {
   name: 'Spring Live',
-  date: '2026-04-01',
+  date: '2099-04-01',
   location: 'Main Hall',
-  deadlineAt: '2026-03-20T18:00:00',
+  deadlineAt: '2099-03-20T18:00:00',
   status: 'PUBLISHED',
   settingSheetConfig: {
     title: 'バンド申請フォーム',

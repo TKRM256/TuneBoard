@@ -15,13 +15,13 @@ import {
   type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetBlock,
   type SettingSheetOptionSource,
-} from '@/features/lives/types/type';
+} from '@/features/lives/types/live-types';
 
 import {
   resolveOptionSourceValues,
-} from './types';
+} from '../types';
 import { SettingSheetFieldRenderer } from './SettingSheetFieldRenderer';
-import { useSettingSheetForm } from './useSettingSheetForm';
+import { useSettingSheetForm } from '../hooks/useSettingSheetForm';
 
 interface SettingSheetFormProps {
   publicToken: string;

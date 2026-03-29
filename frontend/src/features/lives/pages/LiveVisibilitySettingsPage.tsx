@@ -24,7 +24,7 @@ import {
   type LiveResponse,
   type SettingSheetBlock,
   type SettingSheetConfigResponse,
-} from './types/type';
+} from '../types/live-types';
 
 interface VisibilityTarget {
   id: string;

@@ -3,7 +3,7 @@ import { type ReactNode } from 'react';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 import { AddBlockMenu } from './AddBlockMenu';
-import { isSectionBlock, SETTING_SHEET_BLOCK_OPTIONS, type SettingSheetBlock } from '../types/type';
+import { isSectionBlock, SETTING_SHEET_BLOCK_OPTIONS, type SettingSheetBlock } from '../types/live-types';
 
 interface BlockChildrenEditorProps {
   block: SettingSheetBlock;
