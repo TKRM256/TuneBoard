@@ -31,7 +31,7 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss }: S
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={onRefresh} disabled={isLoading}>
           <RefreshCw className="size-4" />
-          再取得（MusicBrainz照合含む）
+          再取得
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -167,8 +167,8 @@ function DuplicateGroupCard({
           </>
         )}
         <ConfidenceBadge confidence={group.confidence} />
-        {group.mbid && (
-          <Badge variant="outline" className="text-[10px]">MusicBrainz照合済み</Badge>
+        {group.itunesTrackId && (
+          <Badge variant="outline" className="text-[10px]">iTunes照合済み</Badge>
         )}
         {onDismiss && (
           <Button

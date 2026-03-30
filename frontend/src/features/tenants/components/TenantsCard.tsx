@@ -1,3 +1,7 @@
+/** 
+ * テナントのカードコンポーネント
+ * 
+*/
 import { Card, CardHeader } from "@/components/ui/card"
 import type { TenantsFormValues, TenantsResponse } from "../types/tenant-types";
 import { useState } from "react";
@@ -11,7 +15,7 @@ import { ConfirmButton } from "@/components/original/ConfirmButton";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { InlineEditPanel } from "@/components/original/InlineEditPanel";
-import { ChevronRight, Pencil } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: TenantsResponse; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -54,11 +58,11 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
 
     return (
         <motion.div layout>
-        <Card className={isEditing ? "border-primary/30 shadow-md shadow-primary/5" : undefined}>
+        <Card>
             <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <h4 className="break-words text-lg font-medium">{tenant.name}</h4>
+                    <h4 className="wrap-break-word text-lg font-medium">{tenant.name}</h4>
                     <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
@@ -68,8 +72,8 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
                         <ChevronRight className="size-4" />
                       </Link>
                     </Button>
-                    <Button variant="ghost" size="icon" className="size-8" onClick={() => setIsEditing((prev) => !prev)}>
-                      <Pencil className="size-4" />
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing((prev) => !prev)}>
+                      {isEditing ? "キャンセル" : "編集"}
                     </Button>
                   </div>
                 </div>

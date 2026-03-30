@@ -138,7 +138,7 @@ class PublicLivesControllerIntegrationTest {
                 mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
                                 .contentType(APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(
-                                                new PublicSettingSheetSubmissionRequest(List.of()))))
+                                                new PublicSettingSheetSubmissionRequest(List.of(), null))))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.fieldErrors['answers.band-name']").value("バンド名 は必須です。"));
         }
@@ -164,7 +164,8 @@ class PublicLivesControllerIntegrationTest {
                                                                 List.of(
                                                                                 new FieldAnswerRequest("song-title",
                                                                                                 List.of("Song A"),
-                                                                                                List.of())))))));
+                                                                                                List.of())))))),
+                                null);
 
                 mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
                                 .contentType(APPLICATION_JSON)
@@ -179,7 +180,7 @@ class PublicLivesControllerIntegrationTest {
 
                 PublicSettingSheetSubmissionRequest request = new PublicSettingSheetSubmissionRequest(List.of(
                                 new FieldAnswerRequest("entry-name", List.of("Display Name"), List.of()),
-                                new FieldAnswerRequest("note", List.of("memo"), List.of())));
+                                new FieldAnswerRequest("note", List.of("memo"), List.of())), null);
 
                 mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
                                 .contentType(APPLICATION_JSON)
@@ -195,7 +196,7 @@ class PublicLivesControllerIntegrationTest {
                 PublicSettingSheetSubmissionRequest request = new PublicSettingSheetSubmissionRequest(List.of(
                                 new FieldAnswerRequest("band-name", List.of("Visible Band"), List.of()),
                                 new FieldAnswerRequest("submission-status", List.of("完成"), List.of()),
-                                new FieldAnswerRequest("detail", List.of("hidden memo"), List.of())));
+                                new FieldAnswerRequest("detail", List.of("hidden memo"), List.of())), null);
 
                 mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
                                 .contentType(APPLICATION_JSON)
@@ -217,7 +218,7 @@ class PublicLivesControllerIntegrationTest {
 
                 PublicSettingSheetSubmissionRequest request = new PublicSettingSheetSubmissionRequest(List.of(
                                 new FieldAnswerRequest("submission-status", List.of("完成"), List.of()),
-                                new FieldAnswerRequest("detail", List.of("公開メモ"), List.of())));
+                                new FieldAnswerRequest("detail", List.of("公開メモ"), List.of())), null);
 
                 mockMvc.perform(post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
                                 .contentType(APPLICATION_JSON)
@@ -721,6 +722,6 @@ class PublicLivesControllerIntegrationTest {
 
         private PublicSettingSheetSubmissionRequest createSubmissionRequest(String bandName) {
                 return new PublicSettingSheetSubmissionRequest(List.of(
-                                new FieldAnswerRequest("band-name", List.of(bandName), List.of())));
+                                new FieldAnswerRequest("band-name", List.of(bandName), List.of())), null);
         }
 }

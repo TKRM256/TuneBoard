@@ -7,7 +7,8 @@ export type SettingSheetBlockType =
   | 'MULTI_SELECT'
   | 'CHECKBOX'
   | 'BOOLEAN'
-  | 'REPEATABLE_GROUP';
+  | 'REPEATABLE_GROUP'
+  | 'SONG';
 
 export interface SettingSheetOptionSource {
   blockId: string;
@@ -102,6 +103,7 @@ export interface SettingSheetSubmissionResponse {
 
 export interface PublicSettingSheetSubmissionDetailResponse extends SettingSheetSubmissionResponse {
   answers: SettingSheetSubmissionAnswerResponse[];
+  itunesLinks: ItunesLinkSelection[];
 }
 
 export interface SongDuplicateResponse {
@@ -112,7 +114,7 @@ export interface SongDuplicateResponse {
 export interface SongDuplicateGroup {
   normalizedTitle: string;
   normalizedArtist: string;
-  mbid: string;
+  itunesTrackId: string;
   confidence: 'HIGH' | 'MEDIUM' | 'LOW';
   dismissed: boolean;
   entries: SongDuplicateEntry[];
@@ -123,6 +125,25 @@ export interface SongDuplicateEntry {
   recordLabel: string;
   originalTitle: string;
   originalArtist: string;
+}
+
+export interface ItunesTrack {
+  id: string;
+  name: string;
+  artist: string;
+  album: string;
+  albumArtUrl: string;
+  previewUrl: string | null;
+  trackViewUrl: string;
+}
+
+export interface ItunesLinkSelection {
+  songTitle: string;
+  songArtist: string;
+  itunesTrackId: string;
+  itunesTitle: string;
+  itunesArtist: string;
+  itunesAlbumArtUrl: string;
 }
 
 export interface FormField {
@@ -160,6 +181,7 @@ export const SETTING_SHEET_BLOCK_OPTIONS: Array<{ value: SettingSheetBlockType; 
   { value: 'CHECKBOX', label: 'チェックボックス', description: 'ON/OFFで複数回答する質問です。' },
   { value: 'BOOLEAN', label: '真偽値', description: '代表者やメインVoのようなON/OFF項目です。' },
   { value: 'REPEATABLE_GROUP', label: '繰り返しグループ', description: 'メンバーや曲のように動的に追加できるまとまりです。' },
+  { value: 'SONG', label: '楽曲', description: '曲名・アーティスト名とiTunes検索をセットで入力します。' },
 ];
 
 export const SETTING_SHEET_APPEARANCE_OPTIONS: Array<{ value: SettingSheetBlockAppearance; label: string; description: string }> = [
@@ -191,6 +213,8 @@ export function createBlockTemplate(type: SettingSheetBlockType): SettingSheetBl
       return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'REPEATABLE_GROUP':
       return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
+    case 'SONG':
+      return { id: createId(), type, label: '楽曲', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
   }
 }
 
@@ -242,13 +266,12 @@ export const DEFAULT_SETTING_SHEET_CONFIG: SettingSheetConfigResponse = {
       minItems: 1,
       addButtonLabel: '曲を追加',
       entryTitle: '曲',
-      titleSourceFieldId: 'song-title',
+      titleSourceFieldId: 'song',
       layout: { width: 'full', optionColumns: 1, optionFitContent: false },
       optionSource: null,
       duplicateDetectionRole: '',
       fields: [
-        { id: 'song-title', type: 'SHORT_TEXT', label: '曲名', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: 'SONG_TITLE' },
-        { id: 'song-artist', type: 'SHORT_TEXT', label: 'アーティスト名', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: 'SONG_ARTIST' },
+        { id: 'song', type: 'SONG', label: '楽曲', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
         { id: 'song-parts', type: 'MULTI_SELECT', label: '使うパート', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [...DEFAULT_SONG_PART_OPTIONS], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 2, optionFitContent: true }, optionSource: null, duplicateDetectionRole: '' },
         { id: 'song-note-pa', type: 'LONG_TEXT', label: 'PAへの要望', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
         { id: 'song-note-light', type: 'LONG_TEXT', label: '照明への要望', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
@@ -276,6 +299,30 @@ export const DEFAULT_SETTING_SHEET_CONFIG: SettingSheetConfigResponse = {
             { id: 'mic-main-vocal', type: 'BOOLEAN', label: 'メインボーカル', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
           ],
         },
+      ],
+    },
+    {
+      id: 'mcs',
+      type: 'REPEATABLE_GROUP',
+      label: 'MC',
+      description: 'MCの内容や担当者を入力します。',
+      hidden: false,
+      required: false,
+      collapsible: true,
+      appearance: 'subtle',
+      itemAppearance: 'outline',
+      options: [],
+      minItems: 0,
+      addButtonLabel: 'MCを追加',
+      entryTitle: 'MC',
+      titleSourceFieldId: 'mc-title',
+      layout: { width: 'full', optionColumns: 1, optionFitContent: false },
+      optionSource: null,
+      duplicateDetectionRole: '',
+      fields: [
+        { id: 'mc-title', type: 'SHORT_TEXT', label: 'タイトル', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+        { id: 'mc-member', type: 'SINGLE_SELECT', label: '担当者', description: '出演者から選択します。', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: { blockId: 'members', fieldId: 'member-name' }, duplicateDetectionRole: '' },
+        { id: 'mc-content', type: 'LONG_TEXT', label: '内容・備考', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
       ],
     },
   ],
@@ -319,7 +366,7 @@ export function isTextBlock(type: SettingSheetBlockType) {
 }
 
 export function isInputBlock(type: SettingSheetBlockType) {
-  return ['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'BOOLEAN'].includes(type);
+  return ['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'BOOLEAN', 'SONG'].includes(type);
 }
 
 export function isSectionBlock(type: SettingSheetBlockType) {
@@ -331,11 +378,15 @@ export function canContainBlocks(type: SettingSheetBlockType) {
 }
 
 export function canUseAsTitleSourceBlock(type: SettingSheetBlockType) {
-  return ['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'MULTI_SELECT'].includes(type);
+  return ['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'MULTI_SELECT', 'SONG'].includes(type);
 }
 
 export function isRepeatableGroupBlock(type: SettingSheetBlockType) {
   return type === 'REPEATABLE_GROUP';
+}
+
+export function isSongBlock(type: SettingSheetBlockType) {
+  return type === 'SONG';
 }
 
 export function normalizeSettingSheetConfig(config: SettingSheetConfigResponse | null | undefined): SettingSheetConfigResponse {
@@ -386,7 +437,7 @@ function normalizeBlock(block: SettingSheetBlock, fallbackId: string): SettingSh
     optionSource: isOptionBlock(type) && block.optionSource?.blockId?.trim() && block.optionSource?.fieldId?.trim()
       ? { blockId: block.optionSource.blockId.trim(), fieldId: block.optionSource.fieldId.trim() }
       : null,
-    duplicateDetectionRole: isInputBlock(type) && (block.duplicateDetectionRole === 'SONG_TITLE' || block.duplicateDetectionRole === 'SONG_ARTIST')
+    duplicateDetectionRole: isInputBlock(type) && !isSongBlock(type) && (block.duplicateDetectionRole === 'SONG_TITLE' || block.duplicateDetectionRole === 'SONG_ARTIST')
       ? block.duplicateDetectionRole
       : '',
   };

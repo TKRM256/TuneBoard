@@ -216,6 +216,9 @@ export const summarizeBlock = (block: SettingSheetBlock) => {
   if (isOptionBlock(block.type)) {
     return block.optionSource ? '外部参照の選択肢' : `${block.options.length}件の選択肢`;
   }
+  if (block.type === 'SONG') {
+    return '曲名・アーティスト名・iTunes検索';
+  }
   return block.description?.trim() || '単体入力フィールド';
 };
 

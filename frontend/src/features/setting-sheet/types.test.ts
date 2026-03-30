@@ -98,6 +98,7 @@ describe('setting-sheet types', () => {
           items: [],
         },
       ],
+      itunesLinks: null,
     });
   });
 

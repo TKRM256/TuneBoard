@@ -9,12 +9,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
+import jp.tubeboard.features.lives.dto.request.PublicSongDuplicateCheckRequest;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
+import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
 import lombok.AllArgsConstructor;
@@ -65,5 +68,13 @@ public class PublicLivesController {
             @PathVariable(name = "submissionId") UUID submissionId,
             @RequestBody @Valid PublicSettingSheetSubmissionRequest request) {
         return ResponseEntity.ok(livesService.updatePublicSettingSheetSubmission(publicToken, submissionId, request));
+    }
+
+    @PostMapping("/{publicToken}/check-song-duplicate")
+    public ResponseEntity<PublicSongDuplicateCheckResponse> checkSongDuplicate(
+            @PathVariable(name = "publicToken") String publicToken,
+            @RequestBody @Valid PublicSongDuplicateCheckRequest request,
+            @RequestParam(name = "excludeSubmissionId", required = false) UUID excludeSubmissionId) {
+        return ResponseEntity.ok(livesService.checkPublicSongDuplicate(publicToken, request, excludeSubmissionId));
     }
 }

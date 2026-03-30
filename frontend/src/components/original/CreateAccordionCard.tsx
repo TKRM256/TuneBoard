@@ -32,7 +32,7 @@ export const CreateAccordionCard = ({
             </AccordionTrigger>
           </CardHeader>
           <AccordionContent>
-            <CardContent className="mt-2 space-y-4 border-t bg-muted/20 px-4 pt-4 sm:px-6">
+            <CardContent className="mt-2 space-y-4 px-4 pt-4 sm:px-6">
               {children}
             </CardContent>
           </AccordionContent>

@@ -21,11 +21,15 @@ interface SettingSheetSubmissionAnswer {
 }
 
 export function toSettingSheetSubmissionPayload(values: SettingSheetFormValues, config: SettingSheetConfigResponse) {
-  return { answers: serializeScopeBlocks(config.blocks, values.answers) };
+  const itunesLinks = Object.values(values.itunesLinks ?? {});
+  return {
+    answers: serializeScopeBlocks(config.blocks, values.answers),
+    itunesLinks: itunesLinks.length > 0 ? itunesLinks : null,
+  };
 }
 
 export function normalizeValuesForConfig(values: SettingSheetFormValues, config: SettingSheetConfigResponse): SettingSheetFormValues {
-  return { answers: normalizeValuesForBlocks(config.blocks, values.answers as Record<string, unknown>) };
+  return { answers: normalizeValuesForBlocks(config.blocks, values.answers as Record<string, unknown>), itunesLinks: values.itunesLinks ?? {} };
 }
 
 export function resolveOptionSourceValues(

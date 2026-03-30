@@ -164,7 +164,8 @@ public class TenantsService implements ITenantsService {
                                                                                 List.of()),
                                                                 new FieldAnswerRequest("song-parts",
                                                                                 List.of("Vo", "Gt", "Ba", "Dr"),
-                                                                                List.of())))))));
+                                                                                List.of())))))),
+                                null);
                 try {
                         return objectMapper.writeValueAsString(payload);
                 } catch (JsonProcessingException ex) {

@@ -1,8 +1,10 @@
 import {
   isRepeatableGroupBlock,
   isSectionBlock,
+  isSongBlock,
   type SettingSheetBlock,
   type SettingSheetSubmissionAnswerResponse,
+  type ItunesLinkSelection,
 } from '@/features/lives/types/live-types';
 
 export interface SettingSheetGroupItemValue {
@@ -17,6 +19,7 @@ export interface SettingSheetFieldValue {
 
 export interface SettingSheetFormValues {
   answers: Record<string, SettingSheetFieldValue>;
+  itunesLinks: Record<string, ItunesLinkSelection>;
 }
 
 export interface SettingSheetDraft {
@@ -55,15 +58,20 @@ export function cloneGroupItemValue(blocks: SettingSheetBlock[], item: SettingSh
 }
 
 export function createDefaultSettingSheetValues(blocks: SettingSheetBlock[]): SettingSheetFormValues {
-  return { answers: createScopedAnswers(blocks) };
+  return { answers: createScopedAnswers(blocks), itunesLinks: {} };
 }
 
 export function createSettingSheetValuesFromSubmissionAnswers(
   blocks: SettingSheetBlock[],
   answers: SettingSheetSubmissionAnswerResponse[],
+  serverItunesLinks?: ItunesLinkSelection[],
 ): SettingSheetFormValues {
   const answerMap = new Map(answers.map((answer) => [answer.fieldId, answer]));
-  return { answers: buildScopedAnswersFromSubmissionAnswers(blocks, answerMap) };
+  const builtAnswers = buildScopedAnswersFromSubmissionAnswers(blocks, answerMap);
+  const itunesLinks = serverItunesLinks?.length
+    ? matchItunesLinksToGroupItems(blocks, builtAnswers, serverItunesLinks)
+    : {};
+  return { answers: builtAnswers, itunesLinks };
 }
 
 export function parseSettingSheetDraft(raw: string | null, blocks: SettingSheetBlock[]): SettingSheetDraft {
@@ -77,9 +85,11 @@ export function parseSettingSheetDraft(raw: string | null, blocks: SettingSheetB
     const rawValues = typeof parsed.values === 'object' && parsed.values ? parsed.values as Partial<SettingSheetFormValues> : {};
     const answers = typeof rawValues.answers === 'object' && rawValues.answers ? rawValues.answers as Record<string, unknown> : {};
 
+    const itunesLinks = typeof rawValues.itunesLinks === 'object' && rawValues.itunesLinks ? rawValues.itunesLinks as Record<string, ItunesLinkSelection> : {};
+
     return {
       savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : null,
-      values: { answers: normalizeValuesForBlocks(blocks, answers) },
+      values: { answers: normalizeValuesForBlocks(blocks, answers), itunesLinks },
     };
   } catch {
     return { savedAt: null, values: fallback };
@@ -206,4 +216,48 @@ function normalizeGroupItemValue(blocks: SettingSheetBlock[], candidate: unknown
 
 function normalizeScalarValues(candidate: unknown) {
   return Array.isArray(candidate) ? candidate.map((value) => String(value).trim()).filter(Boolean) : [];
+}
+
+function matchItunesLinksToGroupItems(
+  blocks: SettingSheetBlock[],
+  answers: Record<string, SettingSheetFieldValue>,
+  serverLinks: ItunesLinkSelection[],
+): Record<string, ItunesLinkSelection> {
+  const result: Record<string, ItunesLinkSelection> = {};
+  const remaining = [...serverLinks];
+
+  const visit = (currentBlocks: SettingSheetBlock[], currentAnswers: Record<string, SettingSheetFieldValue>) => {
+    for (const block of currentBlocks) {
+      if (isSectionBlock(block.type)) {
+        visit(block.fields, currentAnswers);
+        continue;
+      }
+      if (!isRepeatableGroupBlock(block.type)) continue;
+
+      const fieldValue = currentAnswers[block.id];
+      if (!fieldValue) continue;
+
+      for (const item of fieldValue.items) {
+        for (const child of block.fields) {
+          if (!isSongBlock(child.type)) continue;
+          const songValue = item.answers[child.id];
+          if (!songValue) continue;
+          const title = (songValue.values[0] ?? '').trim().toLowerCase();
+          const artist = (songValue.values[1] ?? '').trim().toLowerCase();
+          if (!title) continue;
+
+          const idx = remaining.findIndex(
+            (link) => link.songTitle.trim().toLowerCase() === title && link.songArtist.trim().toLowerCase() === artist,
+          );
+          if (idx >= 0) {
+            result[item.id] = remaining[idx];
+            remaining.splice(idx, 1);
+          }
+        }
+      }
+    }
+  };
+
+  visit(blocks, answers);
+  return result;
 }

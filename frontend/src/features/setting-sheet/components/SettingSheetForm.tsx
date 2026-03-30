@@ -145,6 +145,16 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                     answers: updateScopedAnswers(current.answers, blockId, nextValue),
                   }))}
                   updateScopedAnswers={updateScopedAnswers}
+                  itunesLinks={formValues.itunesLinks}
+                  onItunesLinkChange={(itemId, link) => setFormValues((current) => {
+                    const next = { ...current.itunesLinks };
+                    if (link) {
+                      next[itemId] = link;
+                    } else {
+                      delete next[itemId];
+                    }
+                    return { ...current, itunesLinks: next };
+                  })}
                 />
               ))}
             </CardContent>

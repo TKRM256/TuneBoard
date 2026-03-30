@@ -38,6 +38,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/public/lives/**").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/public/lives/**").permitAll()
                                                 .requestMatchers(HttpMethod.PUT, "/api/public/lives/**").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/public/itunes/**").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/auth/google/login").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/auth/google/callback")
                                                 .permitAll()

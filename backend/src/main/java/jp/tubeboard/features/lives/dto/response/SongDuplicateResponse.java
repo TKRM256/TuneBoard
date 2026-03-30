@@ -9,9 +9,9 @@ public record SongDuplicateResponse(
 
         /**
          * 確信度:
-         * HIGH — 同一MBID (MusicBrainz完全一致)
-         * MEDIUM — 異なるMBID/ローカルキーだがタイトル部分一致でマージ
-         * LOW — ローカル正規化のみ (MusicBrainz照合なし)
+         * HIGH — 同一iTunesトラックID
+         * MEDIUM — タイトル部分一致や読み仮名一致でマージ
+         * LOW — ローカル正規化のみ
          */
         public enum Confidence {
                 HIGH, MEDIUM, LOW
@@ -20,7 +20,7 @@ public record SongDuplicateResponse(
         public record DuplicateGroup(
                         String normalizedTitle,
                         String normalizedArtist,
-                        String mbid,
+                        String itunesTrackId,
                         Confidence confidence,
                         boolean dismissed,
                         List<DuplicateSongEntry> entries) {

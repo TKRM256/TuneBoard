@@ -25,6 +25,7 @@ public class FormBuilderHelper {
             case SettingSheetConstants.BLOCK_SECTION -> "セクション見出し";
             case SettingSheetConstants.BLOCK_BOOLEAN -> "チェック項目";
             case SettingSheetConstants.BLOCK_REPEATABLE_GROUP -> "繰り返しグループ";
+            case SettingSheetConstants.BLOCK_SONG -> "楽曲";
             default -> "質問";
         };
     }
@@ -105,6 +106,14 @@ public class FormBuilderHelper {
     public FormBlockResponse booleanBlock(String id, String label, String description, LayoutResponse layout) {
         return new FormBlockResponse(id, SettingSheetConstants.BLOCK_BOOLEAN, label, description, false, false,
                 false, false,
+                SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
+                "",
+                List.of(), layout, null, "");
+    }
+
+    public FormBlockResponse songBlock(String id, String label, boolean required, LayoutResponse layout) {
+        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_SONG, label, "", false, false,
+                required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
                 List.of(), layout, null, "");

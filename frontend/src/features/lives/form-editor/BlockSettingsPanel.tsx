@@ -20,6 +20,7 @@ import {
   isInputBlock,
   isOptionBlock,
   isRepeatableGroupBlock,
+  isSongBlock,
   SETTING_SHEET_APPEARANCE_OPTIONS,
   SETTING_SHEET_BLOCK_OPTIONS,
   type SettingSheetBlock,
@@ -156,7 +157,7 @@ export const BlockSettingsPanel = ({
                   </div>
                 </div>
               ) : null}
-              {isInputBlock(block.type) ? (
+              {isInputBlock(block.type) && !isSongBlock(block.type) ? (
                 <div>
                   <p className="text-xs text-muted-foreground">曲かぶり検知の役割</p>
                   <Select value={block.duplicateDetectionRole || '__none__'} onValueChange={(value) => onUpdateBlock(block.id, { duplicateDetectionRole: (value === '__none__' ? '' : value) as DuplicateDetectionRole })}>

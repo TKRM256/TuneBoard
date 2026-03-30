@@ -25,11 +25,10 @@ import {
 
 interface CreateLiveCardProps {
   tenantId: string;
-  tenantName: string;
   onCreateSuccess: (live: LiveResponse) => void;
 }
 
-export const CreateLiveCard = ({ tenantId, tenantName, onCreateSuccess }: CreateLiveCardProps) => {
+export const CreateLiveCard = ({ tenantId, onCreateSuccess }: CreateLiveCardProps) => {
   const [formValues, setFormValues] = useState<LiveFormValues>(() => createTenantScopedLiveForm());
 
   const setFieldValue = (field: keyof LiveFormValues, value: string) => {
@@ -78,7 +77,7 @@ export const CreateLiveCard = ({ tenantId, tenantName, onCreateSuccess }: Create
   return (
     <CreateAccordionCard
       value={`create-live-${tenantId}`}
-      title={`${tenantName} のライブ作成`}
+      title={ "新規ライブ作成"}
     >
         <FieldGroup>
           <Field>

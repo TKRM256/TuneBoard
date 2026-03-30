@@ -14,7 +14,9 @@ import {
   isOptionBlock,
   isRepeatableGroupBlock,
   isSectionBlock,
+  isSongBlock,
   type SettingSheetBlock,
+  type ItunesLinkSelection,
 } from '@/features/lives/types/live-types';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +29,8 @@ import {
   type SettingSheetGroupItemValue,
 } from '../types';
 import { appearanceClass, fieldWidthClass, formatGroupItemTitle, moveItem, optionLayoutClass } from '../helpers/layout-classes';
+import { ItunesTrackSelector } from './ItunesTrackSelector';
+import { SongBlockField } from './SongBlockField';
 
 interface SettingSheetFieldRendererProps {
   block: SettingSheetBlock;
@@ -40,6 +44,9 @@ interface SettingSheetFieldRendererProps {
     blockId: string,
     nextValue: SettingSheetFieldValue,
   ) => Record<string, SettingSheetFieldValue>;
+  itunesLinks?: Record<string, ItunesLinkSelection>;
+  onItunesLinkChange?: (itemId: string, link: ItunesLinkSelection | null) => void;
+  groupItemId?: string;
 }
 
 export const SettingSheetFieldRenderer = ({
@@ -50,6 +57,9 @@ export const SettingSheetFieldRenderer = ({
   resolveOptions,
   setScopedAnswer,
   updateScopedAnswers,
+  itunesLinks,
+  onItunesLinkChange,
+  groupItemId,
 }: SettingSheetFieldRendererProps) => {
   if (block.hidden) {
     return null;
@@ -79,6 +89,8 @@ export const SettingSheetFieldRenderer = ({
                   resolveOptions={resolveOptions}
                   setScopedAnswer={setScopedAnswer}
                   updateScopedAnswers={updateScopedAnswers}
+                  itunesLinks={itunesLinks}
+                  onItunesLinkChange={onItunesLinkChange}
                 />
               </Fragment>
             ))}
@@ -98,6 +110,26 @@ export const SettingSheetFieldRenderer = ({
         resolveOptions={resolveOptions}
         setFieldValue={(nextValue) => setScopedAnswer(block.id, nextValue)}
         updateScopedAnswers={updateScopedAnswers}
+        itunesLinks={itunesLinks}
+        onItunesLinkChange={onItunesLinkChange}
+      />
+    );
+  }
+
+  if (isSongBlock(block.type)) {
+    const itunesLink = groupItemId && itunesLinks ? itunesLinks[groupItemId] ?? null : null;
+    const handleLinkChange = groupItemId && onItunesLinkChange
+      ? (link: ItunesLinkSelection | null) => onItunesLinkChange(groupItemId, link)
+      : undefined;
+    return (
+      <SongBlockField
+        block={block}
+        fieldValue={fieldValue}
+        inputId={inputId}
+        setScopedAnswer={setScopedAnswer}
+        itunesLink={itunesLink}
+        onItunesLinkChange={handleLinkChange}
+        error={errorMap[pathKey]}
       />
     );
   }
@@ -180,6 +212,8 @@ interface SettingSheetGroupBlockProps {
     blockId: string,
     nextValue: SettingSheetFieldValue,
   ) => Record<string, SettingSheetFieldValue>;
+  itunesLinks?: Record<string, ItunesLinkSelection>;
+  onItunesLinkChange?: (itemId: string, link: ItunesLinkSelection | null) => void;
 }
 
 const SettingSheetGroupBlock = ({
@@ -190,6 +224,8 @@ const SettingSheetGroupBlock = ({
   resolveOptions,
   setFieldValue,
   updateScopedAnswers,
+  itunesLinks,
+  onItunesLinkChange,
 }: SettingSheetGroupBlockProps) => (
   <section className={`${appearanceClass(block.appearance, 'group')} ${fieldWidthClass(block.layout.width)}`}>
     <div className="flex flex-col gap-3 px-4 pt-4 sm:px-5 sm:pt-5 md:flex-row md:items-start md:justify-between">
@@ -220,6 +256,8 @@ const SettingSheetGroupBlock = ({
             resolveOptions={resolveOptions}
             setFieldValue={setFieldValue}
             updateScopedAnswers={updateScopedAnswers}
+            itunesLinks={itunesLinks}
+            onItunesLinkChange={onItunesLinkChange}
           />
         ))}
       </motion.div>
@@ -245,14 +283,20 @@ const SettingSheetGroupItem = ({
   resolveOptions,
   setFieldValue,
   updateScopedAnswers,
+  itunesLinks,
+  onItunesLinkChange,
 }: SettingSheetGroupItemProps) => {
   const itemTitle = resolveItemTitle(block, item, itemIndex);
+  const hasSongTitle = block.fields.some((f) => f.duplicateDetectionRole === 'SONG_TITLE');
+  const hasSongBlock = block.fields.some((f) => f.type === 'SONG');
   const updateItem = (nextItem: SettingSheetGroupItemValue) => {
     setFieldValue({
       values: [],
       items: groupValue.items.map((currentItem, index) => index === itemIndex ? nextItem : currentItem),
     });
   };
+
+  const selectedLink = itunesLinks?.[item.id] ?? null;
 
   const content = (
     <div className="grid gap-4 px-4 py-4 sm:px-5 xl:grid-cols-6">
@@ -269,8 +313,19 @@ const SettingSheetGroupItem = ({
             answers: updateScopedAnswers(item.answers, childId, nextChildValue),
           })}
           updateScopedAnswers={updateScopedAnswers}
+          groupItemId={item.id}
+          itunesLinks={itunesLinks}
+          onItunesLinkChange={onItunesLinkChange}
         />
       ))}
+      {hasSongTitle && !hasSongBlock && onItunesLinkChange ? (
+        <div className="xl:col-span-6">
+          <ItunesTrackSelector
+            selected={selectedLink}
+            onSelect={(link) => onItunesLinkChange(item.id, link)}
+          />
+        </div>
+      ) : null}
     </div>
   );
 

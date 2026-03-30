@@ -1,6 +1,7 @@
 package jp.tubeboard.features.lives.service.crud;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -12,14 +13,17 @@ import jp.tubeboard.features.auth.User;
 import jp.tubeboard.features.auth.UserService;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
+import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.LiveStatus;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
+import jp.tubeboard.features.lives.model.ItunesTrackLink;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
+import jp.tubeboard.features.lives.repository.ItunesTrackLinkRepository;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
 import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.repository.TenantsRepository;
@@ -33,6 +37,7 @@ import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionServi
 @AllArgsConstructor
 public class LiveServiceHelper {
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
+        private final ItunesTrackLinkRepository itunesTrackLinkRepository;
         private final TenantsRepository tenantsRepository;
         private final UserService userService;
         private final LiveRepository liveRepository;
@@ -69,6 +74,18 @@ public class LiveServiceHelper {
                                 .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
         }
 
+        public List<PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse> mapItunesLinks(UUID submissionId) {
+                return itunesTrackLinkRepository.findAllBySubmissionId(submissionId).stream()
+                                .map(link -> new PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse(
+                                                link.getSongTitle(),
+                                                link.getSongArtist(),
+                                                link.getItunesTrackId(),
+                                                link.getItunesTitle(),
+                                                link.getItunesArtist(),
+                                                link.getItunesAlbumArtUrl()))
+                                .toList();
+        }
+
         public SettingSheetSubmissionResponse saveSubmission(Live live,
                         PublicSettingSheetSubmissionRequest request,
                         SettingSheetSubmission submission) {
@@ -87,7 +104,9 @@ public class LiveServiceHelper {
                 target.setSubmissionStatus(SettingSheetConstants.SUBMISSION_STATUS);
                 target.setPayloadJson(settingSheetSubmissionService.writeSubmissionPayload(normalizedRequest));
 
-                return toSubmissionResponse(settingSheetSubmissionRepository.save(target));
+                SettingSheetSubmission saved = settingSheetSubmissionRepository.save(target);
+                saveItunesLinks(saved, request.itunesLinks());
+                return toSubmissionResponse(saved);
         }
 
         public void triggerDuplicateDetection(UUID liveId) {
@@ -118,6 +137,26 @@ public class LiveServiceHelper {
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt());
+        }
+
+        private void saveItunesLinks(SettingSheetSubmission submission,
+                        List<PublicSettingSheetSubmissionRequest.ItunesLinkRequest> links) {
+                itunesTrackLinkRepository.deleteAllBySubmissionId(submission.getId());
+                if (links == null || links.isEmpty()) {
+                        return;
+                }
+                for (var link : links) {
+                        ItunesTrackLink entity = ItunesTrackLink.builder()
+                                        .submission(submission)
+                                        .songTitle(link.songTitle())
+                                        .songArtist(link.songArtist())
+                                        .itunesTrackId(link.itunesTrackId())
+                                        .itunesTitle(link.itunesTitle())
+                                        .itunesArtist(link.itunesArtist())
+                                        .itunesAlbumArtUrl(link.itunesAlbumArtUrl())
+                                        .build();
+                        itunesTrackLinkRepository.save(entity);
+                }
         }
 
         private void assertAcceptingPublicSubmission(Live live) {

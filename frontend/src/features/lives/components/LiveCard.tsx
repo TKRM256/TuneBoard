@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarDays, Copy, ExternalLink, MoreHorizontal, Pencil, Settings2 } from 'lucide-react';
+import {  ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -8,13 +8,7 @@ import { ConfirmButton } from '@/components/original/ConfirmButton';
 import { InlineEditPanel } from '@/components/original/InlineEditPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Card, CardHeader } from '@/components/ui/card';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,9 +22,7 @@ import { apiClient } from '@/lib/api/client';
 import type { ApiClientError } from '@/lib/api/type';
 
 import {
-  buildPublicLiveUrl,
   createLiveFormFromResponse,
-  formatDeadline,
   formatLiveDate,
   formatOptionalText,
   LIVE_STATUS_LABELS,
@@ -50,8 +42,6 @@ interface LiveCardProps {
 export const LiveCard = ({ live, tenantId, onUpdateSuccess, onDelete }: LiveCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formValues, setFormValues] = useState<LiveFormValues>(() => createLiveFormFromResponse(live));
-
-  const publicUrl = buildPublicLiveUrl(live.publicToken);
 
   const setFieldValue = (field: keyof LiveFormValues, value: string) => {
     setFormValues((prev) => ({
@@ -109,11 +99,6 @@ export const LiveCard = ({ live, tenantId, onUpdateSuccess, onDelete }: LiveCard
     });
   };
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(publicUrl);
-    toast.success('公開URLをコピーしました', { position: 'top-center' });
-  };
-
   const badgeVariant = live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary';
 
   return (
@@ -123,7 +108,7 @@ export const LiveCard = ({ live, tenantId, onUpdateSuccess, onDelete }: LiveCard
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <div className="flex items-center gap-2">
-              <h3 className="break-words text-lg font-semibold">{live.name}</h3>
+              <h3 className="wrap-break-word text-lg font-semibold">{live.name}</h3>
               <Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -133,49 +118,16 @@ export const LiveCard = ({ live, tenantId, onUpdateSuccess, onDelete }: LiveCard
           <div className="flex shrink-0 items-center gap-1.5">
             <Button asChild size="sm">
               <Link to={`/tenants/${tenantId}/lives/${live.id}`}>
-                <Settings2 className="size-4" />
                 管理
+                <ChevronRight className="size-4" />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" className="size-8" onClick={() => setIsEditing((prev) => !prev)}>
-              <Pencil className="size-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8">
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => window.open(publicUrl, '_blank', 'noopener,noreferrer')}>
-                  <ExternalLink className="size-4" />
-                  公開ページを開く
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopy}>
-                  <Copy className="size-4" />
-                  URLをコピー
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button variant="outline" size="sm" onClick={() => setIsEditing((prev) => !prev)}>
+              {isEditing ? "キャンセル" : "編集"}
+            </Button>            
           </div>
         </div>
       </CardHeader>
-
-      <CardContent className="space-y-3">
-        <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-            <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
-            <div className="min-w-0">
-              <span className="text-xs text-muted-foreground">回答締切: </span>
-              <span className="font-medium">{formatDeadline(live.deadlineAt)}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-            <Copy className="size-4 shrink-0 text-muted-foreground" />
-            <p className="min-w-0 truncate text-xs text-muted-foreground">{publicUrl}</p>
-          </div>
-        </div>
-      </CardContent>
 
       <InlineEditPanel open={isEditing} >
           <motion.div layout className="space-y-4">

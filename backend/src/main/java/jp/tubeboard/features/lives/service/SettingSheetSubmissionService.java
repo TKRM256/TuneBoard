@@ -29,7 +29,8 @@ public class SettingSheetSubmissionService {
     public PublicSettingSheetSubmissionRequest normalizeSubmissionRequest(PublicSettingSheetSubmissionRequest request) {
         return new PublicSettingSheetSubmissionRequest(
                 request.answers() == null ? List.of()
-                        : request.answers().stream().map(this::normalizeFieldAnswer).toList());
+                        : request.answers().stream().map(this::normalizeFieldAnswer).toList(),
+                request.itunesLinks());
     }
 
     public void validateSubmission(PublicSettingSheetSubmissionRequest request, SettingSheetConfigResponse config) {
@@ -62,7 +63,7 @@ public class SettingSheetSubmissionService {
             return normalizeSubmissionRequest(
                     objectMapper.readValue(payloadJson, PublicSettingSheetSubmissionRequest.class));
         } catch (JsonProcessingException ex) {
-            return new PublicSettingSheetSubmissionRequest(List.of());
+            return new PublicSettingSheetSubmissionRequest(List.of(), null);
         }
     }
 
@@ -80,7 +81,7 @@ public class SettingSheetSubmissionService {
             PublicSettingSheetSubmissionRequest request,
             SettingSheetConfigResponse config) {
         return new PublicSettingSheetSubmissionRequest(
-                filterAnswers(config.blocks(), request.answers()));
+                filterAnswers(config.blocks(), request.answers()), null);
     }
 
     public String resolveSharedRecordLabel(SettingSheetConfigResponse config,
@@ -160,6 +161,15 @@ public class SettingSheetSubmissionService {
                     validateAnswers(block.fields(), answer.items().get(index).answers(),
                             key + ".items[" + index + "].answers.",
                             rootBlocks, rootAnswers, fieldErrors, true);
+                }
+                continue;
+            }
+            if (SettingSheetConstants.BLOCK_SONG.equals(block.type())) {
+                if (Boolean.TRUE.equals(block.required()) && answer.values().isEmpty()) {
+                    fieldErrors.putIfAbsent(key, block.label() + " は必須です。");
+                }
+                if (answer.values().size() > 2) {
+                    fieldErrors.putIfAbsent(key, block.label() + " の入力形式が不正です。");
                 }
                 continue;
             }

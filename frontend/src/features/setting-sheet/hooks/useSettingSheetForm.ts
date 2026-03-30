@@ -42,7 +42,7 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
     : `tuneboard:setting-sheet:${publicToken}`;
   const initialValues = useMemo(
     () => submission
-      ? createSettingSheetValuesFromSubmissionAnswers(settingSheetConfig.blocks, submission.answers)
+      ? createSettingSheetValuesFromSubmissionAnswers(settingSheetConfig.blocks, submission.answers, submission.itunesLinks)
       : createDefaultSettingSheetValues(settingSheetConfig.blocks),
     [settingSheetConfig.blocks, submission],
   );

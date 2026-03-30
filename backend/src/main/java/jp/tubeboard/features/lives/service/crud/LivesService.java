@@ -17,6 +17,8 @@ import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
+import jp.tubeboard.features.lives.dto.request.PublicSongDuplicateCheckRequest;
+import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.model.Live;
@@ -191,7 +193,8 @@ public class LivesService implements ILivesService {
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
-                                settingSheetSubmissionService.mapFieldAnswers(payload.answers()));
+                                settingSheetSubmissionService.mapFieldAnswers(payload.answers()),
+                                helper.mapItunesLinks(submission.getId()));
         }
 
         @Override
@@ -212,7 +215,8 @@ public class LivesService implements ILivesService {
                                                         submission.getSubmissionStatus(),
                                                         submission.getCreatedAt(),
                                                         settingSheetSubmissionService
-                                                                        .mapFieldAnswers(payload.answers()));
+                                                                        .mapFieldAnswers(payload.answers()),
+                                                        List.of());
                                 })
                                 .toList();
         }
@@ -228,7 +232,8 @@ public class LivesService implements ILivesService {
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
-                                settingSheetSubmissionService.mapFieldAnswers(payload.answers()));
+                                settingSheetSubmissionService.mapFieldAnswers(payload.answers()),
+                                helper.mapItunesLinks(submission.getId()));
         }
 
         @Override
@@ -252,7 +257,8 @@ public class LivesService implements ILivesService {
                                 settingSheetSubmissionService.resolveSharedRecordLabel(config, sharedPayload),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
-                                settingSheetSubmissionService.mapFieldAnswers(sharedPayload.answers()));
+                                settingSheetSubmissionService.mapFieldAnswers(sharedPayload.answers()),
+                                List.of());
         }
 
         @Override
@@ -281,7 +287,8 @@ public class LivesService implements ILivesService {
                                                         submission.getSubmissionStatus(),
                                                         submission.getCreatedAt(),
                                                         settingSheetSubmissionService
-                                                                        .mapFieldAnswers(sharedPayload.answers()));
+                                                                        .mapFieldAnswers(sharedPayload.answers()),
+                                                        List.of());
                                 })
                                 .toList();
         }
@@ -318,5 +325,14 @@ public class LivesService implements ILivesService {
         public SongDuplicateResponse toggleDismissSongDuplicate(UUID liveId, String normalizedTitle) {
                 helper.findOwnedLive(liveId);
                 return songDuplicateDetectionService.toggleDismiss(liveId, normalizedTitle);
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public PublicSongDuplicateCheckResponse checkPublicSongDuplicate(String publicToken,
+                        PublicSongDuplicateCheckRequest request, UUID excludeSubmissionId) {
+                Live live = liveRepository.findByPublicTokenAndDeletedAtIsNull(publicToken)
+                                .orElseThrow(() -> new LivesNotFoundException("公開ライブが見つかりません"));
+                return songDuplicateDetectionService.checkSongDuplicate(live, request, excludeSubmissionId);
         }
 }

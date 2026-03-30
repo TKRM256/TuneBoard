@@ -22,12 +22,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.atilika.kuromoji.ipadic.Token;
+import com.atilika.kuromoji.ipadic.Tokenizer;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest.FieldAnswerRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest.GroupItemRequest;
+import jp.tubeboard.features.lives.dto.request.PublicSongDuplicateCheckRequest;
+import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse.Confidence;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse.DuplicateGroup;
@@ -37,12 +42,13 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormB
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
 import jp.tubeboard.features.lives.model.SongDuplicateResult;
+import jp.tubeboard.features.lives.model.ItunesTrackLink;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.repository.SongDuplicateResultRepository;
+import jp.tubeboard.features.lives.repository.ItunesTrackLinkRepository;
 import jp.tubeboard.features.lives.service.SettingSheetConstants;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
-import jp.tubeboard.features.lives.service.duplicate.MusicBrainzService.MusicBrainzRecording;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -51,12 +57,13 @@ public class SongDuplicateDetectionService {
 
     private static final Logger log = LoggerFactory.getLogger(SongDuplicateDetectionService.class);
     private static final Pattern WHITESPACE_PATTERN = Pattern.compile("[\\s\\p{Z}]+");
+    private static final Tokenizer KUROMOJI_TOKENIZER = new Tokenizer();
 
-    private final MusicBrainzService musicBrainzService;
     private final SettingSheetSubmissionService settingSheetSubmissionService;
     private final SettingSheetConfigService settingSheetConfigService;
     private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
     private final SongDuplicateResultRepository songDuplicateResultRepository;
+    private final ItunesTrackLinkRepository itunesTrackLinkRepository;
     private final PlatformTransactionManager transactionManager;
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
@@ -121,7 +128,7 @@ public class SongDuplicateDetectionService {
 
             List<DuplicateGroup> updated = current.groups().stream()
                     .map(g -> normalize(g.normalizedTitle()).equals(target)
-                            ? new DuplicateGroup(g.normalizedTitle(), g.normalizedArtist(), g.mbid(),
+                            ? new DuplicateGroup(g.normalizedTitle(), g.normalizedArtist(), g.itunesTrackId(),
                                     g.confidence(), !g.dismissed(), g.entries())
                             : g)
                     .toList();
@@ -236,39 +243,40 @@ public class SongDuplicateDetectionService {
             return new SongDuplicateResponse(0, List.of());
         }
 
-        // 2. ローカル正規化でグルーピング
+        // 2. iTunesトラックリンクを取得して曲に紐付け
+        List<UUID> submissionIds = submissions.stream().map(SettingSheetSubmission::getId).toList();
+        List<ItunesTrackLink> allLinks = itunesTrackLinkRepository.findAllBySubmissionIdIn(submissionIds);
+        Map<String, String> songToItunesTrackId = new LinkedHashMap<>();
+        for (ItunesTrackLink link : allLinks) {
+            String key = link.getSubmission().getId() + "|" + link.getSongTitle() + "|" + link.getSongArtist();
+            songToItunesTrackId.put(key, link.getItunesTrackId());
+        }
+
+        // 3. ローカル正規化でグルーピング
         Map<String, List<ExtractedSong>> localGroups = new LinkedHashMap<>();
         for (ExtractedSong song : allSongs) {
             String key = song.normalizedKey();
             localGroups.computeIfAbsent(key, k -> new ArrayList<>()).add(song);
         }
 
-        // 3. MusicBrainz APIで重複候補をさらに正規化
-        // groupKey -> songs, groupKey -> confidence
+        // 4. iTunes トラックIDでグルーピング（同じトラックIDなら同一曲）
         Map<String, List<ExtractedSong>> resolvedGroups = new LinkedHashMap<>();
         Map<String, Confidence> groupConfidence = new LinkedHashMap<>();
-        Map<String, MusicBrainzRecording> mbCache = new LinkedHashMap<>();
 
         for (Map.Entry<String, List<ExtractedSong>> entry : localGroups.entrySet()) {
             List<ExtractedSong> songs = entry.getValue();
             ExtractedSong representative = songs.getFirst();
 
-            String cacheKey = representative.normalizedKey();
-            MusicBrainzRecording recording = mbCache.get(cacheKey);
-            if (recording == null) {
-                Optional<MusicBrainzRecording> result = musicBrainzService.searchRecording(
-                        representative.title, representative.artist);
-                recording = result.orElse(null);
-                mbCache.put(cacheKey, recording);
-            }
+            String itunesKey = representative.submissionId + "|" + representative.title + "|" + representative.artist;
+            String itunesTrackId = songToItunesTrackId.get(itunesKey);
 
-            String groupKey = recording != null ? "mbid:" + recording.mbid() : "local:" + cacheKey;
-            Confidence confidence = recording != null ? Confidence.HIGH : Confidence.LOW;
+            String groupKey = itunesTrackId != null ? "itunes:" + itunesTrackId : "local:" + entry.getKey();
+            Confidence confidence = itunesTrackId != null ? Confidence.HIGH : Confidence.LOW;
             resolvedGroups.computeIfAbsent(groupKey, k -> new ArrayList<>()).addAll(songs);
             groupConfidence.merge(groupKey, confidence, (a, b) -> a.ordinal() < b.ordinal() ? a : b);
         }
 
-        // 4. 同じ正規化タイトルを持つグループをマージ（アーティスト名表記揺れ対策）
+        // 5. 同じ正規化タイトルを持つグループをマージ（アーティスト名表記揺れ対策）
         Map<String, List<String>> titleToGroupKeys = new LinkedHashMap<>();
         for (Map.Entry<String, List<ExtractedSong>> entry : resolvedGroups.entrySet()) {
             String normalizedTitle = normalize(entry.getValue().getFirst().title);
@@ -288,16 +296,44 @@ public class SongDuplicateDetectionService {
                 if (c.ordinal() < conf.ordinal())
                     conf = c;
             }
-            // 複数グループが exact-title でマージされた場合は MEDIUM に下げる
             if (groupKeys.size() > 1 && conf == Confidence.HIGH)
                 conf = Confidence.MEDIUM;
             mergedGroups.put(mergeKey, merged);
             mergedConfidence.put(mergeKey, conf);
         }
 
-        // 4b. タイトル部分一致でさらにマージ (「夏祭」⊂「夏祭り」のようなケース)
+        // 5a. 読み仮名ベースのマージ（漢字/ひらがな表記揺れ対策: 「夏祭り」=「なつまつり」）
+        Map<String, List<String>> readingToGroupKeys = new LinkedHashMap<>();
+        for (Map.Entry<String, List<ExtractedSong>> entry : mergedGroups.entrySet()) {
+            String readingTitle = toReading(entry.getValue().getFirst().title);
+            readingToGroupKeys.computeIfAbsent(readingTitle, k -> new ArrayList<>()).add(entry.getKey());
+        }
+
+        Map<String, List<ExtractedSong>> readingMerged = new LinkedHashMap<>();
+        Map<String, Confidence> readingMergedConfidence = new LinkedHashMap<>();
+        for (Map.Entry<String, List<String>> readingEntry : readingToGroupKeys.entrySet()) {
+            List<String> groupKeys = readingEntry.getValue();
+            String mergeKey = groupKeys.getFirst();
+            List<ExtractedSong> rMerged = new ArrayList<>();
+            Confidence conf = mergedConfidence.getOrDefault(mergeKey, Confidence.LOW);
+            for (String key : groupKeys) {
+                rMerged.addAll(mergedGroups.get(key));
+                Confidence c = mergedConfidence.getOrDefault(key, Confidence.LOW);
+                if (c.ordinal() < conf.ordinal())
+                    conf = c;
+            }
+            if (groupKeys.size() > 1 && conf == Confidence.HIGH)
+                conf = Confidence.MEDIUM;
+            readingMerged.put(mergeKey, rMerged);
+            readingMergedConfidence.put(mergeKey, conf);
+        }
+
+        mergedGroups = readingMerged;
+        mergedConfidence = readingMergedConfidence;
+
+        // 5b. タイトル部分一致でさらにマージ (「夏祭」⊂「夏祭り」のようなケース)
         List<String> mergedKeys = new ArrayList<>(mergedGroups.keySet());
-        Map<String, String> redirectMap = new LinkedHashMap<>(); // redirected key -> canonical key
+        Map<String, String> redirectMap = new LinkedHashMap<>();
 
         for (int i = 0; i < mergedKeys.size(); i++) {
             String keyA = mergedKeys.get(i);
@@ -308,12 +344,11 @@ public class SongDuplicateDetectionService {
                 String keyB = mergedKeys.get(j);
                 String canonB = followRedirect(redirectMap, keyB);
                 if (canonA.equals(canonB))
-                    continue; // already merged
+                    continue;
 
                 String titleB = normalize(mergedGroups.get(keyB).getFirst().title);
 
                 if (titleA.contains(titleB) || titleB.contains(titleA)) {
-                    // Merge B into A (A is canonical)
                     redirectMap.put(canonB, canonA);
                 }
             }
@@ -328,7 +363,6 @@ public class SongDuplicateDetectionService {
                 fuzzyMerged.computeIfAbsent(canonical, k -> new ArrayList<>()).addAll(mergedGroups.get(key));
                 Confidence existing = fuzzyConfidence.getOrDefault(canonical, Confidence.LOW);
                 Confidence current = mergedConfidence.getOrDefault(key, Confidence.LOW);
-                // fuzzy merge → at most MEDIUM
                 Confidence combined = existing.ordinal() < current.ordinal() ? existing : current;
                 if (!canonical.equals(key))
                     combined = Confidence.MEDIUM;
@@ -339,7 +373,7 @@ public class SongDuplicateDetectionService {
             mergedConfidence = fuzzyConfidence;
         }
 
-        // 5. 実際に重複があるグループだけを結果に含める
+        // 6. 実際に重複があるグループだけを結果に含める
         List<DuplicateGroup> duplicateGroups = new ArrayList<>();
         for (Map.Entry<String, List<ExtractedSong>> entry : mergedGroups.entrySet()) {
             List<ExtractedSong> songs = entry.getValue();
@@ -355,17 +389,12 @@ public class SongDuplicateDetectionService {
                 continue;
             }
 
-            String mbid = entry.getKey().startsWith("mbid:")
-                    ? entry.getKey().substring(5)
+            String itunesTrackId = entry.getKey().startsWith("itunes:")
+                    ? entry.getKey().substring(7)
                     : "";
-            MusicBrainzRecording recording = mbid.isEmpty() ? null
-                    : mbCache.values().stream()
-                            .filter(r -> r != null && r.mbid().equals(mbid))
-                            .findFirst()
-                            .orElse(null);
 
-            String groupTitle = recording != null ? recording.title() : songs.getFirst().title;
-            String groupArtist = recording != null ? recording.artist() : songs.getFirst().artist;
+            String groupTitle = songs.getFirst().title;
+            String groupArtist = songs.getFirst().artist;
             Confidence confidence = mergedConfidence.getOrDefault(entry.getKey(), Confidence.LOW);
             boolean dismissed = dismissedTitles != null && dismissedTitles.contains(normalize(groupTitle));
 
@@ -377,7 +406,8 @@ public class SongDuplicateDetectionService {
                             song.artist))
                     .toList();
 
-            duplicateGroups.add(new DuplicateGroup(groupTitle, groupArtist, mbid, confidence, dismissed, entries));
+            duplicateGroups.add(new DuplicateGroup(groupTitle, groupArtist, itunesTrackId, confidence, dismissed,
+                    entries));
         }
 
         long activeCount = duplicateGroups.stream().filter(g -> !g.dismissed()).count();
@@ -414,9 +444,12 @@ public class SongDuplicateDetectionService {
                 continue;
             }
 
-            // 曲ブロックかどうかを判定: 子フィールドに "song-title" があれば曲ブロックとみなす
-            SongFieldIds songFieldIds = detectSongFields(block.fields());
-            if (songFieldIds == null) {
+            // SONG ブロックがあるか確認
+            String songBlockId = detectSongBlockId(block.fields());
+            // 従来の duplicateDetectionRole による検出
+            SongFieldIds songFieldIds = songBlockId == null ? detectSongFields(block.fields()) : null;
+
+            if (songBlockId == null && songFieldIds == null) {
                 // 入れ子のrepeatable group内にも曲がある可能性を探索
                 FieldAnswerRequest answer = answerMap.get(block.id());
                 if (answer != null) {
@@ -435,17 +468,32 @@ public class SongDuplicateDetectionService {
             for (GroupItemRequest item : answer.items()) {
                 Map<String, FieldAnswerRequest> itemAnswerMap = toAnswerMap(item.answers());
 
-                FieldAnswerRequest titleAnswer = itemAnswerMap.get(songFieldIds.titleFieldId);
-                FieldAnswerRequest artistAnswer = songFieldIds.artistFieldId != null
-                        ? itemAnswerMap.get(songFieldIds.artistFieldId)
-                        : null;
+                String title;
+                String artist;
 
-                String title = titleAnswer != null && !titleAnswer.values().isEmpty()
-                        ? titleAnswer.values().getFirst()
-                        : "";
-                String artist = artistAnswer != null && !artistAnswer.values().isEmpty()
-                        ? artistAnswer.values().getFirst()
-                        : "";
+                if (songBlockId != null) {
+                    // SONG ブロック: values[0] = 曲名, values[1] = アーティスト
+                    FieldAnswerRequest songAnswer = itemAnswerMap.get(songBlockId);
+                    title = songAnswer != null && !songAnswer.values().isEmpty()
+                            ? songAnswer.values().getFirst()
+                            : "";
+                    artist = songAnswer != null && songAnswer.values().size() > 1
+                            ? songAnswer.values().get(1)
+                            : "";
+                } else {
+                    // 従来方式: 個別フィールドから取得
+                    FieldAnswerRequest titleAnswer = itemAnswerMap.get(songFieldIds.titleFieldId);
+                    FieldAnswerRequest artistAnswer = songFieldIds.artistFieldId != null
+                            ? itemAnswerMap.get(songFieldIds.artistFieldId)
+                            : null;
+
+                    title = titleAnswer != null && !titleAnswer.values().isEmpty()
+                            ? titleAnswer.values().getFirst()
+                            : "";
+                    artist = artistAnswer != null && !artistAnswer.values().isEmpty()
+                            ? artistAnswer.values().getFirst()
+                            : "";
+                }
 
                 if (!title.isBlank()) {
                     songs.add(new ExtractedSong(submissionId, recordLabel, title.trim(), artist.trim()));
@@ -454,6 +502,15 @@ public class SongDuplicateDetectionService {
         }
 
         return songs;
+    }
+
+    private String detectSongBlockId(List<FormBlockResponse> fields) {
+        for (FormBlockResponse field : fields) {
+            if (SettingSheetConstants.BLOCK_SONG.equals(field.type())) {
+                return field.id();
+            }
+        }
+        return null;
     }
 
     private SongFieldIds detectSongFields(List<FormBlockResponse> fields) {
@@ -504,12 +561,182 @@ public class SongDuplicateDetectionService {
         return normalized;
     }
 
+    /**
+     * 漢字を含むテキストをひらがな読みに変換する。
+     * Kuromojiで形態素解析し、各トークンの読みを取得してひらがなに変換する。
+     * 例: "夏祭り" → "なつまつり", "なつまつり" → "なつまつり"
+     */
+    static String toReading(String value) {
+        String normalized = normalize(value);
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        StringBuilder reading = new StringBuilder();
+        for (Token token : KUROMOJI_TOKENIZER.tokenize(normalized)) {
+            String tokenReading = token.getReading();
+            if (tokenReading != null && !"*".equals(tokenReading)) {
+                reading.append(katakanaToHiragana(tokenReading));
+            } else {
+                reading.append(katakanaToHiragana(token.getSurface()));
+            }
+        }
+        return reading.toString();
+    }
+
+    private static String katakanaToHiragana(String input) {
+        StringBuilder sb = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c >= '\u30A1' && c <= '\u30F6') {
+                sb.append((char) (c - 0x60));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
     private record SongFieldIds(String titleFieldId, String artistFieldId) {
+    }
+
+    /**
+     * 公開フォームからのリアルタイム曲かぶりチェック。
+     * 指定された曲と同じ曲が既に提出されているか確認する。
+     * 同じ曲でも異なるiTunesトラックIDの場合も検出する（正規化タイトル比較）。
+     */
+    public PublicSongDuplicateCheckResponse checkSongDuplicate(
+            Live live,
+            PublicSongDuplicateCheckRequest request,
+            UUID excludeSubmissionId) {
+
+        List<SettingSheetSubmission> submissions = settingSheetSubmissionRepository
+                .findAllByLiveIdOrderByCreatedAtDesc(live.getId());
+
+        if (excludeSubmissionId != null) {
+            submissions = submissions.stream()
+                    .filter(s -> !s.getId().equals(excludeSubmissionId))
+                    .toList();
+        }
+
+        if (submissions.isEmpty()) {
+            return new PublicSongDuplicateCheckResponse(false, List.of());
+        }
+
+        SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
+
+        // 既存提出から曲を抽出
+        List<ExtractedSong> allSongs = new ArrayList<>();
+        for (SettingSheetSubmission submission : submissions) {
+            PublicSettingSheetSubmissionRequest payload = settingSheetSubmissionService
+                    .readSubmissionPayload(submission.getPayloadJson());
+            allSongs.addAll(extractSongs(submission.getId(), submission.getRecordLabel(),
+                    config.blocks(), payload.answers()));
+        }
+
+        if (allSongs.isEmpty()) {
+            return new PublicSongDuplicateCheckResponse(false, List.of());
+        }
+
+        // iTunes リンクを読み込む
+        List<UUID> submissionIds = submissions.stream().map(SettingSheetSubmission::getId).toList();
+        List<ItunesTrackLink> allLinks = itunesTrackLinkRepository.findAllBySubmissionIdIn(submissionIds);
+
+        // クエリ曲の正規化キー
+        String queryNormalizedTitle = normalize(request.songTitle());
+        String queryNormalizedArtist = normalize(request.songArtist());
+        String queryItunesNormalizedTitle = request.itunesTitle() != null ? normalize(request.itunesTitle()) : null;
+        String queryItunesNormalizedArtist = request.itunesArtist() != null ? normalize(request.itunesArtist()) : null;
+        String queryReadingTitle = toReading(request.songTitle());
+
+        List<PublicSongDuplicateCheckResponse.DuplicateMatch> matches = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+
+        for (ExtractedSong song : allSongs) {
+            String dedupeKey = song.submissionId + "|" + song.title + "|" + song.artist;
+            if (!seen.add(dedupeKey)) {
+                continue;
+            }
+
+            if (matchesSong(song, request, allLinks,
+                    queryNormalizedTitle, queryNormalizedArtist,
+                    queryItunesNormalizedTitle, queryItunesNormalizedArtist,
+                    queryReadingTitle)) {
+                matches.add(new PublicSongDuplicateCheckResponse.DuplicateMatch(
+                        song.recordLabel, song.title, song.artist));
+            }
+        }
+
+        return new PublicSongDuplicateCheckResponse(!matches.isEmpty(), matches);
+    }
+
+    private boolean matchesSong(
+            ExtractedSong existing,
+            PublicSongDuplicateCheckRequest query,
+            List<ItunesTrackLink> allLinks,
+            String queryNormalizedTitle,
+            String queryNormalizedArtist,
+            String queryItunesNormalizedTitle,
+            String queryItunesNormalizedArtist,
+            String queryReadingTitle) {
+
+        String existingNormalizedTitle = normalize(existing.title);
+        String existingNormalizedArtist = normalize(existing.artist);
+
+        // 1. 正規化タイトル+アーティストが完全一致
+        if (queryNormalizedTitle.equals(existingNormalizedTitle)
+                && queryNormalizedArtist.equals(existingNormalizedArtist)) {
+            return true;
+        }
+
+        // 2. 正規化タイトルのみ一致（アーティスト名表記揺れ対策）
+        if (!queryNormalizedTitle.isEmpty() && queryNormalizedTitle.equals(existingNormalizedTitle)) {
+            return true;
+        }
+
+        // 3. 読み仮名一致（漢字/ひらがな表記揺れ対策）
+        if (!queryReadingTitle.isEmpty()) {
+            String existingReading = toReading(existing.title);
+            if (queryReadingTitle.equals(existingReading)) {
+                return true;
+            }
+        }
+
+        // 4. iTunes トラックID一致
+        if (query.itunesTrackId() != null && !query.itunesTrackId().isBlank()) {
+            for (ItunesTrackLink link : allLinks) {
+                if (link.getSubmission().getId().equals(existing.submissionId)
+                        && query.itunesTrackId().equals(link.getItunesTrackId())) {
+                    return true;
+                }
+            }
+        }
+
+        // 5. iTunes 正規化タイトル+アーティスト一致（異なるトラックIDでも同じ曲名なら検出）
+        if (queryItunesNormalizedTitle != null && !queryItunesNormalizedTitle.isEmpty()) {
+            for (ItunesTrackLink link : allLinks) {
+                if (!link.getSubmission().getId().equals(existing.submissionId)) {
+                    continue;
+                }
+                String linkNormalizedTitle = normalize(link.getItunesTitle());
+                String linkNormalizedArtist = normalize(link.getItunesArtist());
+                if (queryItunesNormalizedTitle.equals(linkNormalizedTitle)
+                        && (queryItunesNormalizedArtist == null
+                                || queryItunesNormalizedArtist.equals(linkNormalizedArtist))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private record ExtractedSong(UUID submissionId, String recordLabel, String title, String artist) {
         String normalizedKey() {
             return normalize(title) + "|" + normalize(artist);
+        }
+
+        String readingKey() {
+            return toReading(title) + "|" + toReading(artist);
         }
     }
 }
