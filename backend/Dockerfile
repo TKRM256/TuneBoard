@@ -17,7 +17,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
 WORKDIR /app
 COPY --from=builder /build/build/libs/*.jar ./
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appgroup /app
 
 USER appuser
 EXPOSE 8080
