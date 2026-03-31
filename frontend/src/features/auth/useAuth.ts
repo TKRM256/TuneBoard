@@ -1,4 +1,4 @@
-import { apiClient, clearAccessToken, setAccessToken, API_BASE_URL } from '@/lib/api/client';
+import { apiClient, clearAccessToken, API_BASE_URL } from '@/lib/api/client';
 import { useState, useEffect, useCallback } from 'react';
 
 export interface AuthMe {
@@ -32,29 +32,29 @@ export const useAuth = () => {
         });
     }, []);
     
-    const exchangeTokenAfterLogin = useCallback(() => {
+    const exchangeTokenAfterLogin = useCallback(async () => {
       const params = new URLSearchParams(window.location.search);
       const login = params.get('login');
+      const authCode = params.get('auth_code');
 
-      if (login !== 'success') {
-        return;
+      if (login || authCode) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('login');
+        url.searchParams.delete('auth_code');
+        window.history.replaceState({}, '', url.toString());
       }
 
-      const hash = window.location.hash;
-      if (hash.startsWith('#auth_token=')) {
-        setAccessToken(hash.substring('#auth_token='.length));
+      if (login === 'success' && authCode) {
+        try {
+          await apiClient.post('/auth/exchange', { code: authCode });
+        } catch {
+          // cookie may have been set by redirect — proceed to checkAuth
+        }
       }
-
-      const url = new URL(window.location.href);
-      url.searchParams.delete('login');
-      url.hash = '';
-      window.history.replaceState({}, '', url.toString());
     }, []);
     
     useEffect(() => {
-      exchangeTokenAfterLogin();
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      checkAuth();
+      exchangeTokenAfterLogin().then(() => checkAuth());
     }, [checkAuth, exchangeTokenAfterLogin]);
     
     const loginWithGoogle = useCallback((redirectPath?: string) => {
