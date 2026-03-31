@@ -782,9 +782,5 @@ public class SongDuplicateDetectionService {
         String normalizedKey() {
             return normalize(title) + "|" + normalize(artist);
         }
-
-        String readingKey() {
-            return toReading(title) + "|" + toReading(artist);
-        }
     }
 }
