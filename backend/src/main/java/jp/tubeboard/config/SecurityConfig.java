@@ -46,6 +46,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/auth/google/callback")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/auth/exchange").permitAll()
                                                 .anyRequest().authenticated())
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterAfter(requireCustomHeaderFilter, JwtAuthenticationFilter.class)

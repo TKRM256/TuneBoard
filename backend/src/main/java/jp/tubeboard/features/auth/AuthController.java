@@ -2,6 +2,7 @@ package jp.tubeboard.features.auth;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +23,7 @@ public class AuthController {
     private final JwtTokenService jwtTokenService;
     private final GoogleOAuthService googleOAuthService;
     private final UserService userService;
+    private final AuthCodeStore authCodeStore;
 
     @Value("${app.frontend-base-url:http://localhost:5173}")
     private String frontendBaseUrl;
@@ -29,10 +32,11 @@ public class AuthController {
     private boolean authCookieSecure;
 
     public AuthController(JwtTokenService jwtTokenService, GoogleOAuthService googleOAuthService,
-            UserService userService) {
+            UserService userService, AuthCodeStore authCodeStore) {
         this.jwtTokenService = jwtTokenService;
         this.googleOAuthService = googleOAuthService;
         this.userService = userService;
+        this.authCodeStore = authCodeStore;
     }
 
     @GetMapping("/google/login")
@@ -83,6 +87,7 @@ public class AuthController {
         }
 
         String token = jwtTokenService.generateToken(sub, name, email, picture);
+        String authCode = authCodeStore.createCode(token);
 
         String sameSitePolicy = authCookieSecure ? "None" : "Lax";
         ResponseCookie tokenCookie = ResponseCookie.from("auth_token", token)
@@ -93,12 +98,38 @@ public class AuthController {
                 .build();
 
         String separator = frontendRedirect.contains("?") ? "&" : "?";
-        String redirectToFrontend = frontendRedirect + separator + "login=success";
+        String redirectToFrontend = frontendRedirect + separator
+                + "login=success&auth_code=" + authCode;
 
         return ResponseEntity.status(302)
                 .location(URI.create(redirectToFrontend))
                 .header(HttpHeaders.SET_COOKIE, tokenCookie.toString())
                 .build();
+    }
+
+    @PostMapping("/exchange")
+    public ResponseEntity<Map<String, Object>> exchangeCode(@RequestBody Map<String, String> body) {
+        String code = body.get("code");
+        if (code == null || code.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing code"));
+        }
+
+        Optional<String> jwt = authCodeStore.consumeCode(code);
+        if (jwt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid or expired code"));
+        }
+
+        String sameSitePolicy = authCookieSecure ? "None" : "Lax";
+        ResponseCookie tokenCookie = ResponseCookie.from("auth_token", jwt.get())
+                .httpOnly(true)
+                .secure(authCookieSecure)
+                .path("/")
+                .sameSite(sameSitePolicy)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, tokenCookie.toString())
+                .body(Map.of("success", true));
     }
 
     @GetMapping("/me")
