@@ -28,7 +28,7 @@ function resolveDefaultCredentials(apiBaseUrl: string): RequestCredentials {
 
   try {
     const apiOrigin = new URL(apiBaseUrl, window.location.origin).origin;
-    return apiOrigin === window.location.origin ? 'same-origin' : 'omit';
+    return apiOrigin === window.location.origin ? 'same-origin' : 'include';
   } catch {
     return 'same-origin';
   }
