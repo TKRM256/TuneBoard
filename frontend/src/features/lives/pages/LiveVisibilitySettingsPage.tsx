@@ -330,6 +330,7 @@ function resolveTypeLabel(type: SettingSheetBlock['type']) {
     case 'MULTI_SELECT': return '複数選択';
     case 'CHECKBOX': return 'チェック';
     case 'BOOLEAN': return '真偽';
+    case 'SONG': return '楽曲';
     case 'REPEATABLE_GROUP': return '繰返し';
   }
   return "";

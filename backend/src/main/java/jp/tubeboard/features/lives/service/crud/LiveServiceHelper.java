@@ -146,6 +146,9 @@ public class LiveServiceHelper {
                         return;
                 }
                 for (var link : links) {
+                        if (link.songTitle() == null || link.itunesTrackId() == null || link.songArtist() == null) {
+                                throw new BadRequestException("iTunesリンクの必須項目が不足しています");
+                        }
                         ItunesTrackLink entity = ItunesTrackLink.builder()
                                         .submission(submission)
                                         .songTitle(link.songTitle())

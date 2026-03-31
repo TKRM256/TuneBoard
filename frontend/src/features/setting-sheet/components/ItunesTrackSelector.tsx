@@ -15,7 +15,7 @@ export const ItunesTrackSelector = ({ selected, onSelect }: ItunesTrackSelectorP
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ItunesTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(setTimeout(() => {}, 0));
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const composingRef = useRef(false);
   const queryRef = useRef(query);
   queryRef.current = query;
@@ -36,16 +36,24 @@ export const ItunesTrackSelector = ({ selected, onSelect }: ItunesTrackSelectorP
     }
   }, []);
 
+  const clearDebounceTimeout = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+  }
+
   useEffect(() => {
     if (selected || composingRef.current) return;
-    clearTimeout(debounceRef.current);
+    clearDebounceTimeout();  
     debounceRef.current = setTimeout(() => search(query), 400);
-    return () => clearTimeout(debounceRef.current);
+    return () => {
+      clearDebounceTimeout();
+    };
   }, [query, selected, search]);
 
   const handleCompositionEnd = useCallback(() => {
     composingRef.current = false;
-    clearTimeout(debounceRef.current);
+    clearDebounceTimeout();
     debounceRef.current = setTimeout(() => search(queryRef.current), 400);
   }, [search]);
 

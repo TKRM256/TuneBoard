@@ -2,6 +2,8 @@ package jp.tubeboard.features.lives.dto.request;
 
 import java.util.List;
 
+import jakarta.validation.constraints.NotNull;
+
 public record PublicSettingSheetSubmissionRequest(
                 List<FieldAnswerRequest> answers,
                 List<ItunesLinkRequest> itunesLinks) {
@@ -18,9 +20,9 @@ public record PublicSettingSheetSubmissionRequest(
         }
 
         public record ItunesLinkRequest(
-                        String songTitle,
-                        String songArtist,
-                        String itunesTrackId,
+                        @NotNull String songTitle,
+                        @NotNull String songArtist,
+                        @NotNull String itunesTrackId,
                         String itunesTitle,
                         String itunesArtist,
                         String itunesAlbumArtUrl) {

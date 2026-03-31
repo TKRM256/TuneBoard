@@ -36,6 +36,14 @@ export function collectColumns(config: SettingSheetConfigResponse | null): Colum
       if (block.fields.length > 0) {
         visit(block.fields, nextLabelTrail, nextAnswerPath);
       }
+
+      if (block.variants && block.variants.length > 0) {
+        const baseVariantLabelTrail = isSectionBlock(block.type) ? nextLabelTrail : [...labelTrail, block.label];
+        for (const variant of block.variants) {
+          const variantLabelTrail = [...baseVariantLabelTrail, variant.label];
+          visit(variant.fields, variantLabelTrail, nextAnswerPath);
+        }
+      }
     }
   };
 
