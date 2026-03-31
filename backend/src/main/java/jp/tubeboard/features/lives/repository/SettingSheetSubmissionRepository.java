@@ -22,4 +22,6 @@ public interface SettingSheetSubmissionRepository extends JpaRepository<SettingS
 
 	Optional<SettingSheetSubmission> findByIdAndLiveIdAndLiveTenantUserIdAndLiveDeletedAtIsNull(UUID id, UUID liveId,
 			Long userId);
+
+	List<SettingSheetSubmission> findAllByLiveIdOrderByCreatedAtDesc(UUID liveId);
 }

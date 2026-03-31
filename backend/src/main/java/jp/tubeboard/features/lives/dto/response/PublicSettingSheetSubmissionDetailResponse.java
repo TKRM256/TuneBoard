@@ -9,7 +9,8 @@ public record PublicSettingSheetSubmissionDetailResponse(
                 String recordLabel,
                 String submissionStatus,
                 LocalDateTime submittedAt,
-                List<FieldAnswerResponse> answers) {
+                List<FieldAnswerResponse> answers,
+                List<ItunesLinkResponse> itunesLinks) {
 
         public record FieldAnswerResponse(
                         String fieldId,
@@ -18,6 +19,16 @@ public record PublicSettingSheetSubmissionDetailResponse(
         }
 
         public record GroupItemResponse(
+                        String variantId,
                         List<FieldAnswerResponse> answers) {
+        }
+
+        public record ItunesLinkResponse(
+                        String songTitle,
+                        String songArtist,
+                        String itunesTrackId,
+                        String itunesTitle,
+                        String itunesArtist,
+                        String itunesAlbumArtUrl) {
         }
 }

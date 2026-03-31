@@ -16,10 +16,12 @@ import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.SongDuplicateDismissRequest;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
+import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
 import lombok.AllArgsConstructor;
 
@@ -95,5 +97,24 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @PathVariable(name = "submissionId") UUID submissionId) {
         return ResponseEntity.ok(livesService.getOwnedSettingSheetSubmission(id, submissionId));
+    }
+
+    @GetMapping("/{id}/songs/duplicates")
+    public ResponseEntity<SongDuplicateResponse> detectSongDuplicates(
+            @PathVariable(name = "id") UUID id) {
+        return ResponseEntity.ok(livesService.detectSongDuplicates(id));
+    }
+
+    @PostMapping("/{id}/songs/duplicates/refresh")
+    public ResponseEntity<SongDuplicateResponse> refreshSongDuplicates(
+            @PathVariable(name = "id") UUID id) {
+        return ResponseEntity.ok(livesService.refreshSongDuplicates(id));
+    }
+
+    @PostMapping("/{id}/songs/duplicates/dismiss")
+    public ResponseEntity<SongDuplicateResponse> dismissSongDuplicate(
+            @PathVariable(name = "id") UUID id,
+            @RequestBody @Valid SongDuplicateDismissRequest request) {
+        return ResponseEntity.ok(livesService.toggleDismissSongDuplicate(id, request.normalizedTitle()));
     }
 }

@@ -156,15 +156,19 @@ public class TenantsService implements ITenantsService {
                 PublicSettingSheetSubmissionRequest payload = new PublicSettingSheetSubmissionRequest(List.of(
                                 new FieldAnswerRequest("band-name", List.of(bandName), List.of()),
                                 new FieldAnswerRequest("submission-status", List.of("完成"), List.of()),
-                                new FieldAnswerRequest("songs", List.of(), List.of(
-                                                new PublicSettingSheetSubmissionRequest.GroupItemRequest(List.of(
-                                                                new FieldAnswerRequest("song-title", List.of(songTitle),
-                                                                                List.of()),
-                                                                new FieldAnswerRequest("song-artist", List.of(artist),
-                                                                                List.of()),
-                                                                new FieldAnswerRequest("song-parts",
-                                                                                List.of("Vo", "Gt", "Ba", "Dr"),
-                                                                                List.of())))))));
+                                new FieldAnswerRequest("setlist", List.of(), List.of(
+                                                new PublicSettingSheetSubmissionRequest.GroupItemRequest("song-entry",
+                                                                List.of(
+                                                                                new FieldAnswerRequest("song",
+                                                                                                List.of(songTitle,
+                                                                                                                artist),
+                                                                                                List.of()),
+                                                                                new FieldAnswerRequest("song-parts",
+                                                                                                List.of("Vo", "Gt",
+                                                                                                                "Ba",
+                                                                                                                "Dr"),
+                                                                                                List.of())))))),
+                                null);
                 try {
                         return objectMapper.writeValueAsString(payload);
                 } catch (JsonProcessingException ex) {

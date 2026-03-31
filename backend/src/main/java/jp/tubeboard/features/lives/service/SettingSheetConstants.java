@@ -22,6 +22,7 @@ public final class SettingSheetConstants {
         public static final String BLOCK_CHECKBOX = "CHECKBOX";
         public static final String BLOCK_BOOLEAN = "BOOLEAN";
         public static final String BLOCK_REPEATABLE_GROUP = "REPEATABLE_GROUP";
+        public static final String BLOCK_SONG = "SONG";
 
         public static final Set<String> SUPPORTED_BLOCK_TYPES = Set.of(
                         BLOCK_SECTION,
@@ -31,7 +32,8 @@ public final class SettingSheetConstants {
                         BLOCK_MULTI_SELECT,
                         BLOCK_CHECKBOX,
                         BLOCK_BOOLEAN,
-                        BLOCK_REPEATABLE_GROUP);
+                        BLOCK_REPEATABLE_GROUP,
+                        BLOCK_SONG);
         public static final Set<String> OPTION_BLOCK_TYPES = Set.of(
                         BLOCK_SINGLE_SELECT,
                         BLOCK_MULTI_SELECT,
@@ -42,7 +44,8 @@ public final class SettingSheetConstants {
                         BLOCK_SINGLE_SELECT,
                         BLOCK_MULTI_SELECT,
                         BLOCK_CHECKBOX,
-                        BLOCK_BOOLEAN);
+                        BLOCK_BOOLEAN,
+                        BLOCK_SONG);
         public static final Set<String> LAYOUT_WIDTHS = Set.of(
                         LAYOUT_FULL,
                         LAYOUT_TWO_THIRDS,
@@ -52,6 +55,13 @@ public final class SettingSheetConstants {
                         APPEARANCE_PLAIN,
                         APPEARANCE_OUTLINE,
                         APPEARANCE_SUBTLE);
+
+        public static final String DUPLICATE_ROLE_NONE = "";
+        public static final String DUPLICATE_ROLE_SONG_TITLE = "SONG_TITLE";
+        public static final String DUPLICATE_ROLE_SONG_ARTIST = "SONG_ARTIST";
+        public static final Set<String> DUPLICATE_DETECTION_ROLES = Set.of(
+                        DUPLICATE_ROLE_SONG_TITLE,
+                        DUPLICATE_ROLE_SONG_ARTIST);
 
         private SettingSheetConstants() {
         }

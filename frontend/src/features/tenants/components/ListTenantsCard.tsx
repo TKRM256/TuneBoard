@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import type { TenantsResponse } from "../type/type";
+import type { TenantsResponse } from "../types/tenant-types";
 import { TenantsCard } from "./TenantsCard";
 
 export const ListTenantsCard = ({ tenants, onUpdateSuccess, onDelete }: { tenants: TenantsResponse[]; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void }) => {    

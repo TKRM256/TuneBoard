@@ -11,13 +11,12 @@ import {
   SETTING_SHEET_BLOCK_OPTIONS,
   type SettingSheetBlock,
   type SettingSheetOptionSource,
-} from '../types/type';
+} from '../types/live-types';
 import { AddBlockMenu } from './AddBlockMenu';
 
 interface BlockEditorTreeProps {
   blocks: SettingSheetBlock[];
   rootBlocks: SettingSheetBlock[];
-  mainDisplayFieldId: string;
   optionSourceCandidates: Array<{ value: string; label: string }>;
   onMove: (parentId: string | null, blockIndex: number, direction: 'up' | 'down') => void;
   onRemove: (blockId: string) => void;
@@ -26,13 +25,11 @@ interface BlockEditorTreeProps {
   onChangeType: (blockId: string, nextType: SettingSheetBlock['type']) => void;
   onApplyGroupAppearance: (blockId: string, appearance: SettingSheetBlock['appearance']) => void;
   onUpdateOptionSource: (blockId: string, source: SettingSheetOptionSource | null) => void;
-  onSetMainDisplayFieldId: (fieldId: string) => void;
 }
 
 export const BlockEditorTree = ({
   blocks,
   rootBlocks,
-  mainDisplayFieldId,
   optionSourceCandidates,
   onMove,
   onRemove,
@@ -41,7 +38,6 @@ export const BlockEditorTree = ({
   onChangeType,
   onApplyGroupAppearance,
   onUpdateOptionSource,
-  onSetMainDisplayFieldId,
 }: BlockEditorTreeProps) => {
   const renderBlockEditor = (block: SettingSheetBlock, index: number, parentId: string | null, depth = 0) => {
     const blockTypeLabel = SETTING_SHEET_BLOCK_OPTIONS.find((option) => option.value === block.type)?.label;
@@ -49,13 +45,12 @@ export const BlockEditorTree = ({
 
     return (
       <Accordion key={block.id} type="single" collapsible className="w-full" defaultValue={depth === 0 && index === 0 ? 'details' : undefined}>
-        <div className="rounded-2xl border bg-background p-3 shadow-sm sm:p-4" style={{ marginLeft: depth * 12 }}>
+        <div className="rounded-2xl border bg-background p-2 shadow-sm sm:p-4" style={{ marginLeft: Math.min(depth * 12, 36) }}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{blockTypeLabel}</Badge>
                 {isRepeatableGroupBlock(block.type) && block.titleSourceFieldId ? <Badge variant="outline">タイトル連動</Badge> : null}
-                {mainDisplayFieldId === block.id ? <Badge variant="outline">主表示</Badge> : null}
                 {block.hidden ? <Badge variant="outline">非表示</Badge> : null}
               </div>
               <div>
@@ -92,8 +87,6 @@ export const BlockEditorTree = ({
                 onChangeType={onChangeType}
                 onApplyGroupAppearance={onApplyGroupAppearance}
                 onUpdateOptionSource={onUpdateOptionSource}
-                isMainDisplayField={mainDisplayFieldId === block.id}
-                onSetMainDisplayFieldId={onSetMainDisplayFieldId}
                 renderNestedBlock={(child, childIndex, nestedParentId, nestedDepth) => renderBlockEditor(child, childIndex, nestedParentId, nestedDepth)}
               />              
             </AccordionContent>

@@ -3,7 +3,7 @@ import { CalendarRange } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 
-import type { LiveResponse } from '../types/type';
+import type { LiveResponse } from '../types/live-types';
 import { LiveCard } from './LiveCard';
 
 interface LiveListCardProps {

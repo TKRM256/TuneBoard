@@ -4,14 +4,15 @@ import { AuthProvider } from '@/features/auth/AuthProvider';
 import { Layout } from '@/features/layout/Layout';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 
-const Login = lazy(() => import('@/pages/Login').then((module) => ({ default: module.Login })));
-const PublicLivePage = lazy(() => import('@/pages/public/PublicLivePage').then((module) => ({ default: module.PublicLivePage })));
-const PublicSubmissionSharedPage = lazy(() => import('@/pages/public/PublicSubmissionSharedPage').then((module) => ({ default: module.PublicSubmissionSharedPage })));
-const TenantsPage = lazy(() => import('./features/tenants/TenantsPage').then((module) => ({ default: module.TenantsPage })));
-const TenantLivesPage = lazy(() => import('./features/lives/TenantLivesPage').then((module) => ({ default: module.TenantLivesPage })));
-const LiveManagementPage = lazy(() => import('./features/lives/LiveManagementPage').then((module) => ({ default: module.LiveManagementPage })));
-const LiveFormEditorPage = lazy(() => import('./features/lives/LiveFormEditorPage').then((module) => ({ default: module.LiveFormEditorPage })));
-const LiveSubmissionsPage = lazy(() => import('./features/lives/LiveSubmissionsPage').then((module) => ({ default: module.LiveSubmissionsPage })));
+const Login = lazy(() => import('@/features/auth/pages/Login').then((module) => ({ default: module.Login })));
+const PublicLivePage = lazy(() => import('@/features/public/pages/PublicLivePage').then((module) => ({ default: module.PublicLivePage })));
+const PublicSubmissionSharedPage = lazy(() => import('@/features/public/pages/PublicSubmissionSharedPage').then((module) => ({ default: module.PublicSubmissionSharedPage })));
+const TenantsPage = lazy(() => import('./features/tenants/pages/TenantsPage').then((module) => ({ default: module.TenantsPage })));
+const TenantLivesPage = lazy(() => import('./features/lives/pages/TenantLivesPage').then((module) => ({ default: module.TenantLivesPage })));
+const LiveManagementPage = lazy(() => import('./features/lives/pages/LiveManagementPage').then((module) => ({ default: module.LiveManagementPage })));
+const LiveFormEditorPage = lazy(() => import('./features/lives/pages/LiveFormEditorPage').then((module) => ({ default: module.LiveFormEditorPage })));
+const LiveSubmissionsPage = lazy(() => import('./features/lives/pages/LiveSubmissionsPage').then((module) => ({ default: module.LiveSubmissionsPage })));
+const LiveVisibilitySettingsPage = lazy(() => import('./features/lives/pages/LiveVisibilitySettingsPage').then((module) => ({ default: module.LiveVisibilitySettingsPage })));
 
 const routeFallback = (
   <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
@@ -43,6 +44,7 @@ function App() {
             <Route path="tenants/:tenantId/lives/:liveId" element={<Suspense fallback={routeFallback}><LiveManagementPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/form" element={<Suspense fallback={routeFallback}><LiveFormEditorPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/submissions" element={<Suspense fallback={routeFallback}><LiveSubmissionsPage /></Suspense>} />
+            <Route path="tenants/:tenantId/lives/:liveId/settings" element={<Suspense fallback={routeFallback}><LiveVisibilitySettingsPage /></Suspense>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

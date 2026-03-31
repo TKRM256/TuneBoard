@@ -20,6 +20,7 @@ import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDeta
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.OptionSourceResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 
 @Service
 public class SettingSheetSubmissionService {
@@ -29,7 +30,8 @@ public class SettingSheetSubmissionService {
     public PublicSettingSheetSubmissionRequest normalizeSubmissionRequest(PublicSettingSheetSubmissionRequest request) {
         return new PublicSettingSheetSubmissionRequest(
                 request.answers() == null ? List.of()
-                        : request.answers().stream().map(this::normalizeFieldAnswer).toList());
+                        : request.answers().stream().map(this::normalizeFieldAnswer).toList(),
+                request.itunesLinks());
     }
 
     public void validateSubmission(PublicSettingSheetSubmissionRequest request, SettingSheetConfigResponse config) {
@@ -45,13 +47,6 @@ public class SettingSheetSubmissionService {
     public String resolveSubmissionSummary(SettingSheetConfigResponse config,
             PublicSettingSheetSubmissionRequest request,
             String fallback) {
-        String fieldId = config.recordLabelFieldId();
-        if (fieldId != null && !fieldId.isBlank()) {
-            String value = findFirstValueByFieldId(config.blocks(), request.answers(), fieldId);
-            if (!value.isBlank()) {
-                return value;
-            }
-        }
         String firstAnswer = findFirstSubmittedValue(config.blocks(), request.answers());
         return firstAnswer.isBlank() ? fallback + " の回答" : firstAnswer;
     }
@@ -69,7 +64,7 @@ public class SettingSheetSubmissionService {
             return normalizeSubmissionRequest(
                     objectMapper.readValue(payloadJson, PublicSettingSheetSubmissionRequest.class));
         } catch (JsonProcessingException ex) {
-            return new PublicSettingSheetSubmissionRequest(List.of());
+            return new PublicSettingSheetSubmissionRequest(List.of(), null);
         }
     }
 
@@ -78,7 +73,9 @@ public class SettingSheetSubmissionService {
                 .map(answer -> new FieldAnswerResponse(
                         answer.fieldId(),
                         answer.values(),
-                        answer.items().stream().map(item -> new GroupItemResponse(mapFieldAnswers(item.answers())))
+                        answer.items().stream()
+                                .map(item -> new GroupItemResponse(item.variantId(),
+                                        mapFieldAnswers(item.answers())))
                                 .toList()))
                 .toList();
     }
@@ -87,18 +84,11 @@ public class SettingSheetSubmissionService {
             PublicSettingSheetSubmissionRequest request,
             SettingSheetConfigResponse config) {
         return new PublicSettingSheetSubmissionRequest(
-                filterAnswers(config.blocks(), request.answers()));
+                filterAnswers(config.blocks(), request.answers()), null);
     }
 
     public String resolveSharedRecordLabel(SettingSheetConfigResponse config,
             PublicSettingSheetSubmissionRequest sharedRequest) {
-        String fieldId = safeText(config.recordLabelFieldId());
-        if (!fieldId.isBlank() && isSharedVisibleField(config.blocks(), fieldId, true)) {
-            String value = findFirstValueByFieldId(config.blocks(), sharedRequest.answers(), fieldId);
-            if (!value.isBlank()) {
-                return value;
-            }
-        }
         return findFirstSubmittedValue(config.blocks(), sharedRequest.answers());
     }
 
@@ -123,7 +113,8 @@ public class SettingSheetSubmissionService {
             FieldAnswerRequest answer = answerMap.getOrDefault(block.id(), emptyAnswer(block.id()));
             if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
                 List<GroupItemRequest> items = answer.items().stream()
-                        .map(item -> new GroupItemRequest(filterAnswers(block.fields(), item.answers())))
+                        .map(item -> new GroupItemRequest(item.variantId(),
+                                filterAnswers(resolveItemFields(block, item.variantId()), item.answers())))
                         .toList();
                 filtered.add(new FieldAnswerRequest(block.id(), List.of(), items));
                 continue;
@@ -133,32 +124,6 @@ public class SettingSheetSubmissionService {
         }
 
         return List.copyOf(filtered);
-    }
-
-    private boolean isSharedVisibleField(List<FormBlockResponse> blocks, String fieldId, boolean ancestorsVisible) {
-        for (FormBlockResponse block : blocks) {
-            if (Boolean.TRUE.equals(block.hidden())) {
-                continue;
-            }
-
-            if (SettingSheetConstants.BLOCK_SECTION.equals(block.type())) {
-                if (isSharedVisibleField(block.fields(), fieldId, ancestorsVisible)) {
-                    return true;
-                }
-                continue;
-            }
-
-            boolean currentVisible = ancestorsVisible && Boolean.TRUE.equals(block.publicVisible());
-            if (block.id().equals(fieldId)) {
-                return currentVisible;
-            }
-
-            if ((SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type()))
-                    && isSharedVisibleField(block.fields(), fieldId, currentVisible)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void validateAnswers(List<FormBlockResponse> blocks,
@@ -197,9 +162,19 @@ public class SettingSheetSubmissionService {
                     fieldErrors.putIfAbsent(key, block.label() + " の入力形式が不正です。");
                 }
                 for (int index = 0; index < answer.items().size(); index++) {
-                    validateAnswers(block.fields(), answer.items().get(index).answers(),
+                    GroupItemRequest item = answer.items().get(index);
+                    validateAnswers(resolveItemFields(block, item.variantId()), item.answers(),
                             key + ".items[" + index + "].answers.",
                             rootBlocks, rootAnswers, fieldErrors, true);
+                }
+                continue;
+            }
+            if (SettingSheetConstants.BLOCK_SONG.equals(block.type())) {
+                if (Boolean.TRUE.equals(block.required()) && answer.values().isEmpty()) {
+                    fieldErrors.putIfAbsent(key, block.label() + " は必須です。");
+                }
+                if (answer.values().size() > 2) {
+                    fieldErrors.putIfAbsent(key, block.label() + " の入力形式が不正です。");
                 }
                 continue;
             }
@@ -241,6 +216,7 @@ public class SettingSheetSubmissionService {
                                 .toList(),
                 answer.items() == null ? List.of()
                         : answer.items().stream().map(item -> new GroupItemRequest(
+                                safeText(item.variantId()),
                                 item.answers() == null ? List.of()
                                         : item.answers().stream().map(this::normalizeFieldAnswer).toList()))
                                 .toList());
@@ -306,44 +282,11 @@ public class SettingSheetSubmissionService {
                 }
             }
             for (GroupItemRequest item : answer.items()) {
-                values.addAll(collectReferencedValues(block.fields(), item.answers(), source));
+                values.addAll(
+                        collectReferencedValues(resolveItemFields(block, item.variantId()), item.answers(), source));
             }
         }
         return List.copyOf(values);
-    }
-
-    private String findFirstValueByFieldId(List<FormBlockResponse> blocks, List<FieldAnswerRequest> answers,
-            String fieldId) {
-        Map<String, FieldAnswerRequest> answerMap = toAnswerMap(answers);
-        for (FormBlockResponse block : blocks) {
-            if (Boolean.TRUE.equals(block.hidden())) {
-                continue;
-            }
-            FieldAnswerRequest answer = answerMap.getOrDefault(block.id(), emptyAnswer(block.id()));
-            if (SettingSheetConstants.BLOCK_SECTION.equals(block.type())) {
-                String nested = findFirstValueByFieldId(block.fields(), answers, fieldId);
-                if (!nested.isBlank()) {
-                    return nested;
-                }
-                continue;
-            }
-            if (block.id().equals(fieldId)) {
-                for (String value : answer.values()) {
-                    if (!value.isBlank()) {
-                        return value;
-                    }
-                }
-            }
-            if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
-                for (GroupItemRequest item : answer.items()) {
-                    String nested = findFirstValueByFieldId(block.fields(), item.answers(), fieldId);
-                    if (!nested.isBlank()) {
-                        return nested;
-                    }
-                }
-            }
-        }
-        return "";
     }
 
     private String findFirstSubmittedValue(List<FormBlockResponse> blocks, List<FieldAnswerRequest> answers) {
@@ -367,7 +310,7 @@ public class SettingSheetSubmissionService {
             }
             if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
                 for (GroupItemRequest item : answer.items()) {
-                    String nested = findFirstSubmittedValue(block.fields(), item.answers());
+                    String nested = findFirstSubmittedValue(resolveItemFields(block, item.variantId()), item.answers());
                     if (!nested.isBlank()) {
                         return nested;
                     }
@@ -379,5 +322,16 @@ public class SettingSheetSubmissionService {
 
     private String safeText(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private List<FormBlockResponse> resolveItemFields(FormBlockResponse block, String variantId) {
+        if (block.variants() != null && variantId != null && !variantId.isBlank()) {
+            for (VariantResponse v : block.variants()) {
+                if (v.id().equals(variantId)) {
+                    return v.fields();
+                }
+            }
+        }
+        return block.fields();
     }
 }

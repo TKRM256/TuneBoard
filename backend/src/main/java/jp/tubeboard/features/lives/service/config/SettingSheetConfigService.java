@@ -43,10 +43,9 @@ public class SettingSheetConfigService {
                                 formBuilderHelper.booleanBlock("mic-main-vocal", "メインボーカル", "",
                                                 formBuilderHelper.layoutThird(1)));
 
-                List<FormBlockResponse> songFields = List.of(
-                                formBuilderHelper.textBlock("song-title", "曲名", true, formBuilderHelper.layoutHalf(1)),
-                                formBuilderHelper.textBlock("song-artist", "アーティスト名", true,
-                                                formBuilderHelper.layoutHalf(1)),
+                List<FormBlockResponse> songVariantFields = List.of(
+                                formBuilderHelper.songBlock("song", "楽曲", true,
+                                                formBuilderHelper.layoutFull(1)),
                                 formBuilderHelper.selectBlock("song-parts", SettingSheetConstants.BLOCK_MULTI_SELECT,
                                                 "使うパート", true,
                                                 List.of("Vo", "Gt", "Ba", "Dr", "Key", "Cho", "SE", "同期"), null,
@@ -60,6 +59,17 @@ public class SettingSheetConfigService {
                                 formBuilderHelper.groupBlock("song-mics", "使うマイク", "誰がどのマイクを使うか入力します。", false, true, 0,
                                                 "マイク追加", "マイク",
                                                 "mic-member", formBuilderHelper.layoutFull(1), songMicFields));
+
+                List<FormBlockResponse> mcVariantFields = List.of(
+                                formBuilderHelper.textBlock("mc-title", "タイトル", false,
+                                                formBuilderHelper.layoutHalf(1)),
+                                formBuilderHelper.selectBlock("mc-member", SettingSheetConstants.BLOCK_SINGLE_SELECT,
+                                                "担当者", false,
+                                                List.of(),
+                                                formBuilderHelper.optionSource("members", "member-name"),
+                                                formBuilderHelper.layoutHalf(1)),
+                                formBuilderHelper.longTextBlock("mc-content", "内容・備考", false,
+                                                formBuilderHelper.layoutFull(1)));
 
                 List<FormBlockResponse> bandFields = List.of(
                                 formBuilderHelper.textBlock("band-name", "バンド名", true,
@@ -76,7 +86,6 @@ public class SettingSheetConfigService {
                                 "出演情報、メンバー、演奏曲を入力してください。",
                                 "送信する",
                                 true,
-                                "band-name",
                                 List.of(
                                                 formBuilderHelper.sectionBlock("section-band", "バンド基本情報",
                                                                 "バンド名、提出状況、備考を入力します。", bandFields),
@@ -85,11 +94,17 @@ public class SettingSheetConfigService {
                                                                 "メンバー",
                                                                 "member-name", formBuilderHelper.layoutFull(1),
                                                                 memberFields),
-                                                formBuilderHelper.groupBlock("songs", "演奏する曲", "曲名、使用パート、マイク設定を入力します。",
-                                                                true, true, 1, "曲を追加",
-                                                                "曲",
-                                                                "song-title", formBuilderHelper.layoutFull(1),
-                                                                songFields)));
+                                                formBuilderHelper.variantGroupBlock("setlist", "セットリスト",
+                                                                "曲やMCなどの演出順を入力します。",
+                                                                true, true, 1, "追加", "項目",
+                                                                "song", formBuilderHelper.layoutFull(1),
+                                                                List.of(
+                                                                                formBuilderHelper.variant("song-entry",
+                                                                                                "曲",
+                                                                                                songVariantFields),
+                                                                                formBuilderHelper.variant("mc-entry",
+                                                                                                "MC",
+                                                                                                mcVariantFields)))));
         }
 
         public SettingSheetConfigResponse readSettingSheetConfig(Live live) {
@@ -109,7 +124,6 @@ public class SettingSheetConfigService {
                                         parsed.publicSubmissionEnabled() == null
                                                         ? defaults.publicSubmissionEnabled()
                                                         : parsed.publicSubmissionEnabled(),
-                                        formBuilderHelper.safeText(parsed.recordLabelFieldId()),
                                         helper.normalizeBlocks(helper.mapToFormBlockRequests(parsed.blocks()),
                                                         defaults));
                 } catch (JsonProcessingException ex) {
@@ -135,7 +149,6 @@ public class SettingSheetConfigService {
                                 formBuilderHelper.safeTextOrDefault(request.description(), "出演情報、メンバー、演奏曲を入力してください。"),
                                 formBuilderHelper.safeTextOrDefault(request.submitButtonLabel(), "送信する"),
                                 publicSubmissionEnabled,
-                                formBuilderHelper.safeText(request.recordLabelFieldId()),
                                 helper.normalizeBlocks(request.blocks(), defaults));
         }
 }

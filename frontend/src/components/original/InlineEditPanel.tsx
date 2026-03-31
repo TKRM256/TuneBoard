@@ -23,7 +23,7 @@ export const InlineEditPanel = ({ open, children }: InlineEditPanelProps) => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ delay: 0.04, duration: 0.18 }}
-            className="space-y-4 bg-linear-to-b from-muted/50 to-background px-6 py-5"
+            className="space-y-4 px-6 py-5"
           >
             {children}
           </motion.div>

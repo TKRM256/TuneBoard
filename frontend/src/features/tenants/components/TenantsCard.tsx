@@ -1,5 +1,9 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import type { TenantsFormValues, TenantsResponse } from "../type/type";
+/** 
+ * テナントのカードコンポーネント
+ * 
+*/
+import { Card, CardHeader } from "@/components/ui/card"
+import type { TenantsFormValues, TenantsResponse } from "../types/tenant-types";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -11,6 +15,7 @@ import { ConfirmButton } from "@/components/original/ConfirmButton";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { InlineEditPanel } from "@/components/original/InlineEditPanel";
+import { ChevronRight } from "lucide-react";
 
 export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: TenantsResponse; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -53,25 +58,26 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
 
     return (
         <motion.div layout>
-        <Card className={isEditing ? "border-primary/30 shadow-md shadow-primary/5" : undefined}>
+        <Card>
             <CardHeader>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 space-y-1">
-                    <h4 className="break-word text-xl font-medium sm:text-2xl">{tenant.name}</h4>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="min-w-0">
+                    <h4 className="wrap-break-word text-base font-medium sm:text-lg">{tenant.name}</h4>
+                    <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>
                   </div>
-                  <Button className="w-full sm:w-auto" size="sm" variant="outline"  onClick={() => setIsEditing((prev) => !prev)}>
-                    {isEditing ? "キャンセル" : "編集"}
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button asChild size="sm">
+                      <Link to={`/tenants/${tenant.id}/lives`}>
+                        ライブ一覧
+                        <ChevronRight className="size-4" />
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing((prev) => !prev)}>
+                      {isEditing ? "キャンセル" : "編集"}
+                    </Button>
+                  </div>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-2">
-                <p className="break-all text-sm text-muted-foreground">テナントID: {tenant.id}</p>
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                  <Button asChild className="w-full sm:w-auto">
-                    <Link to={`/tenants/${tenant.id}/lives`}>ライブ一覧へ</Link>
-                  </Button>
-                </div>
-            </CardContent>
             <InlineEditPanel open={isEditing} >
                     <motion.div layout className="w-full space-y-4">
                       <FieldGroup>
