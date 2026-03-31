@@ -40,7 +40,10 @@ async function request<T>(
 
   const headers = new Headers(options.headers);
 
-  headers.set('X-Requested-With', 'TuneBoard');
+  const method = (options.method ?? 'GET').toUpperCase();
+  if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+    headers.set('X-Requested-With', 'TuneBoard');
+  }
 
   if(!headers.has('Content-Type') && options.body && typeof options.body === 'string') {
     headers.set('Content-Type', 'application/json');
