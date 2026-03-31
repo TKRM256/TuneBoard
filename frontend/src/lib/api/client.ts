@@ -2,11 +2,6 @@ import { type ApiError, ApiClientError } from './type';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
-if (import.meta.env.PROD) {
-  console.info('[API] VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
-  console.info('[API] Resolved API_BASE_URL =', API_BASE_URL);
-}
-
 let inMemoryAccessToken: string | null = null;
 
 export function getAccessToken(): string | null {
