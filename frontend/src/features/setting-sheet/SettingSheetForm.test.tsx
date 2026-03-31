@@ -45,7 +45,6 @@ const baseLive: PublicLiveResponse = {
     description: '',
     submitButtonLabel: '送信する',
     publicSubmissionEnabled: false,
-    recordLabelFieldId: 'band-name',
     blocks: [
       {
         id: 'band-name',
@@ -69,6 +68,7 @@ const baseLive: PublicLiveResponse = {
           optionFitContent: false,
         },
         optionSource: null,
+        duplicateDetectionRole: '',
       },
     ],
   },
@@ -124,6 +124,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Saved Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      itunesLinks: [],
       answers: [
         {
           fieldId: 'band-name',
@@ -171,7 +172,6 @@ describe('SettingSheetForm', () => {
         description: '',
         submitButtonLabel: '更新する',
         publicSubmissionEnabled: false,
-        recordLabelFieldId: '',
         blocks: [
           {
             id: 'members',
@@ -227,6 +227,7 @@ describe('SettingSheetForm', () => {
                       optionFitContent: false,
                     },
                     optionSource: null,
+                    duplicateDetectionRole: '',
                   },
                 ],
                 layout: {
@@ -235,6 +236,7 @@ describe('SettingSheetForm', () => {
                   optionFitContent: false,
                 },
                 optionSource: null,
+                duplicateDetectionRole: '',
               },
             ],
             layout: {
@@ -243,6 +245,7 @@ describe('SettingSheetForm', () => {
               optionFitContent: false,
             },
             optionSource: null,
+            duplicateDetectionRole: '',
           },
         ],
       },
@@ -253,6 +256,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Section Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      itunesLinks: [],
       answers: [
         {
           fieldId: 'members',
@@ -306,6 +310,7 @@ describe('SettingSheetForm', () => {
               optionFitContent: false,
             },
             optionSource: null,
+            duplicateDetectionRole: '',
           },
         ],
       },

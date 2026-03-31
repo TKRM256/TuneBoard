@@ -1,0 +1,7 @@
+.gradle/
+build/
+bin/
+.vscode/
+*.md
+.git/
+.gitignore

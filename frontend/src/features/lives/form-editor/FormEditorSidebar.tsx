@@ -8,14 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import { AddBlockMenu } from './AddBlockMenu';
-import { createBlockTemplate, createEmptySettingSheetConfig, normalizeSettingSheetConfig, type SettingSheetConfigResponse } from '../types/live-types';
+import { createBlockTemplate, createEmptySettingSheetConfig, normalizeSettingSheetConfig, type SettingSheetBlockType, type SettingSheetConfigResponse } from '../types/live-types';
 
 interface FormEditorSidebarProps {
   tenantId: string;
   liveId: string;
   config: SettingSheetConfigResponse;
   isSaving: boolean;
-  addableBlocks: Array<{ value: 'SECTION' | 'SHORT_TEXT' | 'LONG_TEXT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX' | 'BOOLEAN' | 'REPEATABLE_GROUP'; label: string }>;
+  addableBlocks: Array<{ value: SettingSheetBlockType; label: string }>;
   setConfig: React.Dispatch<React.SetStateAction<SettingSheetConfigResponse | null>>;
   onResetToDefault: () => void;
   onSave: () => void;
