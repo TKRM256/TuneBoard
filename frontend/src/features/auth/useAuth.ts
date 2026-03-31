@@ -32,29 +32,23 @@ export const useAuth = () => {
         });
     }, []);
     
-    const exchangeTokenAfterLogin = useCallback(async () => {
+    const exchangeTokenAfterLogin = useCallback(() => {
       const params = new URLSearchParams(window.location.search);
       const login = params.get('login');
-      const authCode = params.get('auth_code');
 
-      if (login || authCode) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('login');
-        url.searchParams.delete('auth_code');
-        window.history.replaceState({}, '', url.toString());
+      if (login !== 'success') {
+        return;
       }
 
-      if (login === 'success' && authCode) {
-        try {
-          await apiClient.post('/auth/exchange', { code: authCode });
-        } catch {
-          // cookie may have been set by redirect — proceed to checkAuth
-        }
-      }
+      const url = new URL(window.location.href);
+      url.searchParams.delete('login');
+      window.history.replaceState({}, '', url.toString());
     }, []);
     
     useEffect(() => {
-      exchangeTokenAfterLogin().then(() => checkAuth());
+      exchangeTokenAfterLogin();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      checkAuth();
     }, [checkAuth, exchangeTokenAfterLogin]);
     
     const loginWithGoogle = useCallback((redirectPath?: string) => {
