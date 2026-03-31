@@ -18,9 +18,12 @@ import jp.tubeboard.features.auth.JwtAuthenticationFilter;
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final RequireCustomHeaderFilter requireCustomHeaderFilter;
 
-        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                        RequireCustomHeaderFilter requireCustomHeaderFilter) {
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.requireCustomHeaderFilter = requireCustomHeaderFilter;
         }
 
         @Bean
@@ -45,6 +48,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
                                                 .anyRequest().authenticated())
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                                .addFilterAfter(requireCustomHeaderFilter, JwtAuthenticationFilter.class)
                                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
                 return http.build();

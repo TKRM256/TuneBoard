@@ -40,6 +40,8 @@ async function request<T>(
 
   const headers = new Headers(options.headers);
 
+  headers.set('X-Requested-With', 'TuneBoard');
+
   if(!headers.has('Content-Type') && options.body && typeof options.body === 'string') {
     headers.set('Content-Type', 'application/json');
   }
