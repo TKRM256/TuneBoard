@@ -16,10 +16,8 @@ public class OAuth2TestConfig {
 
     @Bean
     public MockMvcBuilderCustomizer csrfHeaderCustomizer() {
-        return builder -> builder.defaultRequest(
-                get("/").header("X-Requested-With", "TuneBoard"));
+        return builder -> builder.defaultRequest(get("/"));
     }
-
     /**
      * Creates a minimal ClientRegistrationRepository for tests.
      * The actual URIs are fake because tests only need the bean presence,
