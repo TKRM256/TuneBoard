@@ -1,6 +1,6 @@
 import { type ApiError, ApiClientError } from './type';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 if (import.meta.env.PROD) {
   console.info('[API] VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
