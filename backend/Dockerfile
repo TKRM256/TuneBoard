@@ -13,11 +13,11 @@ RUN if [ "$SKIP_TESTS" = "true" ]; then ./gradlew bootJar --no-daemon -x test; e
 # ── Stage 2: Runtime ───────────────────────────────
 FROM eclipse-temurin:21-jre
 
-RUN useradd -m -u 1000 appuser
+RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
 WORKDIR /app
 COPY --from=builder /build/build/libs/*.jar ./
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appgroup /app
 
 USER appuser
 EXPOSE 8080

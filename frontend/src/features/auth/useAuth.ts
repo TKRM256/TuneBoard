@@ -1,4 +1,4 @@
-import { apiClient, clearAccessToken } from '@/lib/api/client';
+import { apiClient, clearAccessToken, API_BASE_URL } from '@/lib/api/client';
 import { useState, useEffect, useCallback } from 'react';
 
 export interface AuthMe {
@@ -56,7 +56,7 @@ export const useAuth = () => {
       const redirectTarget = redirectPath && redirectPath.startsWith('/')
         ? redirectPath
         : fallback;
-      const loginUrl = `/api/auth/google/login?redirect=${encodeURIComponent(redirectTarget)}`;
+      const loginUrl = `${API_BASE_URL}/auth/google/login?redirect=${encodeURIComponent(redirectTarget)}`;
       window.location.href = loginUrl;
     }, []);
     

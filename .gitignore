@@ -154,6 +154,7 @@ temp/
 
 # Spring Boot
 application-*.properties
+!application-prod.properties
 application-*.yml
 application-*.yaml
 

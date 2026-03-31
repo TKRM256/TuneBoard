@@ -1,6 +1,6 @@
 import { type ApiError, ApiClientError } from './type';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 let inMemoryAccessToken: string | null = null;
 
@@ -23,7 +23,7 @@ function resolveDefaultCredentials(apiBaseUrl: string): RequestCredentials {
 
   try {
     const apiOrigin = new URL(apiBaseUrl, window.location.origin).origin;
-    return apiOrigin === window.location.origin ? 'same-origin' : 'omit';
+    return apiOrigin === window.location.origin ? 'same-origin' : 'include';
   } catch {
     return 'same-origin';
   }
@@ -39,6 +39,11 @@ async function request<T>(
   const url = `${API_BASE_URL}${path}`;
 
   const headers = new Headers(options.headers);
+
+  const method = (options.method ?? 'GET').toUpperCase();
+  if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+    headers.set('X-Requested-With', 'TuneBoard');
+  }
 
   if(!headers.has('Content-Type') && options.body && typeof options.body === 'string') {
     headers.set('Content-Type', 'application/json');

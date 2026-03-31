@@ -1,6 +1,9 @@
 package jp.tubeboard.config;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
@@ -10,6 +13,12 @@ import org.springframework.security.oauth2.client.registration.InMemoryClientReg
 
 @TestConfiguration
 public class OAuth2TestConfig {
+
+    @Bean
+    public MockMvcBuilderCustomizer csrfHeaderCustomizer() {
+        return builder -> builder.defaultRequest(
+                get("/").header("X-Requested-With", "TuneBoard"));
+    }
 
     /**
      * Creates a minimal ClientRegistrationRepository for tests.
