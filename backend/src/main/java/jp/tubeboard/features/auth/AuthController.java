@@ -84,12 +84,11 @@ public class AuthController {
 
         String token = jwtTokenService.generateToken(sub, name, email, picture);
 
-        String sameSitePolicy = authCookieSecure ? "None" : "Lax";
         ResponseCookie tokenCookie = ResponseCookie.from("auth_token", token)
                 .httpOnly(true)
                 .secure(authCookieSecure)
                 .path("/")
-                .sameSite(sameSitePolicy)
+                .sameSite("Lax")
                 .build();
 
         String separator = frontendRedirect.contains("?") ? "&" : "?";
@@ -130,13 +129,12 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
-        String sameSitePolicy = authCookieSecure ? "None" : "Lax";
         ResponseCookie deleteAuthToken = ResponseCookie.from("auth_token", "")
                 .path("/")
                 .maxAge(0)
                 .httpOnly(true)
                 .secure(authCookieSecure)
-                .sameSite(sameSitePolicy)
+                .sameSite("Lax")
                 .build();
 
         return ResponseEntity.noContent()
