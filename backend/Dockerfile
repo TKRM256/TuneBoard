@@ -16,10 +16,10 @@ FROM eclipse-temurin:21-jre
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
 WORKDIR /app
-COPY --from=builder /build/build/libs/*.jar app.jar
-RUN chown -R appuser:appgroup /app
+COPY --from=builder /build/build/libs/*.jar ./
+RUN chown -R appuser:appuser /app
 
 USER appuser
 EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=prod
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java -jar /app/*.jar"]
