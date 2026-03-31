@@ -11,7 +11,7 @@ import {
   toLiveUpdatePayload,
   type LiveResponse,
   type LiveFormValues,
-} from './type';
+} from './live-types';
 
 describe('lives type utilities', () => {
   it('LiveResponse からフォーム値を生成する', () => {
@@ -89,7 +89,6 @@ describe('lives type utilities', () => {
       description: '',
       submitButtonLabel: '送信',
       publicSubmissionEnabled: false,
-      recordLabelFieldId: '',
       blocks: [
         {
           id: 'section-1',
@@ -110,6 +109,7 @@ describe('lives type utilities', () => {
           fields: [],
           layout: { width: 'full', optionColumns: 1, optionFitContent: false },
           optionSource: null,
+          duplicateDetectionRole: '',
         },
       ],
     });

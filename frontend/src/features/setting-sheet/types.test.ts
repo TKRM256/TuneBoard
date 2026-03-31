@@ -9,7 +9,6 @@ const configWithHiddenSection: SettingSheetConfigResponse = {
   description: '',
   submitButtonLabel: '送信',
   publicSubmissionEnabled: false,
-  recordLabelFieldId: '',
   blocks: [
     {
       id: 'section-1',
@@ -28,6 +27,7 @@ const configWithHiddenSection: SettingSheetConfigResponse = {
       titleSourceFieldId: '',
       layout: { width: 'full', optionColumns: 1, optionFitContent: false },
       optionSource: null,
+      duplicateDetectionRole: '',
       fields: [
         {
           id: 'visible-field',
@@ -46,6 +46,7 @@ const configWithHiddenSection: SettingSheetConfigResponse = {
           titleSourceFieldId: '',
           layout: { width: 'half', optionColumns: 1, optionFitContent: false },
           optionSource: null,
+          duplicateDetectionRole: '',
           fields: [],
         },
         {
@@ -65,6 +66,7 @@ const configWithHiddenSection: SettingSheetConfigResponse = {
           titleSourceFieldId: '',
           layout: { width: 'half', optionColumns: 1, optionFitContent: false },
           optionSource: null,
+          duplicateDetectionRole: '',
           fields: [],
         },
       ],
@@ -108,7 +110,6 @@ describe('setting-sheet types', () => {
       description: '',
       submitButtonLabel: '送信',
       publicSubmissionEnabled: false,
-      recordLabelFieldId: '',
       blocks: [
         {
           id: 'members',
@@ -127,6 +128,7 @@ describe('setting-sheet types', () => {
           titleSourceFieldId: 'member-name',
           layout: { width: 'full', optionColumns: 1, optionFitContent: false },
           optionSource: null,
+          duplicateDetectionRole: '',
           fields: [
             {
               id: 'member-section',
@@ -145,6 +147,7 @@ describe('setting-sheet types', () => {
               titleSourceFieldId: '',
               layout: { width: 'full', optionColumns: 1, optionFitContent: false },
               optionSource: null,
+              duplicateDetectionRole: '',
               fields: [
                 {
                   id: 'member-name',
@@ -163,6 +166,7 @@ describe('setting-sheet types', () => {
                   titleSourceFieldId: '',
                   layout: { width: 'half', optionColumns: 1, optionFitContent: false },
                   optionSource: null,
+                  duplicateDetectionRole: '',
                   fields: [],
                 },
               ],
