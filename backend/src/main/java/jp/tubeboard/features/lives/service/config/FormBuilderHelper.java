@@ -9,6 +9,7 @@ import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest.O
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.LayoutResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.OptionSourceResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 import jp.tubeboard.features.lives.service.SettingSheetConstants;
 
 @Component
@@ -79,7 +80,7 @@ public class FormBuilderHelper {
                 false, false,
                 SettingSheetConstants.APPEARANCE_PLAIN, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                children, layoutFull(1), null, "");
+                children, layoutFull(1), null, "", List.of());
     }
 
     public FormBlockResponse textBlock(String id, String label, boolean required, LayoutResponse layout) {
@@ -92,7 +93,7 @@ public class FormBuilderHelper {
                 required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                List.of(), layout, null, normalizeDuplicateDetectionRole(duplicateDetectionRole));
+                List.of(), layout, null, normalizeDuplicateDetectionRole(duplicateDetectionRole), List.of());
     }
 
     public FormBlockResponse longTextBlock(String id, String label, boolean required, LayoutResponse layout) {
@@ -100,7 +101,7 @@ public class FormBuilderHelper {
                 required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                List.of(), layout, null, "");
+                List.of(), layout, null, "", List.of());
     }
 
     public FormBlockResponse booleanBlock(String id, String label, String description, LayoutResponse layout) {
@@ -108,7 +109,7 @@ public class FormBuilderHelper {
                 false, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                List.of(), layout, null, "");
+                List.of(), layout, null, "", List.of());
     }
 
     public FormBlockResponse songBlock(String id, String label, boolean required, LayoutResponse layout) {
@@ -116,7 +117,7 @@ public class FormBuilderHelper {
                 required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",
-                List.of(), layout, null, "");
+                List.of(), layout, null, "", List.of());
     }
 
     public FormBlockResponse selectBlock(String id, String type, String label, boolean required, List<String> options,
@@ -124,7 +125,7 @@ public class FormBuilderHelper {
         return new FormBlockResponse(id, type, label, "", false, false, required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, options, 0, "", "",
                 "",
-                List.of(), layout, optionSource, "");
+                List.of(), layout, optionSource, "", List.of());
     }
 
     public FormBlockResponse groupBlock(String id, String label, String description, boolean required,
@@ -133,7 +134,22 @@ public class FormBuilderHelper {
         return new FormBlockResponse(id, SettingSheetConstants.BLOCK_REPEATABLE_GROUP, label, description, false,
                 false, required, collapsible, SettingSheetConstants.APPEARANCE_SUBTLE,
                 SettingSheetConstants.APPEARANCE_OUTLINE,
-                List.of(), minItems, addButtonLabel, entryTitle, titleSourceFieldId, fields, layout, null, "");
+                List.of(), minItems, addButtonLabel, entryTitle, titleSourceFieldId, fields, layout, null, "",
+                List.of());
+    }
+
+    public FormBlockResponse variantGroupBlock(String id, String label, String description, boolean required,
+            boolean collapsible, int minItems, String addButtonLabel, String entryTitle, String titleSourceFieldId,
+            LayoutResponse layout, List<VariantResponse> variants) {
+        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_REPEATABLE_GROUP, label, description, false,
+                false, required, collapsible, SettingSheetConstants.APPEARANCE_SUBTLE,
+                SettingSheetConstants.APPEARANCE_OUTLINE,
+                List.of(), minItems, addButtonLabel, entryTitle, titleSourceFieldId, List.of(), layout, null, "",
+                variants);
+    }
+
+    public VariantResponse variant(String id, String label, List<FormBlockResponse> fields) {
+        return new VariantResponse(id, label, fields);
     }
 
     public OptionSourceResponse optionSource(String blockId, String fieldId) {

@@ -20,6 +20,7 @@ import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDeta
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.OptionSourceResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 
 @Service
 public class SettingSheetSubmissionService {
@@ -72,7 +73,9 @@ public class SettingSheetSubmissionService {
                 .map(answer -> new FieldAnswerResponse(
                         answer.fieldId(),
                         answer.values(),
-                        answer.items().stream().map(item -> new GroupItemResponse(mapFieldAnswers(item.answers())))
+                        answer.items().stream()
+                                .map(item -> new GroupItemResponse(item.variantId(),
+                                        mapFieldAnswers(item.answers())))
                                 .toList()))
                 .toList();
     }
@@ -110,7 +113,8 @@ public class SettingSheetSubmissionService {
             FieldAnswerRequest answer = answerMap.getOrDefault(block.id(), emptyAnswer(block.id()));
             if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
                 List<GroupItemRequest> items = answer.items().stream()
-                        .map(item -> new GroupItemRequest(filterAnswers(block.fields(), item.answers())))
+                        .map(item -> new GroupItemRequest(item.variantId(),
+                                filterAnswers(resolveItemFields(block, item.variantId()), item.answers())))
                         .toList();
                 filtered.add(new FieldAnswerRequest(block.id(), List.of(), items));
                 continue;
@@ -158,7 +162,8 @@ public class SettingSheetSubmissionService {
                     fieldErrors.putIfAbsent(key, block.label() + " の入力形式が不正です。");
                 }
                 for (int index = 0; index < answer.items().size(); index++) {
-                    validateAnswers(block.fields(), answer.items().get(index).answers(),
+                    GroupItemRequest item = answer.items().get(index);
+                    validateAnswers(resolveItemFields(block, item.variantId()), item.answers(),
                             key + ".items[" + index + "].answers.",
                             rootBlocks, rootAnswers, fieldErrors, true);
                 }
@@ -211,6 +216,7 @@ public class SettingSheetSubmissionService {
                                 .toList(),
                 answer.items() == null ? List.of()
                         : answer.items().stream().map(item -> new GroupItemRequest(
+                                safeText(item.variantId()),
                                 item.answers() == null ? List.of()
                                         : item.answers().stream().map(this::normalizeFieldAnswer).toList()))
                                 .toList());
@@ -276,7 +282,8 @@ public class SettingSheetSubmissionService {
                 }
             }
             for (GroupItemRequest item : answer.items()) {
-                values.addAll(collectReferencedValues(block.fields(), item.answers(), source));
+                values.addAll(
+                        collectReferencedValues(resolveItemFields(block, item.variantId()), item.answers(), source));
             }
         }
         return List.copyOf(values);
@@ -303,7 +310,7 @@ public class SettingSheetSubmissionService {
             }
             if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
                 for (GroupItemRequest item : answer.items()) {
-                    String nested = findFirstSubmittedValue(block.fields(), item.answers());
+                    String nested = findFirstSubmittedValue(resolveItemFields(block, item.variantId()), item.answers());
                     if (!nested.isBlank()) {
                         return nested;
                     }
@@ -315,5 +322,16 @@ public class SettingSheetSubmissionService {
 
     private String safeText(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private List<FormBlockResponse> resolveItemFields(FormBlockResponse block, String variantId) {
+        if (block.variants() != null && variantId != null && !variantId.isBlank()) {
+            for (VariantResponse v : block.variants()) {
+                if (v.id().equals(variantId)) {
+                    return v.fields();
+                }
+            }
+        }
+        return block.fields();
     }
 }

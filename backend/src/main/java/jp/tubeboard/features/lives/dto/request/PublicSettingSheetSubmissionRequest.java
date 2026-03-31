@@ -13,6 +13,7 @@ public record PublicSettingSheetSubmissionRequest(
         }
 
         public record GroupItemRequest(
+                        String variantId,
                         List<FieldAnswerRequest> answers) {
         }
 

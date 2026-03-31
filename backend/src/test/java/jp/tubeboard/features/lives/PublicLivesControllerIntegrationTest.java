@@ -152,7 +152,7 @@ class PublicLivesControllerIntegrationTest {
                                 new FieldAnswerRequest(
                                                 "members",
                                                 List.of(),
-                                                List.of(new PublicSettingSheetSubmissionRequest.GroupItemRequest(
+                                                List.of(new PublicSettingSheetSubmissionRequest.GroupItemRequest("",
                                                                 List.of(
                                                                                 new FieldAnswerRequest("member-name",
                                                                                                 List.of("Alice"),
@@ -160,7 +160,7 @@ class PublicLivesControllerIntegrationTest {
                                 new FieldAnswerRequest(
                                                 "songs",
                                                 List.of(),
-                                                List.of(new PublicSettingSheetSubmissionRequest.GroupItemRequest(
+                                                List.of(new PublicSettingSheetSubmissionRequest.GroupItemRequest("",
                                                                 List.of(
                                                                                 new FieldAnswerRequest("song-title",
                                                                                                 List.of("Song A"),
@@ -311,7 +311,7 @@ class PublicLivesControllerIntegrationTest {
                                                 "",
                                                 List.of(),
                                                 new LayoutResponse("half", 1, false),
-                                                null, "")));
+                                                null, "", List.of())));
         }
 
         private SettingSheetConfigResponse createVisibleSectionConfig() {
@@ -354,9 +354,9 @@ class PublicLivesControllerIntegrationTest {
                                                                 "",
                                                                 List.of(),
                                                                 new LayoutResponse("half", 1, false),
-                                                                null, "")),
+                                                                null, "", List.of())),
                                                 new LayoutResponse("full", 1, false),
-                                                null, "")));
+                                                null, "", List.of())));
         }
 
         private SettingSheetConfigResponse createHiddenSectionConfig() {
@@ -399,9 +399,9 @@ class PublicLivesControllerIntegrationTest {
                                                                 "",
                                                                 List.of(),
                                                                 new LayoutResponse("half", 1, false),
-                                                                null, "")),
+                                                                null, "", List.of())),
                                                 new LayoutResponse("full", 1, false),
-                                                null, "")));
+                                                null, "", List.of())));
         }
 
         private SettingSheetConfigResponse createSectionAndRepeatableGroupConfig() {
@@ -445,9 +445,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null, "")),
+                                                                                null, "", List.of())),
                                                                 new LayoutResponse("full", 1, false),
-                                                                null, ""),
+                                                                null, "", List.of()),
                                                 new FormBlockResponse(
                                                                 "members",
                                                                 "REPEATABLE_GROUP",
@@ -482,9 +482,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null, "")),
+                                                                                null, "", List.of())),
                                                                 new LayoutResponse("full", 1, false),
-                                                                null, ""),
+                                                                null, "", List.of()),
                                                 new FormBlockResponse(
                                                                 "songs",
                                                                 "REPEATABLE_GROUP",
@@ -519,9 +519,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null, "")),
+                                                                                null, "", List.of())),
                                                                 new LayoutResponse("full", 1, false),
-                                                                null, "")));
+                                                                null, "", List.of())));
         }
 
         private SettingSheetConfigResponse createCustomMainDisplayConfig() {
@@ -549,7 +549,7 @@ class PublicLivesControllerIntegrationTest {
                                                                 "",
                                                                 List.of(),
                                                                 new LayoutResponse("half", 1, false),
-                                                                null, ""),
+                                                                null, "", List.of()),
                                                 new FormBlockResponse(
                                                                 "note",
                                                                 "LONG_TEXT",
@@ -568,7 +568,7 @@ class PublicLivesControllerIntegrationTest {
                                                                 "",
                                                                 List.of(),
                                                                 new LayoutResponse("full", 1, false),
-                                                                null, "")));
+                                                                null, "", List.of())));
         }
 
         private SettingSheetConfigResponse createSharedBandOnlyConfig() {
@@ -612,7 +612,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null, ""),
+                                                                                null, "", List.of()),
                                                                 new FormBlockResponse(
                                                                                 "submission-status",
                                                                                 "SINGLE_SELECT",
@@ -631,7 +631,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null, ""),
+                                                                                null, "", List.of()),
                                                                 new FormBlockResponse(
                                                                                 "detail",
                                                                                 "LONG_TEXT",
@@ -650,9 +650,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("full", 1, false),
-                                                                                null, "")),
+                                                                                null, "", List.of())),
                                                 new LayoutResponse("full", 1, false),
-                                                null, "")));
+                                                null, "", List.of())));
         }
 
         private SettingSheetConfigResponse createSharedHiddenRecordLabelConfig() {
@@ -696,7 +696,7 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("half", 1, false),
-                                                                                null, ""),
+                                                                                null, "", List.of()),
                                                                 new FormBlockResponse(
                                                                                 "detail",
                                                                                 "LONG_TEXT",
@@ -715,9 +715,9 @@ class PublicLivesControllerIntegrationTest {
                                                                                 "",
                                                                                 List.of(),
                                                                                 new LayoutResponse("full", 1, false),
-                                                                                null, "")),
+                                                                                null, "", List.of())),
                                                 new LayoutResponse("full", 1, false),
-                                                null, "")));
+                                                null, "", List.of())));
         }
 
         private PublicSettingSheetSubmissionRequest createSubmissionRequest(String bandName) {

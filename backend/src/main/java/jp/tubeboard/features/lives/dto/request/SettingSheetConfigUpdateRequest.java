@@ -28,7 +28,14 @@ public record SettingSheetConfigUpdateRequest(
                         List<FormBlockRequest> fields,
                         LayoutRequest layout,
                         OptionSourceRequest optionSource,
-                        String duplicateDetectionRole) {
+                        String duplicateDetectionRole,
+                        List<VariantRequest> variants) {
+        }
+
+        public record VariantRequest(
+                        String id,
+                        String label,
+                        List<FormBlockRequest> fields) {
         }
 
         public record LayoutRequest(

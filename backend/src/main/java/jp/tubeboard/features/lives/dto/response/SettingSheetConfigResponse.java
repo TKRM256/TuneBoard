@@ -28,7 +28,14 @@ public record SettingSheetConfigResponse(
                         List<FormBlockResponse> fields,
                         LayoutResponse layout,
                         OptionSourceResponse optionSource,
-                        String duplicateDetectionRole) {
+                        String duplicateDetectionRole,
+                        List<VariantResponse> variants) {
+        }
+
+        public record VariantResponse(
+                        String id,
+                        String label,
+                        List<FormBlockResponse> fields) {
         }
 
         public record LayoutResponse(

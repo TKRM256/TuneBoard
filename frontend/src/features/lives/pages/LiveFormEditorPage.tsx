@@ -162,6 +162,10 @@ export const LiveFormEditorPage = () => {
         return {
           ...block,
           fields: block.fields.map((field) => ({ ...field, appearance })),
+          variants: (block.variants ?? []).map((v) => ({
+            ...v,
+            fields: v.fields.map((field) => ({ ...field, appearance })),
+          })),
         };
       }),
     } : current);

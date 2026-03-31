@@ -88,16 +88,18 @@ export const TenantLivesPage = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="min-w-0">
-              <h1 className="wrap-break-word text-xl font-semibold sm:text-2xl">{tenant.name} のライブ</h1>
+              <h1 className="wrap-break-word text-lg font-semibold sm:text-2xl">{tenant.name} のライブ</h1>
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/tenants">
-                <ChevronLeft className="size-4" />
-                戻る
-              </Link>
-            </Button>
+            <div className="flex justify-end">
+              <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
+                <Link to="/tenants">
+                  <ChevronLeft className="size-4" />
+                  戻る
+                </Link>
+              </Button>
+            </div>
           </div>
         </CardHeader>
       </Card>

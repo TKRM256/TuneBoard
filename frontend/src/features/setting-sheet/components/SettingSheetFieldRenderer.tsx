@@ -15,6 +15,7 @@ import {
   isRepeatableGroupBlock,
   isSectionBlock,
   isSongBlock,
+  getGroupItemFields,
   type SettingSheetBlock,
   type ItunesLinkSelection,
 } from '@/features/lives/types/live-types';
@@ -226,21 +227,40 @@ const SettingSheetGroupBlock = ({
   updateScopedAnswers,
   itunesLinks,
   onItunesLinkChange,
-}: SettingSheetGroupBlockProps) => (
-  <section className={`${appearanceClass(block.appearance, 'group')} ${fieldWidthClass(block.layout.width)}`}>
-    <div className="flex flex-col gap-3 px-4 pt-4 sm:px-5 sm:pt-5 md:flex-row md:items-start md:justify-between">
-      <div>
-        <h2 className="text-sm font-medium text-foreground">
-          {block.label}
-          {block.required ? <span className="ml-1 text-destructive">*</span> : null}
-        </h2>
-        {block.description ? <p className="mt-1 text-sm text-muted-foreground">{block.description}</p> : null}
+}: SettingSheetGroupBlockProps) => {
+  const variants = block.variants ?? [];
+
+  const addItem = (variantId: string) => {
+    const fields = getGroupItemFields(block, variantId);
+    setFieldValue({ values: [], items: [...fieldValue.items, createGroupItemValue(fields, variantId)] });
+  };
+
+  return (
+    <section className={`${appearanceClass(block.appearance, 'group')} ${fieldWidthClass(block.layout.width)}`}>
+      <div className="flex flex-col gap-3 px-4 pt-4 sm:px-5 sm:pt-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-sm font-medium text-foreground">
+            {block.label}
+            {block.required ? <span className="ml-1 text-destructive">*</span> : null}
+          </h2>
+          {block.description ? <p className="mt-1 text-sm text-muted-foreground">{block.description}</p> : null}
+        </div>
+        {variants.length > 1 ? (
+          <div className="flex gap-2 w-full md:w-auto">
+            {variants.map((variant) => (
+              <Button key={variant.id} type="button" variant="outline" size="sm" onClick={() => addItem(variant.id)} className="flex-1 md:flex-initial">
+                <Plus className="size-4" />
+                {variant.label}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <Button type="button" variant="outline" size="sm" onClick={() => addItem(variants[0]?.id ?? '')} className="w-full md:w-auto">
+            <Plus className="size-4" />
+            {block.addButtonLabel || '項目を追加'}
+          </Button>
+        )}
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={() => setFieldValue({ values: [], items: [...fieldValue.items, createGroupItemValue(block.fields)] })} className="w-full md:w-auto">
-        <Plus className="size-4" />
-        {block.addButtonLabel || '項目を追加'}
-      </Button>
-    </div>
 
     <AnimatePresence initial={false}>
       <motion.div layout className="space-y-4 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
@@ -265,7 +285,8 @@ const SettingSheetGroupBlock = ({
     {fieldValue.items.length === 0 ? <p className="mx-4 mb-4 rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground sm:mx-5 sm:mb-5">まだ入力項目がありません。追加ボタンから作成してください。</p> : null}
     {errorMap[`${pathKey}.items`] ? <p className="mt-3 text-sm text-destructive">{errorMap[`${pathKey}.items`]}</p> : null}
   </section>
-);
+  );
+};
 
 interface SettingSheetGroupItemProps extends Omit<SettingSheetGroupBlockProps, 'fieldValue'> {
   groupValue: SettingSheetFieldValue;
@@ -286,9 +307,11 @@ const SettingSheetGroupItem = ({
   itunesLinks,
   onItunesLinkChange,
 }: SettingSheetGroupItemProps) => {
+  const itemFields = getGroupItemFields(block, item.variantId);
   const itemTitle = resolveItemTitle(block, item, itemIndex);
-  const hasSongTitle = block.fields.some((f) => f.duplicateDetectionRole === 'SONG_TITLE');
-  const hasSongBlock = block.fields.some((f) => f.type === 'SONG');
+  const hasSongTitle = itemFields.some((f) => f.duplicateDetectionRole === 'SONG_TITLE');
+  const hasSongBlock = itemFields.some((f) => f.type === 'SONG');
+  const variantLabel = (block.variants ?? []).find((v) => v.id === item.variantId)?.label;
   const updateItem = (nextItem: SettingSheetGroupItemValue) => {
     setFieldValue({
       values: [],
@@ -300,7 +323,7 @@ const SettingSheetGroupItem = ({
 
   const content = (
     <div className="grid gap-4 px-4 py-4 sm:px-5 xl:grid-cols-6">
-      {block.fields.map((child) => (
+      {itemFields.map((child) => (
         <SettingSheetFieldRenderer
           key={child.id}
           block={child}
@@ -337,7 +360,8 @@ const SettingSheetGroupItem = ({
             <div className="border-b border-border px-4 py-4 sm:px-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <AccordionTrigger className="min-w-0 flex-1 px-2 py-2 text-left hover:no-underline">
-                  <div className="min-w-0 text-left">
+                  <div className="min-w-0 text-left flex gap-2">
+                    {variantLabel ? <span className="px-2 py-0.5 text-xs font-medium text-muted-foreground bg-muted rounded-full">{variantLabel}</span> : null}
                     <p className="truncate text-sm font-semibold text-foreground">{itemTitle}</p>
                   </div>
                 </AccordionTrigger>
@@ -352,6 +376,7 @@ const SettingSheetGroupItem = ({
           <div className="border-b border-border px-4 py-4 sm:px-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
+                {variantLabel ? <span className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">{variantLabel}</span> : null}
                 <p className="truncate text-sm font-semibold text-foreground">{itemTitle}</p>
                 <p className="text-xs text-muted-foreground">{block.entryTitle || '項目'} {itemIndex + 1}</p>
               </div>
@@ -383,7 +408,7 @@ const GroupItemActions = ({ block, groupValue, item, itemIndex, setFieldValue }:
       <ArrowDown className="size-4" />
       下へ
     </Button>
-    <Button type="button" variant="outline" size="sm" onClick={() => setFieldValue({ values: [], items: [...groupValue.items, cloneGroupItemValue(block.fields, item)] })}>
+    <Button type="button" variant="outline" size="sm" onClick={() => setFieldValue({ values: [], items: [...groupValue.items, cloneGroupItemValue(getGroupItemFields(block, item.variantId), item)] })}>
       <Copy className="size-4" />
       複製
     </Button>
@@ -395,12 +420,14 @@ const GroupItemActions = ({ block, groupValue, item, itemIndex, setFieldValue }:
 );
 
 function resolveItemTitle(block: SettingSheetBlock, item: SettingSheetGroupItemValue, itemIndex: number) {
-  const fallback = `${block.entryTitle || '項目'} ${itemIndex + 1}`;
+  const variantLabel = (block.variants ?? []).find((v) => v.id === item.variantId)?.label;
+  const fallback = `${variantLabel || block.entryTitle || '項目'} ${itemIndex + 1}`;
   if (!block.titleSourceFieldId) {
     return fallback;
   }
 
-  const sourceBlock = block.fields.find((field) => field.id === block.titleSourceFieldId);
+  const itemFields = getGroupItemFields(block, item.variantId);
+  const sourceBlock = itemFields.find((field) => field.id === block.titleSourceFieldId);
   const sourceValue = item.answers[block.titleSourceFieldId];
   if (!sourceBlock || !sourceValue) {
     return fallback;

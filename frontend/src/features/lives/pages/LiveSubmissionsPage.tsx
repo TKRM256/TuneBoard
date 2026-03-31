@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiClient } from '@/lib/api/client';
 import {
@@ -215,10 +215,10 @@ export const LiveSubmissionsPage = () => {
 
       <Card>
         <CardHeader className="gap-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="space-y-1">
-              <h1 className="text-xl font-semibold sm:text-2xl">提出済みSettingSheet</h1>
-              <p className="text-sm text-muted-foreground">{live.name} / {formatLiveDate(live.date)} / 全{details.length}件</p>
+              <h1 className="text-lg font-semibold sm:text-2xl">提出済みSettingSheet</h1>
+              <p className="text-xs text-muted-foreground sm:text-sm">{live.name} / {formatLiveDate(live.date)} / 全{details.length}件</p>
             </div>
             <div className="flex items-center gap-2">
               <Button asChild variant="outline" size="sm">
@@ -272,20 +272,19 @@ export const LiveSubmissionsPage = () => {
         </CardHeader>
         <CardContent>
           {!hasVisibleColumns ? (
-            <p className="text-sm text-muted-foreground">共有リンクで公開する項目が設定されていません。管理画面で「共有に表示」をONにした項目だけがここに表示されます。</p>
+            <p className="text-sm text-muted-foreground">「共有に表示」をONにした項目だけがここに表示されます</p>
           ) : filteredDetails.length === 0 ? (
             <p className="text-sm text-muted-foreground">該当する提出はありません。</p>
           ) : (
-            <div className="rounded-lg border">
-              <ScrollArea className="h-[70vh] w-full">
-                <Table className="min-w-max">
+            <div className="max-h-[70vh] overflow-auto rounded-lg border">
+                <Table>
                   <TableHeader className="sticky top-0 z-20 bg-background">
                     <TableRow>
                       {tableColumns.map((column) => (
-                        <TableHead key={column.id} className="w-[220px] whitespace-normal bg-background">{column.label}</TableHead>
+                        <TableHead key={column.id} className="min-w-[150px] whitespace-normal bg-background">{column.label}</TableHead>
                       ))}
                       {duplicateMap.size > 0 && (
-                        <TableHead className="w-[100px] bg-background text-center">曲かぶり</TableHead>
+                        <TableHead className="whitespace-nowrap bg-background text-center">曲かぶり</TableHead>
                       )}
                     </TableRow>
                   </TableHeader>
@@ -297,12 +296,12 @@ export const LiveSubmissionsPage = () => {
                         onClick={() => { setSelectedSubmissionId(detail.id); setIsDetailDialogOpen(true); }}
                       >
                         {tableColumns.map((column) => (
-                          <TableCell key={`${detail.id}-${column.id}`} className="w-[220px] whitespace-pre-line align-top text-sm">
+                          <TableCell key={`${detail.id}-${column.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">
                             {extractCellValue(detail.answers, column.path, column.type)}
                           </TableCell>
                         ))}
                         {duplicateMap.size > 0 && (
-                          <TableCell className="w-[100px] text-center align-top">
+                          <TableCell className="whitespace-nowrap text-center align-top">
                             {duplicateMap.has(detail.id) && (
                               <Badge variant="destructive" className="text-xs">
                                 {duplicateMap.get(detail.id)!.length}曲
@@ -314,7 +313,6 @@ export const LiveSubmissionsPage = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </ScrollArea>
             </div>
           )}
         </CardContent>

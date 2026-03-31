@@ -1,6 +1,6 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, Clock, Copy, ExternalLink, FileCheck2, Link2, MapPin, MoreHorizontal, Music, Settings2, Wrench } from 'lucide-react';
+import { AlertTriangle, CalendarDays, ChevronLeft, Clock, Copy, ExternalLink, FileCheck2, MapPin, MoreHorizontal, Settings2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,13 +35,17 @@ import {
   type SettingSheetConfigResponse,
   type SongDuplicateResponse,
 } from '../types/live-types';
+import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
+import { collectColumns, extractCellValue } from '../helpers/submission-table-helpers';
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
   const [live, setLive] = useState<LiveResponse | null>(null);
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
-  const [submissionCount, setSubmissionCount] = useState(0);
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
+  const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('');
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -49,14 +54,14 @@ export const LiveManagementPage = () => {
     Promise.all([
       apiClient.get<LiveResponse>(`/lives/${liveId}`),
       apiClient.get<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`),
-      apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`),
       apiClient.get<SongDuplicateResponse>(`/lives/${liveId}/songs/duplicates`),
+      apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`),
     ])
-      .then(([liveRes, configRes, detailsRes, dupRes]) => {
+      .then(([liveRes, configRes, dupRes, detailsRes]) => {
         if (liveRes) setLive(liveRes);
         if (configRes) setConfig(normalizeSettingSheetConfig(configRes));
-        setSubmissionCount(detailsRes?.length ?? 0);
         setDuplicates(dupRes ?? null);
+        setDetails(detailsRes ?? []);
       })
       .catch(() => {
         toast.error('ライブ情報の取得に失敗しました', { position: 'top-center' });
@@ -66,6 +71,8 @@ export const LiveManagementPage = () => {
       });
   }, [liveId]);
 
+  const tableColumns = useMemo(() => collectColumns(config), [config]);
+
   if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
   if (isLoading) return <div className="py-12 text-center text-sm text-muted-foreground">読み込み中...</div>;
   if (!live) return <Navigate to={`/tenants/${tenantId}/lives`} replace />;
@@ -74,6 +81,8 @@ export const LiveManagementPage = () => {
   const sharedListUrl = `${window.location.origin}/public/lives/${live.publicToken}/submissions/shared`;
   const badgeVariant = live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary';
   const hasDuplicates = (duplicates?.totalDuplicateGroups ?? 0) > 0;
+  const selectedDetail = details.find((d) => d.id === selectedSubmissionId) ?? null;
+  const buildEditFormUrl = (submissionId: string) => `${window.location.origin}/public/lives/${live.publicToken}/submissions/${submissionId}`;
 
   const copyPublicUrl = async () => {
     try {
@@ -90,6 +99,15 @@ export const LiveManagementPage = () => {
       toast.success('共有一覧リンクをコピーしました', { position: 'top-center' });
     } catch {
       toast.error('コピーに失敗しました', { position: 'top-center' });
+    }
+  };
+
+  const copyEditLink = async (submissionId: string) => {
+    try {
+      await navigator.clipboard.writeText(buildEditFormUrl(submissionId));
+      toast.success('編集リンクをコピーしました', { position: 'top-center' });
+    } catch {
+      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
     }
   };
 
@@ -118,21 +136,24 @@ export const LiveManagementPage = () => {
       {/* Header */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold sm:text-2xl">{live.name}</h1>
+                <h1 className="text-lg font-semibold sm:text-2xl">{live.name}</h1>
                 <Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{formatLiveDate(live.date)} · {formatOptionalText(live.location)}</p>
+              <p className="text-xs text-muted-foreground sm:text-sm">{formatLiveDate(live.date)} · {formatOptionalText(live.location)}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex justify-end shrink-0 items-center gap-2">
               <Button asChild variant="outline" size="sm">
-                <Link to={`/tenants/${tenantId}/lives`}>戻る</Link>
+                <Link to={`/tenants/${tenantId}/lives`}>
+                  <ChevronLeft className="size-4" />
+                  戻る
+                </Link>
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="size-9">
+                  <Button variant="outline" size="sm">
                     <MoreHorizontal className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -171,27 +192,76 @@ export const LiveManagementPage = () => {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />
+        <QuickActionExternal icon={<ExternalLink className="size-5" />} label="公開フォーム" href={publicUrl} />
         <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
         <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />
-        <QuickActionExternal icon={<ExternalLink className="size-5" />} label="公開フォーム" href={publicUrl} />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard icon={<FileCheck2 className="size-4" />} label="提出数" value={`${submissionCount}件`} />
-        <StatCard
-          icon={<Music className="size-4" />}
-          label="曲かぶり"
-          value={hasDuplicates ? `${duplicates!.totalDuplicateGroups}件` : 'なし'}
-          variant={hasDuplicates ? 'warning' : undefined}
-        />
-        <StatCard icon={<Clock className="size-4" />} label="回答締切" value={formatDeadline(live.deadlineAt)} />
-        <StatCard
-          icon={<Link2 className="size-4" />}
-          label="共有公開"
-          value={config?.publicSubmissionEnabled ? 'ON' : 'OFF'}
-        />
-      </div>
+      {/* Live Info */}
+      <Card className="col-span-2">
+        <CardHeader>
+          <h2 className="text-base font-semibold">ライブ情報</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoRow icon={CalendarDays} label="開催日" value={formatLiveDate(live.date)} />
+            <InfoRow icon={MapPin} label="会場" value={formatOptionalText(live.location)} />
+            <InfoRow icon={Clock} label="回答締切" value={formatDeadline(live.deadlineAt)} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Submissions */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">提出一覧</h2>
+              <p className="text-xs text-muted-foreground">全{details.length}件 · 行をクリックすると詳細を確認できます</p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>
+                <FileCheck2 className="size-4" />
+                詳細ページへ
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {details.length === 0 ? (
+            <p className="text-sm text-muted-foreground">まだ提出はありません。</p>
+          ) : tableColumns.length === 0 ? (
+            <p className="text-sm text-muted-foreground">「表示設定」で共有に表示をONにすると、ここに一覧表示されます。</p>
+          ) : (
+            <div className="max-h-[50vh] overflow-auto rounded-lg border">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    {tableColumns.map((col) => (
+                      <TableHead key={col.id} className="min-w-[150px] whitespace-normal bg-background">{col.label}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {details.map((detail) => (
+                    <TableRow
+                      key={detail.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => { setSelectedSubmissionId(detail.id); setIsDetailDialogOpen(true); }}
+                    >
+                      {tableColumns.map((col) => (
+                        <TableCell key={`${detail.id}-${col.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">
+                          {extractCellValue(detail.answers, col.path, col.type)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Duplicate Summary */}
       {hasDuplicates && duplicates && (
@@ -231,26 +301,20 @@ export const LiveManagementPage = () => {
               ))}
             </div>
             <Button asChild variant="link" size="sm" className="mt-3 h-auto p-0">
-              <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>提出確認ページで詳細を見る →</Link>
+              <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>詳細を見る →</Link>
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Live Info */}
-      <Card>
-        <CardHeader>
-          <h2 className="text-base font-semibold">ライブ情報</h2>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoRow icon={CalendarDays} label="開催日" value={formatLiveDate(live.date)} />
-            <InfoRow icon={MapPin} label="会場" value={formatOptionalText(live.location)} />
-            <InfoRow icon={Clock} label="回答締切" value={formatDeadline(live.deadlineAt)} />
-            <InfoRow icon={Link2} label="公開URL" value={publicUrl} truncate />
-          </div>
-        </CardContent>
-      </Card>
+      <SubmissionDetailDialog
+        open={isDetailDialogOpen}
+        onOpenChange={setIsDetailDialogOpen}
+        detail={selectedDetail}
+        config={config}
+        recordLabel="回答"
+        onCopyEditLink={copyEditLink}
+      />
     </div>
   );
 };
@@ -281,26 +345,9 @@ function QuickActionExternal({ icon, label, href }: { icon: ReactNode; label: st
   );
 }
 
-function StatCard({ icon, label, value, variant }: { icon: ReactNode; label: string; value: string; variant?: 'warning' }) {
-  const isWarning = variant === 'warning';
-  return (
-    <Card className={isWarning ? 'border-amber-300 dark:border-amber-700' : ''}>
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className={`rounded-md p-2 ${isWarning ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400' : 'bg-muted text-muted-foreground'}`}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="truncate text-lg font-semibold">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function InfoRow({ icon: Icon, label, value, truncate }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; truncate?: boolean }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-muted/40 px-4 py-3">
+    <div className="flex items-center gap-3 rounded-lg bg-muted/40 px-4 py-3 overflow-hidden">
       <Icon className="size-5 shrink-0 text-muted-foreground" />
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>

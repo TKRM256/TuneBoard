@@ -39,6 +39,7 @@ import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse.DuplicateG
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse.DuplicateSongEntry;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
 import jp.tubeboard.features.lives.model.SongDuplicateResult;
@@ -444,17 +445,18 @@ public class SongDuplicateDetectionService {
                 continue;
             }
 
-            // SONG ブロックがあるか確認
-            String songBlockId = detectSongBlockId(block.fields());
+            // SONG ブロックがあるか確認 (fields と variants の両方を検索)
+            String songBlockId = detectSongBlockIdInGroup(block);
             // 従来の duplicateDetectionRole による検出
-            SongFieldIds songFieldIds = songBlockId == null ? detectSongFields(block.fields()) : null;
+            SongFieldIds songFieldIds = songBlockId == null ? detectSongFieldsInGroup(block) : null;
 
             if (songBlockId == null && songFieldIds == null) {
                 // 入れ子のrepeatable group内にも曲がある可能性を探索
                 FieldAnswerRequest answer = answerMap.get(block.id());
                 if (answer != null) {
                     for (GroupItemRequest item : answer.items()) {
-                        songs.addAll(extractSongs(submissionId, recordLabel, block.fields(), item.answers()));
+                        List<FormBlockResponse> itemFields = resolveItemFields(block, item.variantId());
+                        songs.addAll(extractSongs(submissionId, recordLabel, itemFields, item.answers()));
                     }
                 }
                 continue;
@@ -466,14 +468,21 @@ public class SongDuplicateDetectionService {
             }
 
             for (GroupItemRequest item : answer.items()) {
+                List<FormBlockResponse> itemFields = resolveItemFields(block, item.variantId());
+                String itemSongBlockId = detectSongBlockId(itemFields);
+                SongFieldIds itemSongFieldIds = itemSongBlockId == null ? detectSongFields(itemFields) : null;
+                if (itemSongBlockId == null && itemSongFieldIds == null) {
+                    continue;
+                }
+
                 Map<String, FieldAnswerRequest> itemAnswerMap = toAnswerMap(item.answers());
 
                 String title;
                 String artist;
 
-                if (songBlockId != null) {
+                if (itemSongBlockId != null) {
                     // SONG ブロック: values[0] = 曲名, values[1] = アーティスト
-                    FieldAnswerRequest songAnswer = itemAnswerMap.get(songBlockId);
+                    FieldAnswerRequest songAnswer = itemAnswerMap.get(itemSongBlockId);
                     title = songAnswer != null && !songAnswer.values().isEmpty()
                             ? songAnswer.values().getFirst()
                             : "";
@@ -482,9 +491,9 @@ public class SongDuplicateDetectionService {
                             : "";
                 } else {
                     // 従来方式: 個別フィールドから取得
-                    FieldAnswerRequest titleAnswer = itemAnswerMap.get(songFieldIds.titleFieldId);
-                    FieldAnswerRequest artistAnswer = songFieldIds.artistFieldId != null
-                            ? itemAnswerMap.get(songFieldIds.artistFieldId)
+                    FieldAnswerRequest titleAnswer = itemAnswerMap.get(itemSongFieldIds.titleFieldId);
+                    FieldAnswerRequest artistAnswer = itemSongFieldIds.artistFieldId != null
+                            ? itemAnswerMap.get(itemSongFieldIds.artistFieldId)
                             : null;
 
                     title = titleAnswer != null && !titleAnswer.values().isEmpty()
@@ -533,6 +542,45 @@ public class SongDuplicateDetectionService {
         }
 
         return titleFieldId != null ? new SongFieldIds(titleFieldId, artistFieldId) : null;
+    }
+
+    private String detectSongBlockIdInGroup(FormBlockResponse block) {
+        String id = detectSongBlockId(block.fields());
+        if (id != null)
+            return id;
+        if (block.variants() != null) {
+            for (VariantResponse v : block.variants()) {
+                id = detectSongBlockId(v.fields());
+                if (id != null)
+                    return id;
+            }
+        }
+        return null;
+    }
+
+    private SongFieldIds detectSongFieldsInGroup(FormBlockResponse block) {
+        SongFieldIds ids = detectSongFields(block.fields());
+        if (ids != null)
+            return ids;
+        if (block.variants() != null) {
+            for (VariantResponse v : block.variants()) {
+                ids = detectSongFields(v.fields());
+                if (ids != null)
+                    return ids;
+            }
+        }
+        return null;
+    }
+
+    private List<FormBlockResponse> resolveItemFields(FormBlockResponse block, String variantId) {
+        if (block.variants() != null && variantId != null && !variantId.isBlank()) {
+            for (VariantResponse v : block.variants()) {
+                if (v.id().equals(variantId)) {
+                    return v.fields();
+                }
+            }
+        }
+        return block.fields();
     }
 
     private Map<String, FieldAnswerRequest> toAnswerMap(List<FieldAnswerRequest> answers) {

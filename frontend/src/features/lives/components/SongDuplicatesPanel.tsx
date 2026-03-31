@@ -67,8 +67,8 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss }: S
   return (
     <Card className={hasDuplicates ? 'border-amber-300 dark:border-amber-700' : ''}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {hasDuplicates ? (
               <AlertTriangle className="size-5 text-amber-500" />
             ) : (
@@ -182,13 +182,13 @@ function DuplicateGroupCard({
           </Button>
         )}
       </div>
-      <div className="rounded-lg border">
+      <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[180px]">提出者</TableHead>
-              <TableHead>曲名</TableHead>
-              <TableHead>アーティスト</TableHead>
+              <TableHead className="whitespace-nowrap">提出者</TableHead>
+              <TableHead className="min-w-[120px]">曲名</TableHead>
+              <TableHead className="min-w-[100px]">アーティスト</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

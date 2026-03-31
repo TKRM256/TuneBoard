@@ -55,7 +55,9 @@ export const BlockSettingsPanel = ({
   const usesOptions = isOptionBlock(block.type);
   const usesRequired = isInputBlock(block.type) || isRepeatableGroupBlock(block.type);
   const usesChildren = canContainBlocks(block.type);
-  const titleSourceCandidates = isRepeatableGroupBlock(block.type) ? collectTitleSourceCandidates(block.fields) : [];
+  const titleSourceCandidates = isRepeatableGroupBlock(block.type)
+    ? collectTitleSourceCandidates([...block.fields, ...(block.variants ?? []).flatMap((v) => v.fields)])
+    : [];
   const sharedChildAppearance = resolveSharedChildAppearance(block);
 
   return (
@@ -252,7 +254,7 @@ export const BlockSettingsPanel = ({
         {usesOptions ? <BlockOptionEditor block={block} optionSourceCandidates={optionSourceCandidates} onUpdateBlock={onUpdateBlock} onUpdateOptionSource={onUpdateOptionSource} /> : null}
         
         {usesChildren ? (
-          <BlockChildrenEditor block={block} depth={depth} onInsert={onInsert} renderNestedBlock={renderNestedBlock} />
+          <BlockChildrenEditor block={block} depth={depth} onInsert={onInsert} onUpdateBlock={onUpdateBlock} renderNestedBlock={renderNestedBlock} />
         ) : null}
       </Accordion>
     </>

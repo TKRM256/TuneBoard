@@ -2,6 +2,7 @@
 import {
   isRepeatableGroupBlock,
   isSectionBlock,
+  getGroupItemFields,
   type SettingSheetBlock,
   type SettingSheetConfigResponse,
   type SettingSheetOptionSource,
@@ -17,7 +18,7 @@ import {
 interface SettingSheetSubmissionAnswer {
   fieldId: string;
   values: string[];
-  items: Array<{ answers: SettingSheetSubmissionAnswer[] }>;
+  items: Array<{ variantId?: string; answers: SettingSheetSubmissionAnswer[] }>;
 }
 
 export function toSettingSheetSubmissionPayload(values: SettingSheetFormValues, config: SettingSheetConfigResponse) {
@@ -67,7 +68,8 @@ export function resolveOptionSourceValues(
         }
       }
       for (const item of fieldValue.items) {
-        visit(block.fields, item.answers);
+        const itemFields = getGroupItemFields(block, item.variantId);
+        visit(itemFields, item.answers);
       }
     }
   };
@@ -106,7 +108,13 @@ function serializeFieldValue(block: SettingSheetBlock, value: SettingSheetFieldV
     return {
       fieldId: block.id,
       values: [],
-      items: value.items.map((item) => ({ answers: serializeScopeBlocks(block.fields, item.answers) })),
+      items: value.items.map((item) => {
+        const fields = getGroupItemFields(block, item.variantId);
+        return {
+          variantId: item.variantId || undefined,
+          answers: serializeScopeBlocks(fields, item.answers),
+        };
+      }),
     };
   }
   return { fieldId: block.id, values: value.values, items: [] };

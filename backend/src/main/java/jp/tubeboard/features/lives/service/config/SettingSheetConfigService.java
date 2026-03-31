@@ -43,7 +43,7 @@ public class SettingSheetConfigService {
                                 formBuilderHelper.booleanBlock("mic-main-vocal", "メインボーカル", "",
                                                 formBuilderHelper.layoutThird(1)));
 
-                List<FormBlockResponse> songFields = List.of(
+                List<FormBlockResponse> songVariantFields = List.of(
                                 formBuilderHelper.songBlock("song", "楽曲", true,
                                                 formBuilderHelper.layoutFull(1)),
                                 formBuilderHelper.selectBlock("song-parts", SettingSheetConstants.BLOCK_MULTI_SELECT,
@@ -60,17 +60,7 @@ public class SettingSheetConfigService {
                                                 "マイク追加", "マイク",
                                                 "mic-member", formBuilderHelper.layoutFull(1), songMicFields));
 
-                List<FormBlockResponse> bandFields = List.of(
-                                formBuilderHelper.textBlock("band-name", "バンド名", true,
-                                                formBuilderHelper.layoutTwoThirds(1)),
-                                formBuilderHelper.selectBlock("submission-status",
-                                                SettingSheetConstants.BLOCK_SINGLE_SELECT, "提出状況",
-                                                true,
-                                                List.of("未完成", "完成"), null, formBuilderHelper.layoutThird(1)),
-                                formBuilderHelper.longTextBlock("detail", "備考", false,
-                                                formBuilderHelper.layoutFull(1)));
-
-                List<FormBlockResponse> mcFields = List.of(
+                List<FormBlockResponse> mcVariantFields = List.of(
                                 formBuilderHelper.textBlock("mc-title", "タイトル", false,
                                                 formBuilderHelper.layoutHalf(1)),
                                 formBuilderHelper.selectBlock("mc-member", SettingSheetConstants.BLOCK_SINGLE_SELECT,
@@ -79,6 +69,16 @@ public class SettingSheetConfigService {
                                                 formBuilderHelper.optionSource("members", "member-name"),
                                                 formBuilderHelper.layoutHalf(1)),
                                 formBuilderHelper.longTextBlock("mc-content", "内容・備考", false,
+                                                formBuilderHelper.layoutFull(1)));
+
+                List<FormBlockResponse> bandFields = List.of(
+                                formBuilderHelper.textBlock("band-name", "バンド名", true,
+                                                formBuilderHelper.layoutTwoThirds(1)),
+                                formBuilderHelper.selectBlock("submission-status",
+                                                SettingSheetConstants.BLOCK_SINGLE_SELECT, "提出状況",
+                                                true,
+                                                List.of("未完成", "完成"), null, formBuilderHelper.layoutThird(1)),
+                                formBuilderHelper.longTextBlock("detail", "備考", false,
                                                 formBuilderHelper.layoutFull(1)));
 
                 return new SettingSheetConfigResponse(
@@ -94,16 +94,17 @@ public class SettingSheetConfigService {
                                                                 "メンバー",
                                                                 "member-name", formBuilderHelper.layoutFull(1),
                                                                 memberFields),
-                                                formBuilderHelper.groupBlock("songs", "演奏する曲", "曲名、使用パート、マイク設定を入力します。",
-                                                                true, true, 1, "曲を追加",
-                                                                "曲",
+                                                formBuilderHelper.variantGroupBlock("setlist", "セットリスト",
+                                                                "曲やMCなどの演出順を入力します。",
+                                                                true, true, 1, "追加", "項目",
                                                                 "song", formBuilderHelper.layoutFull(1),
-                                                                songFields),
-                                                formBuilderHelper.groupBlock("mcs", "MC", "MCの内容や担当者を入力します。",
-                                                                false, true, 0, "MCを追加",
-                                                                "MC",
-                                                                "mc-title", formBuilderHelper.layoutFull(1),
-                                                                mcFields)));
+                                                                List.of(
+                                                                                formBuilderHelper.variant("song-entry",
+                                                                                                "曲",
+                                                                                                songVariantFields),
+                                                                                formBuilderHelper.variant("mc-entry",
+                                                                                                "MC",
+                                                                                                mcVariantFields)))));
         }
 
         public SettingSheetConfigResponse readSettingSheetConfig(Live live) {

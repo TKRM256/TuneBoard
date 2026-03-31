@@ -45,7 +45,7 @@ export const BlockEditorTree = ({
 
     return (
       <Accordion key={block.id} type="single" collapsible className="w-full" defaultValue={depth === 0 && index === 0 ? 'details' : undefined}>
-        <div className="rounded-2xl border bg-background p-3 shadow-sm sm:p-4" style={{ marginLeft: depth * 12 }}>
+        <div className="rounded-2xl border bg-background p-2 shadow-sm sm:p-4" style={{ marginLeft: Math.min(depth * 12, 36) }}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">

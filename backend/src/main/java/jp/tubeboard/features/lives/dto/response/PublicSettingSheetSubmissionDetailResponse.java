@@ -19,6 +19,7 @@ public record PublicSettingSheetSubmissionDetailResponse(
         }
 
         public record GroupItemResponse(
+                        String variantId,
                         List<FieldAnswerResponse> answers) {
         }
 

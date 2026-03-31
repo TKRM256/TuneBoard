@@ -105,17 +105,17 @@ export const LiveCard = ({ live, tenantId, onUpdateSuccess, onDelete }: LiveCard
     <motion.div layout>
     <Card className={isEditing ? 'border-primary/30 shadow-md shadow-primary/5' : undefined}>
       <CardHeader>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
           <div className="min-w-0 space-y-1">
-            <div className="flex items-center gap-2">
-              <h3 className="wrap-break-word text-lg font-semibold">{live.name}</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="wrap-break-word text-base font-semibold sm:text-lg">{live.name}</h3>
               <Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground sm:text-sm">
               {formatLiveDate(live.date)} · {formatOptionalText(live.location)}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
             <Button asChild size="sm">
               <Link to={`/tenants/${tenantId}/lives/${live.id}`}>
                 管理

@@ -25,10 +25,10 @@ export const Layout = () => {
                                 {authMe.picture ? (
                                     <img src={authMe.picture} alt="Avatar" aria-label="Avatar" className="size-8 rounded-full" />
                                 ) : <span className="size-8 rounded-full bg-muted flex items-center justify-center text-xs text-white">{name.charAt(0)}</span>}
-                                <span className="max-w-full break-all text-muted-foreground sm:max-w-48">{name}</span>
+                                <span className="truncate text-muted-foreground sm:max-w-48">{name}</span>
                                 <Button className="w-full sm:w-auto" onClick={logout} variant="outline" size="sm">                                    
                                     <LogOut/>
-                                    Logout
+                                    <span className="sm:inline">Logout</span>
                                 </Button>
                             </>
                         ) : null }

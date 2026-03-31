@@ -60,12 +60,12 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
         <motion.div layout>
         <Card>
             <CardHeader>
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                   <div className="min-w-0">
-                    <h4 className="wrap-break-word text-lg font-medium">{tenant.name}</h4>
+                    <h4 className="wrap-break-word text-base font-medium sm:text-lg">{tenant.name}</h4>
                     <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <Button asChild size="sm">
                       <Link to={`/tenants/${tenant.id}/lives`}>
                         ライブ一覧

@@ -9,9 +9,11 @@ import org.springframework.stereotype.Component;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest.FormBlockRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest.LayoutRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest.OptionSourceRequest;
+import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest.VariantRequest;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.OptionSourceResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 import jp.tubeboard.features.lives.service.SettingSheetConstants;
 import lombok.AllArgsConstructor;
 
@@ -41,6 +43,9 @@ public class SettingSheetConfigServiceHelper {
                 OptionSourceResponse optionSource = SettingSheetConstants.OPTION_BLOCK_TYPES.contains(type)
                                 ? formBuilderHelper.normalizeOptionSource(block.optionSource())
                                 : null;
+                List<VariantResponse> normalizedVariants = repeatableGroup
+                                ? normalizeVariants(block.variants(), defaultConfig)
+                                : List.of();
                 return new FormBlockResponse(
                                 formBuilderHelper.safeTextOrDefault(block.id(), UUID.randomUUID().toString()),
                                 type,
@@ -72,7 +77,22 @@ public class SettingSheetConfigServiceHelper {
                                 valueBlock
                                                 ? formBuilderHelper.normalizeDuplicateDetectionRole(
                                                                 block.duplicateDetectionRole())
-                                                : "");
+                                                : "",
+                                normalizedVariants);
+        }
+
+        private List<VariantResponse> normalizeVariants(List<VariantRequest> variants,
+                        SettingSheetConfigResponse defaultConfig) {
+                if (variants == null || variants.isEmpty()) {
+                        return List.of();
+                }
+                return variants.stream()
+                                .map(v -> new VariantResponse(
+                                                formBuilderHelper.safeTextOrDefault(v.id(),
+                                                                UUID.randomUUID().toString()),
+                                                formBuilderHelper.safeTextOrDefault(v.label(), "バリアント"),
+                                                normalizeBlocks(v.fields(), defaultConfig)))
+                                .toList();
         }
 
         public List<FormBlockRequest> mapToFormBlockRequests(List<FormBlockResponse> blocks) {
@@ -103,7 +123,17 @@ public class SettingSheetConfigServiceHelper {
                                 block.optionSource() == null ? null
                                                 : new OptionSourceRequest(block.optionSource().blockId(),
                                                                 block.optionSource().fieldId()),
-                                block.duplicateDetectionRole()))
+                                block.duplicateDetectionRole(),
+                                mapToVariantRequests(block.variants())))
+                                .toList();
+        }
+
+        private List<VariantRequest> mapToVariantRequests(List<VariantResponse> variants) {
+                if (variants == null || variants.isEmpty()) {
+                        return List.of();
+                }
+                return variants.stream()
+                                .map(v -> new VariantRequest(v.id(), v.label(), mapToFormBlockRequests(v.fields())))
                                 .toList();
         }
 }

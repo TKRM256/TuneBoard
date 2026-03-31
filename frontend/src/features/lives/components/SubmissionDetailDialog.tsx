@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Copy } from 'lucide-react';
+import { Copy, Music } from 'lucide-react';
 import {
+  type ItunesLinkSelection,
   type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetConfigResponse,
 } from '../types/live-types';
@@ -59,6 +60,17 @@ export function SubmissionDetailDialog({
               <div className="space-y-3">
                 {config ? renderSubmissionBlocks(config.blocks, detail.answers, detail.id) : null}
               </div>
+              {detail.itunesLinks.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold">曲情報</p>
+                    {detail.itunesLinks.map((link) => (
+                      <ItunesLinkCard key={`${link.songTitle}-${link.songArtist}`} link={link} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </ScrollArea>
@@ -73,5 +85,26 @@ export function SubmissionDetailDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ItunesLinkCard({ link }: { link: ItunesLinkSelection }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border p-3">
+      {link.itunesAlbumArtUrl ? (
+        <img src={link.itunesAlbumArtUrl} alt="" className="size-12 shrink-0 rounded" />
+      ) : (
+        <div className="flex size-12 shrink-0 items-center justify-center rounded bg-muted">
+          <Music className="size-5 text-muted-foreground" />
+        </div>
+      )}
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium">{link.songTitle}</p>
+        <p className="truncate text-xs text-muted-foreground">{link.songArtist}</p>
+        {link.itunesTitle && link.itunesTitle !== link.songTitle && (
+          <p className="truncate text-xs text-muted-foreground">iTunes: {link.itunesTitle} — {link.itunesArtist}</p>
+        )}
+      </div>
+    </div>
   );
 }

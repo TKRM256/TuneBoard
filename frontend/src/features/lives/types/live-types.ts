@@ -29,6 +29,12 @@ function createLayout(width: SettingSheetLayoutWidth, optionColumns = 1, optionF
   return { width, optionColumns, optionFitContent };
 }
 
+export interface SettingSheetGroupVariant {
+  id: string;
+  label: string;
+  fields: SettingSheetBlock[];
+}
+
 export interface SettingSheetBlock {
   id: string;
   type: SettingSheetBlockType;
@@ -49,6 +55,7 @@ export interface SettingSheetBlock {
   layout: SettingSheetBlockLayout;
   optionSource: SettingSheetOptionSource | null;
   duplicateDetectionRole: DuplicateDetectionRole;
+  variants?: SettingSheetGroupVariant[];
 }
 
 export type DuplicateDetectionRole = '' | 'SONG_TITLE' | 'SONG_ARTIST';
@@ -91,7 +98,7 @@ export interface PublicLiveResponse {
 export interface SettingSheetSubmissionAnswerResponse {
   fieldId: string;
   values: string[];
-  items: Array<{ answers: SettingSheetSubmissionAnswerResponse[] }>;
+  items: Array<{ variantId?: string; answers: SettingSheetSubmissionAnswerResponse[] }>;
 }
 
 export interface SettingSheetSubmissionResponse {
@@ -212,7 +219,7 @@ export function createBlockTemplate(type: SettingSheetBlockType): SettingSheetBl
     case 'BOOLEAN':
       return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'REPEATABLE_GROUP':
-      return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '', variants: [] };
     case 'SONG':
       return { id: createId(), type, label: '楽曲', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
   }
@@ -253,10 +260,10 @@ export const DEFAULT_SETTING_SHEET_CONFIG: SettingSheetConfigResponse = {
       ],
     },
     {
-      id: 'songs',
+      id: 'setlist',
       type: 'REPEATABLE_GROUP',
-      label: '演奏する曲',
-      description: '曲名、使用パート、マイク設定を入力します。',
+      label: 'セットリスト',
+      description: '曲やMCの演出順を入力します。',
       hidden: false,
       required: true,
       collapsible: true,
@@ -264,65 +271,57 @@ export const DEFAULT_SETTING_SHEET_CONFIG: SettingSheetConfigResponse = {
       itemAppearance: 'outline',
       options: [],
       minItems: 1,
-      addButtonLabel: '曲を追加',
-      entryTitle: '曲',
+      addButtonLabel: '追加',
+      entryTitle: '項目',
       titleSourceFieldId: 'song',
       layout: { width: 'full', optionColumns: 1, optionFitContent: false },
       optionSource: null,
       duplicateDetectionRole: '',
-      fields: [
-        { id: 'song', type: 'SONG', label: '楽曲', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-        { id: 'song-parts', type: 'MULTI_SELECT', label: '使うパート', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [...DEFAULT_SONG_PART_OPTIONS], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 2, optionFitContent: true }, optionSource: null, duplicateDetectionRole: '' },
-        { id: 'song-note-pa', type: 'LONG_TEXT', label: 'PAへの要望', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-        { id: 'song-note-light', type: 'LONG_TEXT', label: '照明への要望', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-        { id: 'song-note-other', type: 'LONG_TEXT', label: '備考', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+      fields: [],
+      variants: [
         {
-          id: 'song-mics',
-          type: 'REPEATABLE_GROUP',
-          label: '使うマイク',
-          description: '誰がどのマイクを使うか入力します。',
-          hidden: false,
-          required: false,
-          collapsible: true,
-          appearance: 'subtle',
-          itemAppearance: 'outline',
-          options: [],
-          minItems: 0,
-          addButtonLabel: 'マイク追加',
-          entryTitle: 'マイク',
-          titleSourceFieldId: 'mic-member',
-          layout: { width: 'full', optionColumns: 1, optionFitContent: false },
-          optionSource: null,
-          duplicateDetectionRole: '',
+          id: 'song-entry',
+          label: '曲',
           fields: [
-            { id: 'mic-member', type: 'SINGLE_SELECT', label: '担当者', description: '出演者から選択します。', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: { blockId: 'members', fieldId: 'member-name' }, duplicateDetectionRole: '' },
-            { id: 'mic-main-vocal', type: 'BOOLEAN', label: 'メインボーカル', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+            { id: 'song', type: 'SONG', label: '楽曲', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+            { id: 'song-parts', type: 'MULTI_SELECT', label: '使うパート', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [...DEFAULT_SONG_PART_OPTIONS], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 2, optionFitContent: true }, optionSource: null, duplicateDetectionRole: '' },
+            { id: 'song-note-pa', type: 'LONG_TEXT', label: 'PAへの要望', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+            { id: 'song-note-light', type: 'LONG_TEXT', label: '照明への要望', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+            { id: 'song-note-other', type: 'LONG_TEXT', label: '備考', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+            {
+              id: 'song-mics',
+              type: 'REPEATABLE_GROUP',
+              label: '使うマイク',
+              description: '誰がどのマイクを使うか入力します。',
+              hidden: false,
+              required: false,
+              collapsible: true,
+              appearance: 'subtle',
+              itemAppearance: 'outline',
+              options: [],
+              minItems: 0,
+              addButtonLabel: 'マイク追加',
+              entryTitle: 'マイク',
+              titleSourceFieldId: 'mic-member',
+              layout: { width: 'full', optionColumns: 1, optionFitContent: false },
+              optionSource: null,
+              duplicateDetectionRole: '',
+              fields: [
+                { id: 'mic-member', type: 'SINGLE_SELECT', label: '担当者', description: '出演者から選択します。', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: { blockId: 'members', fieldId: 'member-name' }, duplicateDetectionRole: '' },
+                { id: 'mic-main-vocal', type: 'BOOLEAN', label: 'メインボーカル', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+              ],
+            },
           ],
         },
-      ],
-    },
-    {
-      id: 'mcs',
-      type: 'REPEATABLE_GROUP',
-      label: 'MC',
-      description: 'MCの内容や担当者を入力します。',
-      hidden: false,
-      required: false,
-      collapsible: true,
-      appearance: 'subtle',
-      itemAppearance: 'outline',
-      options: [],
-      minItems: 0,
-      addButtonLabel: 'MCを追加',
-      entryTitle: 'MC',
-      titleSourceFieldId: 'mc-title',
-      layout: { width: 'full', optionColumns: 1, optionFitContent: false },
-      optionSource: null,
-      duplicateDetectionRole: '',
-      fields: [
-        { id: 'mc-title', type: 'SHORT_TEXT', label: 'タイトル', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-        { id: 'mc-member', type: 'SINGLE_SELECT', label: '担当者', description: '出演者から選択します。', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: { blockId: 'members', fieldId: 'member-name' }, duplicateDetectionRole: '' },
-        { id: 'mc-content', type: 'LONG_TEXT', label: '内容・備考', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+        {
+          id: 'mc-entry',
+          label: 'MC',
+          fields: [
+            { id: 'mc-title', type: 'SHORT_TEXT', label: 'タイトル', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+            { id: 'mc-member', type: 'SINGLE_SELECT', label: '担当者', description: '出演者から選択します。', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: { blockId: 'members', fieldId: 'member-name' }, duplicateDetectionRole: '' },
+            { id: 'mc-content', type: 'LONG_TEXT', label: '内容・備考', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
+          ],
+        },
       ],
     },
   ],
@@ -354,6 +353,7 @@ function cloneBlock(block: SettingSheetBlock): SettingSheetBlock {
     fields: block.fields.map(cloneBlock),
     layout: { ...block.layout },
     optionSource: block.optionSource ? { ...block.optionSource } : null,
+    variants: (block.variants ?? []).map((v) => ({ ...v, fields: v.fields.map(cloneBlock) })),
   };
 }
 
@@ -389,6 +389,12 @@ export function isSongBlock(type: SettingSheetBlockType) {
   return type === 'SONG';
 }
 
+export function getGroupItemFields(block: SettingSheetBlock, variantId: string): SettingSheetBlock[] {
+  const variants = block.variants ?? [];
+  if (variants.length === 0) return block.fields;
+  return variants.find((v) => v.id === variantId)?.fields ?? variants[0]?.fields ?? block.fields;
+}
+
 export function normalizeSettingSheetConfig(config: SettingSheetConfigResponse | null | undefined): SettingSheetConfigResponse {
   if (!config) {
     return createTemplateSettingSheetConfig();
@@ -410,8 +416,12 @@ function normalizeBlock(block: SettingSheetBlock, fallbackId: string): SettingSh
   const template = createBlockTemplate(type);
   const required = isInputBlock(type) || isRepeatableGroupBlock(type) ? block.required === true : false;
   const normalizedFields = canContainBlocks(type) ? (block.fields ?? []).map((child, index) => normalizeBlock(child, `${fallbackId}-${index + 1}`)) : [];
+  const normalizedVariants: SettingSheetGroupVariant[] = isRepeatableGroupBlock(type)
+    ? (block.variants ?? []).map((v) => ({ id: v.id?.trim() || crypto.randomUUID(), label: v.label?.trim() || '項目', fields: (v.fields ?? []).map((child, index) => normalizeBlock(child, `${fallbackId}-v-${index + 1}`)) }))
+    : [];
+  const allFieldsForTitle = normalizedVariants.length > 0 ? normalizedVariants.flatMap((v) => v.fields) : normalizedFields;
   const validTitleSource = isRepeatableGroupBlock(type)
-    ? normalizedFields.some((field) => field.id === block.titleSourceFieldId?.trim() && canUseAsTitleSourceBlock(field.type))
+    ? allFieldsForTitle.some((field) => field.id === block.titleSourceFieldId?.trim() && canUseAsTitleSourceBlock(field.type))
     : false;
 
   return {
@@ -440,6 +450,7 @@ function normalizeBlock(block: SettingSheetBlock, fallbackId: string): SettingSh
     duplicateDetectionRole: isInputBlock(type) && !isSongBlock(type) && (block.duplicateDetectionRole === 'SONG_TITLE' || block.duplicateDetectionRole === 'SONG_ARTIST')
       ? block.duplicateDetectionRole
       : '',
+    variants: normalizedVariants,
   };
 }
 

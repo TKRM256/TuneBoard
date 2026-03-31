@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   isSectionBlock,
   isRepeatableGroupBlock,
+  getGroupItemFields,
   type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetBlock,
   type SettingSheetSubmissionAnswerResponse,
@@ -88,7 +89,7 @@ export function renderSubmissionBlocks(
                       <span className="text-sm font-medium">{itemTitle}</span>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 pb-4">
-                      <div className="grid gap-3 sm:grid-cols-2">{renderSubmissionBlocks(block.fields, item.answers, `${key}-item-${itemIndex}`)}</div>
+                      <div className="grid gap-3 sm:grid-cols-2">{renderSubmissionBlocks(getGroupItemFields(block, item.variantId ?? ''), item.answers, `${key}-item-${itemIndex}`)}</div>
                     </AccordionContent>
                   </AccordionItem>
                 );
@@ -99,7 +100,7 @@ export function renderSubmissionBlocks(
               {items.map((item, itemIndex) => (
                 <div key={`${key}-item-${itemIndex}`} className="rounded-lg border bg-muted/30 p-3 sm:p-4">
                   <p className="mb-2 text-xs font-medium text-muted-foreground">{resolveItemTitle(block, item.answers, itemIndex)}</p>
-                  <div className="grid gap-3 sm:grid-cols-2">{renderSubmissionBlocks(block.fields, item.answers, `${key}-item-${itemIndex}`)}</div>
+                  <div className="grid gap-3 sm:grid-cols-2">{renderSubmissionBlocks(getGroupItemFields(block, item.variantId ?? ''), item.answers, `${key}-item-${itemIndex}`)}</div>
                 </div>
               ))}
             </div>

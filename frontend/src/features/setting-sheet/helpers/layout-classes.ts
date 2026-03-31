@@ -32,22 +32,22 @@ export const appearanceClass = (
 ) => {
   if (kind === 'section') {
     if (appearance === 'subtle') {
-      return 'rounded-xl border bg-muted/50 px-6 py-6';
+      return 'rounded-xl border bg-muted/50 px-4 py-4 sm:px-6 sm:py-6';
     }
     if (appearance === 'outline') {
-      return 'rounded-xl border bg-card px-6 py-6';
+      return 'rounded-xl border bg-card px-4 py-4 sm:px-6 sm:py-6';
     }
     return 'px-1 py-3';
   }
 
   if (kind === 'field') {
     if (appearance === 'subtle') {
-      return 'rounded-xl border bg-muted/40 p-5';
+      return 'rounded-xl border bg-muted/40 p-4 sm:p-5';
     }
     if (appearance === 'plain') {
       return 'p-1';
     }
-    return 'rounded-xl border bg-card p-5';
+    return 'rounded-xl border bg-card p-4 sm:p-5';
   }
 
   if (kind === 'group-item') {

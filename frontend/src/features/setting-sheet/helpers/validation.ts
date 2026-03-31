@@ -1,5 +1,6 @@
 /** セッティングシートのバリデーション (必須チェック・エラーIssue生成) */
 import {
+  getGroupItemFields,
   isOptionBlock,
   isRepeatableGroupBlock,
   isSectionBlock,
@@ -40,7 +41,10 @@ export function validateSettingSheetForm(values: SettingSheetFormValues, config:
         if ((block.required || block.minItems > 0) && fieldValue.items.length < minimum) {
           issues.push({ key: `${key}.items`, label: block.label, message: `少なくとも${minimum}件入力してください。` });
         }
-        fieldValue.items.forEach((item, index) => validateBlocks(block.fields, item.answers, `${key}.items[${index}].answers.`));
+        fieldValue.items.forEach((item, index) => {
+          const itemFields = getGroupItemFields(block, item.variantId);
+          validateBlocks(itemFields, item.answers, `${key}.items[${index}].answers.`);
+        });
         continue;
       }
 

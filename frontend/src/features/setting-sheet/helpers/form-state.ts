@@ -2,6 +2,7 @@ import {
   isRepeatableGroupBlock,
   isSectionBlock,
   isSongBlock,
+  getGroupItemFields,
   type SettingSheetBlock,
   type SettingSheetSubmissionAnswerResponse,
   type ItunesLinkSelection,
@@ -9,6 +10,7 @@ import {
 
 export interface SettingSheetGroupItemValue {
   id: string;
+  variantId: string;
   answers: Record<string, SettingSheetFieldValue>;
 }
 
@@ -34,18 +36,22 @@ function createId() {
 export function createSettingSheetFieldValue(block: SettingSheetBlock): SettingSheetFieldValue {
   if (isRepeatableGroupBlock(block.type)) {
     const minItems = Math.max(block.required ? 1 : 0, block.minItems);
+    const variants = block.variants ?? [];
+    const defaultVariantId = variants.length > 0 ? variants[0].id : '';
+    const defaultFields = getGroupItemFields(block, defaultVariantId);
     return {
       values: [],
-      items: Array.from({ length: minItems }, () => createGroupItemValue(block.fields)),
+      items: Array.from({ length: minItems }, () => createGroupItemValue(defaultFields, defaultVariantId)),
     };
   }
 
   return { values: [], items: [] };
 }
 
-export function createGroupItemValue(blocks: SettingSheetBlock[]): SettingSheetGroupItemValue {
+export function createGroupItemValue(blocks: SettingSheetBlock[], variantId = ''): SettingSheetGroupItemValue {
   return {
     id: createId(),
+    variantId,
     answers: createScopedAnswers(blocks),
   };
 }
@@ -53,6 +59,7 @@ export function createGroupItemValue(blocks: SettingSheetBlock[]): SettingSheetG
 export function cloneGroupItemValue(blocks: SettingSheetBlock[], item: SettingSheetGroupItemValue): SettingSheetGroupItemValue {
   return {
     id: createId(),
+    variantId: item.variantId,
     answers: cloneScopedAnswers(blocks, item.answers),
   };
 }
@@ -150,7 +157,11 @@ function createFieldValueFromSubmissionAnswer(
     return fallback;
   }
   if (isRepeatableGroupBlock(block.type)) {
-    const items = answer.items.map((item) => createGroupItemFromSubmissionAnswers(block.fields, item.answers));
+    const items = answer.items.map((item) => {
+      const variantId = item.variantId ?? '';
+      const fields = getGroupItemFields(block, variantId);
+      return createGroupItemFromSubmissionAnswers(fields, item.answers, variantId);
+    });
     return { values: [], items: items.length > 0 ? items : fallback.items };
   }
   return { values: normalizeScalarValues(answer.values), items: [] };
@@ -159,9 +170,10 @@ function createFieldValueFromSubmissionAnswer(
 function createGroupItemFromSubmissionAnswers(
   blocks: SettingSheetBlock[],
   answers: SettingSheetSubmissionAnswerResponse[],
+  variantId = '',
 ): SettingSheetGroupItemValue {
   const answerMap = new Map(answers.map((answer) => [answer.fieldId, answer]));
-  return { id: createId(), answers: buildScopedAnswersFromSubmissionAnswers(blocks, answerMap) };
+  return { id: createId(), variantId, answers: buildScopedAnswersFromSubmissionAnswers(blocks, answerMap) };
 }
 
 function cloneScopedAnswers(
@@ -175,7 +187,11 @@ function cloneScopedAnswers(
     if (isRepeatableGroupBlock(block.type)) {
       entries.push([block.id, {
         values: [],
-        items: current.items.map((child) => ({ id: createId(), answers: cloneScopedAnswers(block.fields, child.answers) })),
+        items: current.items.map((child) => ({
+          id: createId(),
+          variantId: child.variantId,
+          answers: cloneScopedAnswers(getGroupItemFields(block, child.variantId), child.answers),
+        })),
       }]);
       continue;
     }
@@ -198,7 +214,11 @@ function normalizeFieldValue(block: SettingSheetBlock, candidate: unknown): Sett
   const rawValue = candidate as Partial<SettingSheetFieldValue>;
   if (isRepeatableGroupBlock(block.type)) {
     const rawItems = Array.isArray(rawValue.items) ? rawValue.items : [];
-    const items = rawItems.map((item) => normalizeGroupItemValue(block.fields, item));
+    const items = rawItems.map((item) => {
+      const rawItem = item && typeof item === 'object' ? item as Partial<SettingSheetGroupItemValue> : {};
+      const variantId = typeof rawItem.variantId === 'string' ? rawItem.variantId : '';
+      return normalizeGroupItemValue(getGroupItemFields(block, variantId), item);
+    });
     return { values: [], items: items.length > 0 ? items : fallback.items };
   }
 
@@ -210,6 +230,7 @@ function normalizeGroupItemValue(blocks: SettingSheetBlock[], candidate: unknown
   const rawAnswers = rawItem.answers && typeof rawItem.answers === 'object' ? rawItem.answers as Record<string, unknown> : {};
   return {
     id: typeof rawItem.id === 'string' && rawItem.id.trim() ? rawItem.id : createId(),
+    variantId: typeof rawItem.variantId === 'string' ? rawItem.variantId : '',
     answers: normalizeValuesForBlocks(blocks, rawAnswers),
   };
 }
@@ -238,7 +259,8 @@ function matchItunesLinksToGroupItems(
       if (!fieldValue) continue;
 
       for (const item of fieldValue.items) {
-        for (const child of block.fields) {
+        const itemFields = getGroupItemFields(block, item.variantId);
+        for (const child of itemFields) {
           if (!isSongBlock(child.type)) continue;
           const songValue = item.answers[child.id];
           if (!songValue) continue;

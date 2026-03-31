@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiClient } from '@/lib/api/client';
 import { ApiClientError } from '@/lib/api/type';
@@ -162,13 +162,12 @@ export const PublicSubmissionSharedPage = () => {
             ) : filteredSubmissions.length === 0 ? (
               <p className="text-sm text-muted-foreground">検索条件に一致する提出がありません。</p>
             ) : (
-              <div className="rounded-lg border">
-                <ScrollArea className="h-[70vh] w-full">
-                  <Table className="min-w-max">
+              <div className="max-h-[70vh] overflow-auto rounded-lg border">
+                  <Table>
                     <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow>
                         {columns.map((column) => (
-                          <TableHead key={column.id} className="w-[220px] whitespace-normal bg-background">{column.label}</TableHead>
+                          <TableHead key={column.id} className="min-w-[150px] whitespace-normal bg-background">{column.label}</TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
@@ -176,7 +175,7 @@ export const PublicSubmissionSharedPage = () => {
                       {filteredSubmissions.map((submission) => (
                         <TableRow key={submission.id}>
                           {columns.map((column) => (
-                            <TableCell key={`${submission.id}-${column.id}`} className="w-[220px] whitespace-pre-line align-top text-sm">
+                            <TableCell key={`${submission.id}-${column.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">
                               {extractCellValue(submission.answers, column.path, column.type)}
                             </TableCell>
                           ))}
@@ -184,7 +183,6 @@ export const PublicSubmissionSharedPage = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </ScrollArea>
               </div>
             )}
             <p className="text-xs text-muted-foreground">このページには管理者が公開設定した項目のみ表示されます。</p>

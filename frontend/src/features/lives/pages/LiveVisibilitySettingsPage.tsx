@@ -138,15 +138,15 @@ export const LiveVisibilitySettingsPage = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="space-y-1">
-              <h1 className="text-xl font-semibold sm:text-2xl">公開・非表示設定</h1>
-              <p className="text-sm text-muted-foreground">フォームや共有ページでの項目表示を切り替えます。</p>
+              <h1 className="text-lg font-semibold sm:text-2xl">公開・非表示設定</h1>
+              <p className="text-xs text-muted-foreground sm:text-sm">フォームや共有ページでの項目表示を切り替えます。</p>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
                 <ChevronLeft className="size-4" />
-                ダッシュボードに戻る
+                <span className="hidden sm:inline">ダッシュボードに</span>戻る
               </Link>
             </Button>
           </div>
@@ -176,16 +176,16 @@ export const LiveVisibilitySettingsPage = () => {
           ) : filteredTargets.length === 0 ? (
             <p className="text-sm text-muted-foreground">該当する項目がありません。</p>
           ) : (
-            <div className="rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <ScrollArea className="h-[440px]">
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow>
-                      <TableHead className="min-w-[160px]">項目</TableHead>
+                      <TableHead className="min-w-[120px]">項目</TableHead>
                       <TableHead className="hidden min-w-[200px] sm:table-cell">階層</TableHead>
                       <TableHead className="hidden min-w-[80px] md:table-cell">種別</TableHead>
-                      <TableHead className="w-[100px] text-center">共有に表示</TableHead>
-                      <TableHead className="w-[100px] text-center">フォームに表示</TableHead>
+                      <TableHead className="w-[80px] text-center sm:w-[100px]">共有に表示</TableHead>
+                      <TableHead className="w-[80px] text-center sm:w-[100px]">フォームに表示</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -220,7 +220,7 @@ export const LiveVisibilitySettingsPage = () => {
           )}
 
           <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">共有に表示は公開共有ページ、フォームに表示は回答フォーム側の表示状態です。</p>
+            <p className="text-[11px] text-muted-foreground sm:text-xs">共有に表示は公開共有ページ、フォームに表示は回答フォーム側の表示状態です。</p>
             <Button onClick={saveVisibility} disabled={isSaving} className="shrink-0">
               {isSaving ? '保存中...' : '設定を保存する'}
             </Button>
@@ -248,6 +248,12 @@ function flattenVisibilityTargets(blocks: SettingSheetBlock[], parentLabel = '')
     }
     if (block.fields.length > 0) {
       targets.push(...flattenVisibilityTargets(block.fields, path));
+    }
+    if (block.variants?.length) {
+      for (const variant of block.variants) {
+        const variantPath = `${path} / ${variant.label}`;
+        targets.push(...flattenVisibilityTargets(variant.fields, variantPath));
+      }
     }
   }
   return targets;
@@ -283,6 +289,19 @@ function updateBlockVisibilityTreeInternal(
       if (childUpdated) nextBlock = { ...nextBlock, fields: nextFields };
     }
 
+    if (block.variants?.length) {
+      for (let vi = 0; vi < block.variants.length; vi++) {
+        const variant = block.variants[vi];
+        const [nextVFields, vUpdated] = updateBlockVisibilityTreeInternal(variant.fields, blockId, field, nextValue);
+        if (vUpdated) {
+          const nextVariants = [...(nextBlock.variants ?? [])];
+          nextVariants[vi] = { ...variant, fields: nextVFields };
+          nextBlock = { ...nextBlock, variants: nextVariants };
+          fieldsUpdated = true;
+        }
+      }
+    }
+
     if (block.id === blockId) {
       if (nextBlock[field] !== nextValue) nextBlock = { ...nextBlock, [field]: nextValue };
       updated = true;
@@ -313,6 +332,7 @@ function resolveTypeLabel(type: SettingSheetBlock['type']) {
     case 'BOOLEAN': return '真偽';
     case 'REPEATABLE_GROUP': return '繰返し';
   }
+  return "";
 }
 
 function SummaryBlock({ label, value }: { label: string; value: string }) {
