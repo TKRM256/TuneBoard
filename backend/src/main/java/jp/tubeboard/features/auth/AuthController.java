@@ -93,7 +93,8 @@ public class AuthController {
                 .build();
 
         String separator = frontendRedirect.contains("?") ? "&" : "?";
-        String redirectToFrontend = frontendRedirect + separator + "login=success";
+        String redirectToFrontend = frontendRedirect + separator + "login=success"
+                + "#auth_token=" + token;
 
         return ResponseEntity.status(302)
                 .location(URI.create(redirectToFrontend))

@@ -1,4 +1,4 @@
-import { apiClient, clearAccessToken, API_BASE_URL } from '@/lib/api/client';
+import { apiClient, clearAccessToken, setAccessToken, API_BASE_URL } from '@/lib/api/client';
 import { useState, useEffect, useCallback } from 'react';
 
 export interface AuthMe {
@@ -40,8 +40,14 @@ export const useAuth = () => {
         return;
       }
 
+      const hash = window.location.hash;
+      if (hash.startsWith('#auth_token=')) {
+        setAccessToken(hash.substring('#auth_token='.length));
+      }
+
       const url = new URL(window.location.href);
       url.searchParams.delete('login');
+      url.hash = '';
       window.history.replaceState({}, '', url.toString());
     }, []);
     
