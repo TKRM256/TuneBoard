@@ -1,6 +1,9 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
+    {
+      "source": "/api/(.*)",
+      "destination": "https://tubeboard-backend-XXXXX-an.a.run.app/api/$1"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

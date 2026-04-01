@@ -2,22 +2,31 @@ import { type ApiError, ApiClientError } from './type';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
-const TOKEN_KEY = 'access_token';
+let inMemoryAccessToken: string | null = null;
 
 export function getAccessToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return inMemoryAccessToken;
 }
 
 export function setAccessToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+  inMemoryAccessToken = token;
 }
 
 export function clearAccessToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+  inMemoryAccessToken = null;
 }
 
-function resolveDefaultCredentials(): RequestCredentials {
-  return 'same-origin';
+function resolveDefaultCredentials(apiBaseUrl: string): RequestCredentials {
+  if (apiBaseUrl.startsWith('/')) {
+    return 'same-origin';
+  }
+
+  try {
+    const apiOrigin = new URL(apiBaseUrl, window.location.origin).origin;
+    return apiOrigin === window.location.origin ? 'same-origin' : 'include';
+  } catch {
+    return 'same-origin';
+  }
 }
 
 // ──────────────────────────────────────
@@ -45,7 +54,7 @@ async function request<T>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const credentials = options.credentials ?? resolveDefaultCredentials();
+  const credentials = options.credentials ?? resolveDefaultCredentials(API_BASE_URL);
 
   const response = await fetch(url, {
     ...options,

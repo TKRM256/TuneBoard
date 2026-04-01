@@ -4,6 +4,8 @@ import java.net.URI;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -23,6 +24,9 @@ public class AuthController {
 
     @Value("${app.frontend-base-url:http://localhost:5173}")
     private String frontendBaseUrl;
+
+    @Value("${app.auth.cookie-secure:false}")
+    private boolean authCookieSecure;
 
     public AuthController(JwtTokenService jwtTokenService, GoogleOAuthService googleOAuthService,
             UserService userService) {
@@ -80,14 +84,19 @@ public class AuthController {
 
         String token = jwtTokenService.generateToken(sub, name, email, picture);
 
-        URI redirectUri = UriComponentsBuilder.fromUriString(frontendRedirect)
-                .queryParam("login", "success")
-                .queryParam("token", token)
-                .build()
-                .toUri();
+        ResponseCookie tokenCookie = ResponseCookie.from("auth_token", token)
+                .httpOnly(true)
+                .secure(authCookieSecure)
+                .path("/")
+                .sameSite("Lax")
+                .build();
+
+        String separator = frontendRedirect.contains("?") ? "&" : "?";
+        String redirectToFrontend = frontendRedirect + separator + "login=success";
 
         return ResponseEntity.status(302)
-                .location(redirectUri)
+                .location(URI.create(redirectToFrontend))
+                .header(HttpHeaders.SET_COOKIE, tokenCookie.toString())
                 .build();
     }
 
@@ -120,7 +129,17 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
-        return ResponseEntity.noContent().build();
+        ResponseCookie deleteAuthToken = ResponseCookie.from("auth_token", "")
+                .path("/")
+                .maxAge(0)
+                .httpOnly(true)
+                .secure(authCookieSecure)
+                .sameSite("Lax")
+                .build();
+
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, deleteAuthToken.toString())
+                .build();
     }
 
     private boolean isBlank(String value) {
