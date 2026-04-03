@@ -3,6 +3,8 @@ package jp.tubeboard.features.auth;
 import java.net.URI;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final JwtTokenService jwtTokenService;
     private final GoogleOAuthService googleOAuthService;
@@ -55,6 +59,7 @@ public class AuthController {
         try {
             frontendRedirect = resolveSafeFrontendRedirect(jwtTokenService.extractFrontendRedirectFromState(state));
         } catch (Exception ex) {
+            log.warn("OAuth state解析に失敗: {}", ex.getMessage());
             return ResponseEntity.status(302)
                     .location(URI.create(frontendBaseUrl + "?login=error"))
                     .build();
@@ -64,6 +69,7 @@ public class AuthController {
         try {
             userInfo = googleOAuthService.exchangeCodeForUserInfo(code);
         } catch (Exception ex) {
+            log.error("Googleトークン交換に失敗", ex);
             return ResponseEntity.status(302)
                     .location(URI.create(frontendRedirect + "?login=error"))
                     .build();
@@ -77,12 +83,15 @@ public class AuthController {
         try {
             userService.saveOrUpdateFromGoogleUserInfo(userInfo);
         } catch (Exception ex) {
+            log.error("ユーザー情報の保存に失敗: email={}", email, ex);
             return ResponseEntity.status(302)
                     .location(URI.create(frontendRedirect + "?login=error"))
                     .build();
         }
 
         String token = jwtTokenService.generateToken(sub, name, email, picture);
+
+        log.info("ログイン成功: email={}", email);
 
         ResponseCookie tokenCookie = ResponseCookie.from("auth_token", token)
                 .httpOnly(true)

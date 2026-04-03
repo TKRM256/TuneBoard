@@ -4,6 +4,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -14,6 +16,8 @@ import org.springframework.web.client.RestClient;
 
 @Service
 public class GoogleOAuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(GoogleOAuthService.class);
 
     private final RestClient restClient;
     private final String googleClientId;
@@ -78,6 +82,7 @@ public class GoogleOAuthService {
                 });
 
         if (tokenResponse == null || tokenResponse.get("access_token") == null) {
+            log.error("Googleアクセストークンの取得に失敗");
             throw new IllegalStateException("Failed to get Google access token");
         }
 
@@ -91,6 +96,7 @@ public class GoogleOAuthService {
                 });
 
         if (userInfo == null) {
+            log.error("Googleユーザー情報の取得に失敗");
             throw new IllegalStateException("Failed to get Google user info");
         }
 
