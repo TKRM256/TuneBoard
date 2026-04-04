@@ -4,7 +4,6 @@ export const config: VercelConfig = {
   outputDirectory: 'dist',
   rewrites: [
     routes.rewrite('/api/(.*)', `${deploymentEnv('API_URL')}/api/$1`),
-    routes.rewrite('/', '/index.html'),
-    routes.rewrite('/:path((?!api/|.*\\..*).*)', '/index.html'),
+    routes.rewrite('/(.*)', '/index.html'),
   ],
 };
