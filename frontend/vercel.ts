@@ -11,11 +11,14 @@ if (!apiUrl) {
 }
 
 const normalizedApiUrl = apiUrl.replace(/\/+$/, '');
+const apiDestination = normalizedApiUrl.endsWith('/api')
+  ? `${normalizedApiUrl}/$1`
+  : `${normalizedApiUrl}/api/$1`;
 
 export const config: VercelConfig = {
   outputDirectory: 'dist',
   rewrites: [
-    routes.rewrite('/api/(.*)', `${normalizedApiUrl}/api/$1`),
+    routes.rewrite('/api/(.*)', apiDestination),
     routes.rewrite('/(.*)', '/index.html', {
       has: [
         {
