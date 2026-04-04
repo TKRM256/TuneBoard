@@ -5,6 +5,8 @@ import jp.tubeboard.common.dto.ApiErrorResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConversionException;
@@ -19,6 +21,8 @@ import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(NoResourceFoundException ex) {
@@ -35,6 +39,7 @@ public class GlobalExceptionHandler {
         String message = ex.getMostSpecificCause() != null
                 ? ex.getMostSpecificCause().getMessage()
                 : "Malformed request body";
+        log.warn("リクエストボディ変換エラー: {}", message);
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
 
@@ -48,6 +53,7 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .orElse("Validation failed");
 
+        log.warn("バリデーションエラー: {} fields={}", message, fieldErrors);
         return buildResponse(HttpStatus.BAD_REQUEST, message, fieldErrors);
     }
 
@@ -68,6 +74,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneral(Exception ex) {
+        log.error("未処理の例外が発生しました", ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 
