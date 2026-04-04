@@ -1,4 +1,4 @@
-import { type VercelConfig } from '@vercel/config/v1';
+import { routes, type VercelConfig } from '@vercel/config/v1';
 
 declare const process: {
   env: Record<string, string | undefined>;
@@ -15,13 +15,15 @@ const normalizedApiUrl = apiUrl.replace(/\/+$/, '');
 export const config: VercelConfig = {
   outputDirectory: 'dist',
   rewrites: [
-    {
-      source: '/api/(.*)',
-      destination: `${normalizedApiUrl}/api/$1`,
-    },
-    {
-      source: '^/(?!api/)(?!.*\\..*$).*$',
-      destination: '/index.html',
-    },
+    routes.rewrite('/api/(.*)', `${normalizedApiUrl}/api/$1`),
+    routes.rewrite('/(.*)', '/index.html', {
+      has: [
+        {
+          type: 'header',
+          key: 'accept',
+          value: '.*text/html.*',
+        },
+      ],
+    }),
   ],
 };
