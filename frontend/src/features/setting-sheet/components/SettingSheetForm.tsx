@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { ExternalLink, Send } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -89,6 +89,17 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                   <p className="mt-1 font-medium text-card-foreground">{formatDeadline(live.deadlineAt)}</p>
                 </div>
               </div>
+              {settingSheetConfig.publicSubmissionEnabled && (
+                <a
+                  href={`/public/lives/${publicToken}/submissions/shared`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 rounded-2xl border p-4 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
+                >
+                  <ExternalLink className="size-4 shrink-0" />
+                  <span>提出済み一覧を見る</span>
+                </a>
+              )}
               <div className="rounded-2xl border border-dashed p-2 text-sm">
                 <p className="text-xs text-muted-foreground">
                   {draftSavedAt ? `下書きを自動保存: ${new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(draftSavedAt))}` : 'まだ下書き保存はありません。'}

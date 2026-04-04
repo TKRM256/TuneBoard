@@ -1,6 +1,7 @@
 export interface TenantsResponse{
   id: string;
   name: string;
+  role: string;
 }
 
 export interface TenantsFormValues { 
@@ -8,4 +9,23 @@ export interface TenantsFormValues {
     value: string;
     error?: string;
   }; 
+}
+
+export interface TenantMemberResponse {
+  userId: number;
+  name: string;
+  email: string;
+  picture: string;
+  role: string;
+}
+
+export interface AddMemberFormValues {
+  email: {
+    value: string;
+    error?: string;
+  };
+  role: {
+    value: string;
+    error?: string;
+  };
 }

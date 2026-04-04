@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiClient } from '@/lib/api/client';
+import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import {
   formatLiveDate,
   type LiveResponse,
@@ -47,6 +48,7 @@ export const LiveSubmissionsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
   const [isDuplicateLoading, setIsDuplicateLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!liveId) {
@@ -58,11 +60,12 @@ export const LiveSubmissionsPage = () => {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [liveResponse, configResponse, detailsResponse, duplicatesResponse] = await Promise.all([
+        const [liveResponse, configResponse, detailsResponse, duplicatesResponse, tenantResponse] = await Promise.all([
           apiClient.get<LiveResponse>(`/lives/${liveId}`),
           apiClient.get<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`),
           apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`),
           apiClient.get<SongDuplicateResponse>(`/lives/${liveId}/songs/duplicates`),
+          tenantId ? apiClient.get<TenantsResponse>(`/tenants/get/${tenantId}`) : Promise.resolve(null),
         ]);
 
         if (!liveResponse || !configResponse) {
@@ -77,6 +80,7 @@ export const LiveSubmissionsPage = () => {
         setConfig(configResponse);
         setDetails(detailsResponse ?? []);
         setDuplicates(duplicatesResponse ?? null);
+        if (tenantResponse) setIsAdmin(tenantResponse.role === 'ADMIN');
       } catch {
         if (!cancelled) {
           toast.error('提出情報の取得に失敗しました', { position: 'top-center' });
@@ -93,7 +97,7 @@ export const LiveSubmissionsPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [liveId]);
+  }, [liveId, tenantId]);
 
   const recordLabel = '回答';
   const tableColumns = useMemo(() => collectColumns(config), [config]);
@@ -251,7 +255,7 @@ export const LiveSubmissionsPage = () => {
         </CardHeader>
       </Card>
 
-      <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={handleDismiss} />
+      <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={isAdmin ? handleDismiss : undefined} isAdmin={isAdmin} />
 
       <Card>
         <CardHeader>
