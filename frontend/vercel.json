@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "$BACKEND_URL/api/$1"
+      "destination": "${BACKEND_URL}/api/$1"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
