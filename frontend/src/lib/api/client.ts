@@ -4,6 +4,15 @@ import { createLogger } from '../logger';
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 const log = createLogger('API');
+const isProxyApiBase = API_BASE_URL.startsWith('/');
+
+if (typeof window !== 'undefined' && isProxyApiBase) {
+  console.info('[API]', 'Proxy mode enabled', {
+    browserOrigin: window.location.origin,
+    apiBaseUrl: API_BASE_URL,
+    expectedRewrite: '/api/* -> $API_URL/api/*',
+  });
+}
 
 let inMemoryAccessToken: string | null = null;
 
@@ -40,6 +49,7 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T|void> {
   const url = `${API_BASE_URL}${path}`;
+  const requestUrl = new URL(url, window.location.origin).toString();
 
   const headers = new Headers(options.headers);
 
@@ -60,6 +70,13 @@ async function request<T>(
   const credentials = options.credentials ?? resolveDefaultCredentials(API_BASE_URL);
 
   log.debug(`${method} ${path}`);
+  console.info('[API]', 'Request start', {
+    method,
+    browserRequestUrl: requestUrl,
+    apiBaseUrl: API_BASE_URL,
+    usesRelativeProxy: isProxyApiBase,
+    expectedRewrite: isProxyApiBase ? '/api/* -> $API_URL/api/*' : undefined,
+  });
 
   const response = await fetch(url, {
     ...options,
@@ -68,6 +85,13 @@ async function request<T>(
   });
 
   const responseText = await response.text();
+
+  console.info('[API]', 'Response received', {
+    method,
+    browserRequestUrl: requestUrl,
+    status: response.status,
+    ok: response.ok,
+  });
 
   if (!response.ok) {
     let apiError: ApiError | undefined;
