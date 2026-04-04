@@ -23,6 +23,9 @@ import jakarta.servlet.http.HttpServletResponse;
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
+    private static final String TRACE_ID_HEADER = "X-TuneBoard-Trace-Id";
+    private static final String REQUEST_SOURCE_HEADER = "X-TuneBoard-Request-Source";
+    private static final String BACKEND_REACHED_HEADER = "X-TuneBoard-Backend-Reached";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -35,14 +38,24 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         String forwardedHost = request.getHeader("X-Forwarded-Host");
         String forwardedProto = request.getHeader("X-Forwarded-Proto");
         String forwarded = request.getHeader("Forwarded");
+        String traceId = request.getHeader(TRACE_ID_HEADER);
+        String requestSource = request.getHeader(REQUEST_SOURCE_HEADER);
 
-        log.info("Incoming request: method={} fullPath={} host={} xForwardedHost={} xForwardedProto={} forwarded={}",
+        response.setHeader(BACKEND_REACHED_HEADER, "true");
+        if (traceId != null && !traceId.isBlank()) {
+            response.setHeader(TRACE_ID_HEADER, traceId);
+        }
+
+        log.info(
+                "Incoming request: method={} fullPath={} host={} xForwardedHost={} xForwardedProto={} forwarded={} traceId={} source={}",
                 method,
                 fullPath,
                 host,
                 forwardedHost,
                 forwardedProto,
-                forwarded);
+                forwarded,
+                traceId,
+                requestSource);
 
         try {
             filterChain.doFilter(request, response);
