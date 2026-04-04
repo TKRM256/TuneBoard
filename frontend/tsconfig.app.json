@@ -9,7 +9,7 @@
     "skipLibCheck": true,
 
     /* For shadcn and tailwind */
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.9",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

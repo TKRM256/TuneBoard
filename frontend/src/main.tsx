@@ -7,12 +7,20 @@ import { createLogger } from './lib/logger'
 
 const log = createLogger('Global');
 
-window.addEventListener('unhandledrejection', (event) => {
+const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
   log.error('Unhandled promise rejection:', event.reason);
-});
+};
 
-window.addEventListener('error', (event) => {
+const handleWindowError = (event: ErrorEvent) => {
   log.error('Uncaught error:', event.error);
+};
+
+window.addEventListener('unhandledrejection', handleUnhandledRejection);
+window.addEventListener('error', handleWindowError);
+
+import.meta.hot?.dispose(() => {
+  window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+  window.removeEventListener('error', handleWindowError);
 });
 
 createRoot(document.getElementById('root')!).render(
