@@ -1,6 +1,8 @@
-import process from 'node:process';
-
 import { deploymentEnv, routes, type VercelConfig } from '@vercel/config/v1';
+
+declare const process: {
+  env: Record<string, string | undefined>;
+};
 
 const apiUrl = process.env.API_URL?.trim();
 const vercelEnv = process.env.VERCEL_ENV ?? 'unknown';
