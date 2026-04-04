@@ -1,6 +1,9 @@
 import { type ApiError, ApiClientError } from './type';
+import { createLogger } from '../logger';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
+
+const log = createLogger('API');
 
 let inMemoryAccessToken: string | null = null;
 
@@ -56,6 +59,8 @@ async function request<T>(
 
   const credentials = options.credentials ?? resolveDefaultCredentials(API_BASE_URL);
 
+  log.debug(`${method} ${path}`);
+
   const response = await fetch(url, {
     ...options,
     headers,
@@ -69,8 +74,10 @@ async function request<T>(
     try {
       apiError = responseText ? JSON.parse(responseText) : undefined;
     } catch {
+      log.error(`${method} ${path} -> ${response.status} (parse error)`);
       throw new ApiClientError(response.status);
     }
+    log.warn(`${method} ${path} -> ${response.status}`, apiError?.message);
     throw new ApiClientError(response.status, apiError);
   }
 
