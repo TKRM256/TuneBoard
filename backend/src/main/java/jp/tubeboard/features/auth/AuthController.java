@@ -91,8 +91,6 @@ public class AuthController {
 
         String token = jwtTokenService.generateToken(sub, name, email, picture);
 
-        log.info("ログイン成功: email={}", email);
-
         ResponseCookie tokenCookie = ResponseCookie.from("auth_token", token)
                 .httpOnly(true)
                 .secure(authCookieSecure)

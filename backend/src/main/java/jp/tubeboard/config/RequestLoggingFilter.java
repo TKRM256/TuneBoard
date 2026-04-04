@@ -27,24 +27,22 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         String method = request.getMethod();
         String uri = request.getRequestURI();
-        String queryString = request.getQueryString();
-        String fullPath = queryString != null ? uri + "?" + queryString : uri;
 
         try {
             filterChain.doFilter(request, response);
         } finally {
-            long duration = System.currentTimeMillis() - startTime;
+            long duration = System.nanoTime() - startTime;
             int status = response.getStatus();
 
             if (status >= 500) {
-                log.error("{} {} -> {} ({}ms)", method, fullPath, status, duration);
+                log.error("{} {} -> {} ({}ns)", method, uri, status, duration);
             } else if (status >= 400) {
-                log.warn("{} {} -> {} ({}ms)", method, fullPath, status, duration);
+                log.warn("{} {} -> {} ({}ns)", method, uri, status, duration);
             } else {
-                log.info("{} {} -> {} ({}ms)", method, fullPath, status, duration);
+                log.info("{} {} -> {} ({}ns)", method, uri, status, duration);
             }
         }
     }
