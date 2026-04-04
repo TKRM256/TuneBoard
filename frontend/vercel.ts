@@ -1,6 +1,6 @@
-import { routes, deploymentEnv } from '@vercel/config/v1';
+import { routes, deploymentEnv, type VercelConfig } from '@vercel/config/v1';
 
-export default {
+export const config: VercelConfig = {
   rewrites: [
     routes.rewrite('/api/:path*', `${deploymentEnv('BACKEND_URL')}/api/:path*`),
     routes.rewrite('/(.*)', '/index.html'),
