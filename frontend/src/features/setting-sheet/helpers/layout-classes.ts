@@ -32,41 +32,41 @@ export const appearanceClass = (
 ) => {
   if (kind === 'section') {
     if (appearance === 'subtle') {
-      return 'rounded-xl border bg-muted/50 px-4 py-4 sm:px-6 sm:py-6';
+      return 'min-w-0 rounded-xl border bg-muted/50 px-4 py-4 sm:px-6 sm:py-6';
     }
     if (appearance === 'outline') {
-      return 'rounded-xl border bg-card px-4 py-4 sm:px-6 sm:py-6';
+      return 'min-w-0 rounded-xl border bg-card px-4 py-4 sm:px-6 sm:py-6';
     }
-    return 'px-1 py-3';
+    return 'min-w-0 px-1 py-3';
   }
 
   if (kind === 'field') {
     if (appearance === 'subtle') {
-      return 'rounded-xl border bg-muted/40 p-4 sm:p-5';
+      return 'min-w-0 rounded-xl border bg-muted/40 p-4 sm:p-5';
     }
     if (appearance === 'plain') {
-      return 'p-1';
+      return 'min-w-0 p-1';
     }
-    return 'rounded-xl border bg-card p-4 sm:p-5';
+    return 'min-w-0 rounded-xl border bg-card p-4 sm:p-5';
   }
 
   if (kind === 'group-item') {
     if (appearance === 'plain') {
-      return 'border-t border-border bg-transparent';
+      return 'min-w-0 border-t border-border bg-transparent';
     }
     if (appearance === 'outline') {
-      return 'overflow-hidden rounded-xl border bg-card';
+      return 'min-w-0 overflow-hidden rounded-xl border bg-card';
     }
-    return 'overflow-hidden rounded-xl border bg-muted/40';
+    return 'min-w-0 overflow-hidden rounded-xl border bg-muted/40';
   }
 
   if (appearance === 'plain') {
-    return 'space-y-4';
+    return 'min-w-0 space-y-4';
   }
   if (appearance === 'outline') {
-    return 'rounded-xl border bg-card';
+    return 'min-w-0 rounded-xl border bg-card';
   }
-  return 'rounded-xl border bg-muted/40';
+  return 'min-w-0 rounded-xl border bg-muted/40';
 };
 
 export const formatGroupItemTitle = (value: string) => value.trim().length > 40 ? `${value.trim().slice(0, 40)}...` : value.trim();

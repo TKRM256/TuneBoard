@@ -2,7 +2,8 @@ import { type ReactNode } from 'react';
 
 import { Plus, Trash2 } from 'lucide-react';
 
-import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -61,45 +62,58 @@ export const BlockChildrenEditor = ({ block, depth, onInsert, onUpdateBlock, ren
               <p className="text-xs text-muted-foreground">
                 バリアントごとに異なるフィールドを定義できます。回答者は追加時にバリアントを選択します。
               </p>
-              {variants.map((variant) => (
-                <div key={variant.id} className="space-y-3 rounded-lg border p-3">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={variant.label}
-                      onChange={(e) => updateVariantLabel(variant.id, e.target.value)}
-                      className="h-8 text-sm font-medium"
-                      placeholder="バリアント名"
-                    />
-                    <span className="shrink-0 text-xs text-muted-foreground">({variant.id})</span>
-                    <Button type="button" variant="ghost" size="sm" className="shrink-0 text-destructive" onClick={() => removeVariant(variant.id)}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {variant.fields.map((child, childIndex) => (
-                      <div key={child.id}>
-                        {renderNestedBlock(child, childIndex, variant.id, depth + 1)}
-                        <div className="mt-2 flex justify-end">
+              <Accordion type="multiple" className="space-y-3" defaultValue={variants[0] ? [variants[0].id] : []}>
+                {variants.map((variant, variantIndex) => (
+                  <AccordionItem key={variant.id} value={variant.id} className="rounded-lg border px-3">
+                    <div className="flex items-center gap-2 py-2">
+                      <AccordionTrigger className="min-w-0 flex-1 py-0 hover:no-underline">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 text-left">
+                          <Badge variant="outline">バリアント {variantIndex + 1}</Badge>
+                          <span className="min-w-0 truncate text-sm font-medium">{variant.label || '無題のバリアント'}</span>
+                          <span className="text-xs text-muted-foreground">{variant.fields.length}件</span>
+                        </div>
+                      </AccordionTrigger>
+                      <Button type="button" variant="ghost" size="sm" className="shrink-0 text-destructive" onClick={() => removeVariant(variant.id)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                    <AccordionContent className="space-y-3 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={variant.label}
+                          onChange={(e) => updateVariantLabel(variant.id, e.target.value)}
+                          className="h-8 text-sm font-medium"
+                          placeholder="バリアント名"
+                        />
+                        <span className="shrink-0 text-xs text-muted-foreground">({variant.id})</span>
+                      </div>
+                      <div className="space-y-3">
+                        {variant.fields.map((child, childIndex) => (
+                          <div key={child.id}>
+                            {renderNestedBlock(child, childIndex, variant.id, depth + 1)}
+                            <div className="mt-2 flex justify-end">
+                              <AddBlockMenu
+                                options={SETTING_SHEET_BLOCK_OPTIONS}
+                                onSelect={(type) => onInsert(variant.id, childIndex + 1, type)}
+                                buttonLabel="追加"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {variant.fields.length === 0 ? (
+                        <div className="flex justify-end">
                           <AddBlockMenu
                             options={SETTING_SHEET_BLOCK_OPTIONS}
-                            onSelect={(type) => onInsert(variant.id, childIndex + 1, type)}
-                            buttonLabel="追加"
+                            onSelect={(type) => onInsert(variant.id, 0, type)}
+                            buttonLabel="フィールドを追加"
                           />
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  {variant.fields.length === 0 ? (
-                    <div className="flex justify-end">
-                      <AddBlockMenu
-                        options={SETTING_SHEET_BLOCK_OPTIONS}
-                        onSelect={(type) => onInsert(variant.id, 0, type)}
-                        buttonLabel="フィールドを追加"
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+                      ) : null}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
               {isRepeatableGroupBlock(block.type) ? (
                 <Button type="button" variant="outline" size="sm" onClick={addVariant} className="w-full">
                   <Plus className="mr-1 size-4" />バリアントを追加

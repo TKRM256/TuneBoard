@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, Send } from 'lucide-react';
+import { Copy, ExternalLink, Send } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -58,11 +59,28 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
     return resolveOptionSourceValues(settingSheetConfig.blocks, formValues.answers, block.optionSource as SettingSheetOptionSource);
   };
 
+  const submittedFormUrl = submission
+    ? `${window.location.origin}/public/lives/${publicToken}/submissions/${submission.id}`
+    : null;
+
+  const copySubmittedFormUrl = async () => {
+    if (!submittedFormUrl) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(submittedFormUrl);
+      toast.success('編集リンクをコピーしました', { position: 'top-center' });
+    } catch {
+      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
+    }
+  };
+
   return (
-    <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-      <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <Card className="overflow-hidden text-card-foreground shadow-sm backdrop-blur">
+    <div className="min-h-screen overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+      <div className="mx-auto grid min-w-0 max-w-7xl gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <aside className="min-w-0 space-y-6 xl:sticky xl:top-6 xl:self-start">
+          <Card className="min-w-0 overflow-hidden text-card-foreground shadow-sm backdrop-blur">
             <CardHeader className="space-y-5 pb-6">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-[0.35em]">TUNEBOARD</p>
@@ -97,7 +115,7 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                   className="flex items-center gap-2 rounded-2xl border p-4 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
                 >
                   <ExternalLink className="size-4 shrink-0" />
-                  <span>提出済み一覧を見る</span>
+                  <span className="min-w-0 wrap-break-word">提出済み一覧を見る</span>
                 </a>
               )}
               <div className="rounded-2xl border border-dashed p-2 text-sm">
@@ -109,7 +127,25 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
           </Card>
         </aside>
 
-        <main className="space-y-6">
+        <main className="min-w-0 space-y-6">
+          {submission && submittedFormUrl ? (
+            <Alert>
+              <AlertTitle>この回答は保存されています</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <p>このURLからあとで内容を更新できます。</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <p className="min-w-0 flex-1 truncate rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    {submittedFormUrl}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={copySubmittedFormUrl}>
+                    <Copy className="size-4" />
+                    リンクをコピー
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           {isSubmissionClosed ? (
             <Alert>
               <AlertTitle>現在は送信できません</AlertTitle>
@@ -142,7 +178,7 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-4 xl:grid-cols-6">
+            <CardContent className="grid min-w-0 gap-4 xl:grid-cols-6">
               {settingSheetConfig.blocks.map((block) => (
                 <SettingSheetFieldRenderer
                   key={block.id}

@@ -177,7 +177,7 @@ export const LiveManagementPage = () => {
           <h2 className="text-base font-semibold">ライブ情報</h2>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <InfoRow icon={CalendarDays} label="開催日" value={formatLiveDate(live.date)} />
             <InfoRow icon={MapPin} label="会場" value={formatOptionalText(live.location)} />
             <InfoRow icon={Clock} label="回答締切" value={formatDeadline(live.deadlineAt)} />

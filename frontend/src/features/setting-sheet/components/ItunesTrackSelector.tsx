@@ -27,7 +27,7 @@ export const ItunesTrackSelector = ({ selected, onSelect }: ItunesTrackSelectorP
     }
     setIsSearching(true);
     try {
-      const data = await apiClient.get<ItunesTrack[]>(`/public/itunes/search?q=${encodeURIComponent(q)}&limit=5`);
+      const data = await apiClient.get<ItunesTrack[]>(`/public/itunes/search?q=${encodeURIComponent(q)}&limit=15`);
       setResults(data ?? []);
     } catch {
       setResults([]);
@@ -79,7 +79,7 @@ export const ItunesTrackSelector = ({ selected, onSelect }: ItunesTrackSelectorP
   // Selected state: show the chosen track
   if (selected) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50/50 p-2 dark:border-green-800 dark:bg-green-950/20">
+      <div className="flex min-w-0 w-full items-center gap-3 rounded-lg border border-green-200 bg-green-50/50 p-2 dark:border-green-800 dark:bg-green-950/20">
         {selected.itunesAlbumArtUrl ? (
           <img src={selected.itunesAlbumArtUrl} alt="" className="size-10 rounded" />
         ) : (
@@ -99,7 +99,7 @@ export const ItunesTrackSelector = ({ selected, onSelect }: ItunesTrackSelectorP
   }
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 w-full space-y-2">
       <Input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -134,18 +134,18 @@ function TrackList({
 
   if (tracks.length > 0) {
     return (
-      <ul className="space-y-1">
+      <ul className="max-h-[280px] w-full space-y-1 overflow-y-auto">
         {tracks.map((track) => (
           <li key={track.id}>
             <button
               type="button"
-              className="flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-accent"
+              className="flex w-full items-center gap-3 overflow-hidden rounded-md p-2 text-left transition-colors hover:bg-accent"
               onClick={() => onSelect(track)}
             >
               {track.albumArtUrl ? (
-                <img src={track.albumArtUrl} alt="" className="size-10 rounded" />
+                <img src={track.albumArtUrl} alt="" className="size-10 shrink-0 rounded" />
               ) : (
-                <div className="flex size-10 items-center justify-center rounded bg-muted">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded bg-muted">
                   <Music className="size-4 text-muted-foreground" />
                 </div>
               )}

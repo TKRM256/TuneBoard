@@ -66,6 +66,17 @@ export const SettingSheetFieldRenderer = ({
     return null;
   }
 
+  if (isSectionBlock(block.type) && block.fields.length > 0 && !hasRenderableBlocks(block.fields)) {
+    return null;
+  }
+
+  if (isRepeatableGroupBlock(block.type)) {
+    const childBlocks = block.variants?.length ? block.variants.flatMap((variant) => variant.fields) : block.fields;
+    if (childBlocks.length > 0 && !hasRenderableBlocks(childBlocks)) {
+      return null;
+    }
+  }
+
   const fieldValue = scopedAnswers[block.id] ?? createSettingSheetFieldValue(block);
   const pathKey = `${pathPrefix}${block.id}`;
   const inputId = fieldIdFromKey(pathKey);
@@ -79,7 +90,7 @@ export const SettingSheetFieldRenderer = ({
         <h2 className="text-lg font-semibold tracking-tight text-foreground">{block.label}</h2>
         {block.description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{block.description}</p> : null}
         {block.fields.length > 0 ? (
-          <div className="mt-4 grid gap-4 xl:grid-cols-6">
+          <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-6">
             {block.fields.map((child) => (
               <Fragment key={child.id}>
                 <SettingSheetFieldRenderer
@@ -179,7 +190,7 @@ export const SettingSheetFieldRenderer = ({
             const checked = values.includes(option);
             return (
               <Label key={option} className={cn(
-                'flex items-center gap-3 rounded-md border border-border bg-muted/50 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
+                'flex min-w-0 max-w-full items-center gap-3 rounded-md border border-border bg-muted/50 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
                 block.layout.optionFitContent ? 'w-fit min-w-0' : '',
               )}>
                 <Checkbox
@@ -189,7 +200,7 @@ export const SettingSheetFieldRenderer = ({
                     items: [],
                   })}
                 />
-                <span>{option}</span>
+                <span className="min-w-0 wrap-break-word">{option}</span>
               </Label>
             );
           })}
@@ -200,6 +211,25 @@ export const SettingSheetFieldRenderer = ({
     </section>
   );
 };
+
+function hasRenderableBlocks(blocks: SettingSheetBlock[]): boolean {
+  return blocks.some((block) => {
+    if (block.hidden) {
+      return false;
+    }
+
+    if (isSectionBlock(block.type)) {
+      return block.fields.length === 0 || hasRenderableBlocks(block.fields);
+    }
+
+    if (isRepeatableGroupBlock(block.type)) {
+      const childBlocks = block.variants?.length ? block.variants.flatMap((variant) => variant.fields) : block.fields;
+      return childBlocks.length === 0 || hasRenderableBlocks(childBlocks);
+    }
+
+    return true;
+  });
+}
 
 interface SettingSheetGroupBlockProps {
   block: SettingSheetBlock;
@@ -237,8 +267,8 @@ const SettingSheetGroupBlock = ({
 
   return (
     <section className={`${appearanceClass(block.appearance, 'group')} ${fieldWidthClass(block.layout.width)}`}>
-      <div className="flex flex-col gap-3 px-4 pt-4 sm:px-5 sm:pt-5 md:flex-row md:items-start md:justify-between">
-        <div>
+      <div className="flex min-w-0 flex-col gap-3 px-4 pt-4 sm:px-5 sm:pt-5 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
           <h2 className="text-sm font-medium text-foreground">
             {block.label}
             {block.required ? <span className="ml-1 text-destructive">*</span> : null}
@@ -322,7 +352,7 @@ const SettingSheetGroupItem = ({
   const selectedLink = itunesLinks?.[item.id] ?? null;
 
   const content = (
-    <div className="grid gap-4 px-4 py-4 sm:px-5 xl:grid-cols-6">
+    <div className="grid min-w-0 gap-4 px-4 py-4 sm:px-5 xl:grid-cols-6">
       {itemFields.map((child) => (
         <SettingSheetFieldRenderer
           key={child.id}
@@ -399,7 +429,7 @@ interface GroupItemActionsProps {
 }
 
 const GroupItemActions = ({ block, groupValue, item, itemIndex, setFieldValue }: GroupItemActionsProps) => (
-  <div className="grid grid-cols-2 gap-2 sm:flex">
+  <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex">
     <Button type="button" variant="outline" size="sm" onClick={() => setFieldValue({ values: [], items: moveItem(groupValue.items, itemIndex, 'up') })} disabled={itemIndex === 0}>
       <ArrowUp className="size-4" />
       上へ
