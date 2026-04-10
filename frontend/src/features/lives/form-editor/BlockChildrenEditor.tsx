@@ -29,7 +29,6 @@ export const BlockChildrenEditor = ({ block, depth, onInsert, onUpdateBlock, ren
       fields: [],
     };
     if (variants.length === 0 && block.fields.length > 0) {
-      // 既存フィールドを最初のバリアントに移行してからバリアントモードに切り替え
       const migratedVariant: SettingSheetGroupVariant = {
         id: `variant-${crypto.randomUUID().slice(0, 8)}`,
         label: block.entryTitle || '項目',
@@ -59,9 +58,6 @@ export const BlockChildrenEditor = ({ block, depth, onInsert, onUpdateBlock, ren
         <AccordionContent className="space-y-4 pb-3">
           {hasVariants ? (
             <>
-              <p className="text-xs text-muted-foreground">
-                バリアントごとに異なるフィールドを定義できます。回答者は追加時にバリアントを選択します。
-              </p>
               <Accordion type="multiple" className="space-y-3" defaultValue={variants[0] ? [variants[0].id] : []}>
                 {variants.map((variant, variantIndex) => (
                   <AccordionItem key={variant.id} value={variant.id} className="rounded-lg border px-3">
@@ -121,12 +117,7 @@ export const BlockChildrenEditor = ({ block, depth, onInsert, onUpdateBlock, ren
               ) : null}
             </>
           ) : (
-            <>
-              <p className="text-xs text-muted-foreground">
-                {isSectionBlock(block.type)
-                  ? 'このセクションの中に表示するブロックを定義します。'
-                  : 'このグループの中で繰り返し入力される項目を定義します。'}
-              </p>
+            <>              
               <div className="space-y-3">
                 {block.fields.map((child, childIndex) => (
                   <div key={child.id}>

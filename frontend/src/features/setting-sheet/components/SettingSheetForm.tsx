@@ -132,14 +132,12 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
             <Alert>
               <AlertTitle>この回答は保存されています</AlertTitle>
               <AlertDescription className="space-y-3">
-                <p>このURLからあとで内容を更新できます。</p>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <p className="min-w-0 flex-1 truncate rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                  <p className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
                     {submittedFormUrl}
                   </p>
-                  <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={copySubmittedFormUrl}>
+                  <Button type="button" variant="outline" size="sm" onClick={copySubmittedFormUrl}>
                     <Copy className="size-4" />
-                    リンクをコピー
                   </Button>
                 </div>
               </AlertDescription>

@@ -191,7 +191,6 @@ export const LiveManagementPage = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="space-y-1">
               <h2 className="text-base font-semibold">提出一覧</h2>
-              <p className="text-xs text-muted-foreground">全{details.length}件 · 行をクリックすると詳細を確認できます</p>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>
@@ -205,7 +204,7 @@ export const LiveManagementPage = () => {
           {details.length === 0 ? (
             <p className="text-sm text-muted-foreground">まだ提出はありません。</p>
           ) : tableColumns.length === 0 ? (
-            <p className="text-sm text-muted-foreground">「表示設定」で共有に表示をONにすると、ここに一覧表示されます。</p>
+            <p className="text-sm text-muted-foreground">「表示設定」で共有に表示をONにしてください</p>
           ) : (
             <div className="max-h-[50vh] overflow-auto rounded-lg border">
               <Table>

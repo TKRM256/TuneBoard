@@ -71,8 +71,6 @@ export const LiveVisibilitySettingsPage = () => {
   const leafTargets = useMemo(() => collectLeafTargets(blocks), [blocks]);
   const filteredBlocks = useMemo(() => filterBlocksByQuery(blocks, filterQuery), [blocks, filterQuery]);
   const isSearching = filterQuery.trim().length > 0;
-  const publicVisibleCount = leafTargets.filter((target) => target.publicVisible).length;
-  const visibleInFormCount = leafTargets.filter((target) => !target.hidden).length;
 
   const updateTargetVisibility = (blockId: string, field: 'publicVisible' | 'hidden', nextValue: boolean) => {
     setConfig((current) => {
@@ -165,11 +163,6 @@ export const LiveVisibilitySettingsPage = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="space-y-1">
               <h1 className="text-lg font-semibold sm:text-2xl">公開・非表示設定</h1>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Badge variant="outline">見出し</Badge>
-                <Badge variant="outline">繰り返し</Badge>
-                <Badge variant="outline">入力項目</Badge>
-              </div>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
@@ -184,23 +177,15 @@ export const LiveVisibilitySettingsPage = () => {
           <div className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3">
             <div>
               <p className="text-sm font-medium">提出済みデータを公開する</p>
-              <p className="text-xs text-muted-foreground">共有用提出確認一覧を公開します。</p>
             </div>
             <Toggle
               variant="outline"
-              pressed={config?.publicSubmissionEnabled === true}
               onPressedChange={togglePublicSubmissionEnabled}
               className="gap-1.5"
             >
               {config?.publicSubmissionEnabled ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
               {config?.publicSubmissionEnabled ? '公開中' : '非公開'}
             </Toggle>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <SummaryBlock label="入力項目" value={`${leafTargets.length}`} />
-            <SummaryBlock label="共有表示中" value={`${publicVisibleCount}`} />
-            <SummaryBlock label="フォーム表示中" value={`${visibleInFormCount}`} />
           </div>
 
           <div className="relative w-full sm:max-w-sm">
@@ -545,7 +530,7 @@ function VisibilityTreeNode({
                 <VisibilityTreeNode
                   key={child.id}
                   block={child}
-                  depth={0}
+                  depth={depth + 1}
                   parentPath={path}
                   forceExpanded={forceExpanded}
                   collapsedIds={collapsedIds}
@@ -558,7 +543,7 @@ function VisibilityTreeNode({
                   key={variant.id}
                   variantId={variant.id}
                   label={variant.label}
-                  depth={0}
+                  depth={depth + 1}
                   parentPath={path}
                   fields={variant.fields}
                   forceExpanded={forceExpanded}
@@ -632,7 +617,7 @@ function VisibilityVariantNode({
               <VisibilityTreeNode
                 key={child.id}
                 block={child}
-                depth={0}
+                depth={depth+1}
                 parentPath={`${parentPath} / ${label}`}
                 forceExpanded={forceExpanded}
                 collapsedIds={collapsedIds}
@@ -643,15 +628,6 @@ function VisibilityVariantNode({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function SummaryBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-muted/40 px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-lg font-semibold">{value}</p>
     </div>
   );
 }
