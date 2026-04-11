@@ -123,7 +123,7 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void 管理者はメンバー一覧を取得できる() throws Exception {
         mockMvc.perform(get("/api/tenants/{tenantId}/members", tenant.getId())
-                        .header("Authorization", "Bearer " + adminToken))
+                .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
     }
@@ -131,7 +131,7 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void メンバーもメンバー一覧を取得できる() throws Exception {
         mockMvc.perform(get("/api/tenants/{tenantId}/members", tenant.getId())
-                        .header("Authorization", "Bearer " + memberToken))
+                .header("Authorization", "Bearer " + memberToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
     }
@@ -139,7 +139,7 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void 非メンバーはメンバー一覧を取得できない() throws Exception {
         mockMvc.perform(get("/api/tenants/{tenantId}/members", tenant.getId())
-                        .header("Authorization", "Bearer " + outsiderToken))
+                .header("Authorization", "Bearer " + outsiderToken))
                 .andExpect(status().isNotFound());
     }
 
@@ -148,11 +148,11 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void 管理者はメンバーを追加できる() throws Exception {
         mockMvc.perform(post("/api/tenants/{tenantId}/members", tenant.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"email":"outsider@example.com","role":"MEMBER"}
-                                """))
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"email":"outsider@example.com","role":"MEMBER"}
+                        """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("outsider@example.com"))
                 .andExpect(jsonPath("$.role").value("MEMBER"));
@@ -161,22 +161,22 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void メンバーはメンバーを追加できない() throws Exception {
         mockMvc.perform(post("/api/tenants/{tenantId}/members", tenant.getId())
-                        .header("Authorization", "Bearer " + memberToken)
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"email":"outsider@example.com","role":"MEMBER"}
-                                """))
+                .header("Authorization", "Bearer " + memberToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"email":"outsider@example.com","role":"MEMBER"}
+                        """))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void 既にメンバーのユーザーを追加するとエラーになる() throws Exception {
         mockMvc.perform(post("/api/tenants/{tenantId}/members", tenant.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"email":"member@example.com","role":"MEMBER"}
-                                """))
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"email":"member@example.com","role":"MEMBER"}
+                        """))
                 .andExpect(status().isBadRequest());
     }
 
@@ -185,11 +185,11 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void 管理者はメンバーを削除できる() throws Exception {
         mockMvc.perform(delete("/api/tenants/{tenantId}/members/{userId}", tenant.getId(), memberUser.getId())
-                        .header("Authorization", "Bearer " + adminToken))
+                .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/tenants/{tenantId}/members", tenant.getId())
-                        .header("Authorization", "Bearer " + adminToken))
+                .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
     }
@@ -197,14 +197,14 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void メンバーはメンバーを削除できない() throws Exception {
         mockMvc.perform(delete("/api/tenants/{tenantId}/members/{userId}", tenant.getId(), adminUser.getId())
-                        .header("Authorization", "Bearer " + memberToken))
+                .header("Authorization", "Bearer " + memberToken))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void 管理者は自分自身を削除できない() throws Exception {
         mockMvc.perform(delete("/api/tenants/{tenantId}/members/{userId}", tenant.getId(), adminUser.getId())
-                        .header("Authorization", "Bearer " + adminToken))
+                .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isBadRequest());
     }
 
@@ -213,11 +213,11 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void 管理者はメンバーのロールを変更できる() throws Exception {
         mockMvc.perform(put("/api/tenants/{tenantId}/members/{userId}/role", tenant.getId(), memberUser.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"role":"ADMIN"}
-                                """))
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"role":"ADMIN"}
+                        """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("ADMIN"));
     }
@@ -225,22 +225,22 @@ class TenantMembersControllerIntegrationTest {
     @Test
     void メンバーはロールを変更できない() throws Exception {
         mockMvc.perform(put("/api/tenants/{tenantId}/members/{userId}/role", tenant.getId(), adminUser.getId())
-                        .header("Authorization", "Bearer " + memberToken)
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"role":"MEMBER"}
-                                """))
+                .header("Authorization", "Bearer " + memberToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"role":"MEMBER"}
+                        """))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void 管理者は自分自身のロールを変更できない() throws Exception {
         mockMvc.perform(put("/api/tenants/{tenantId}/members/{userId}/role", tenant.getId(), adminUser.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content("""
-                                {"role":"MEMBER"}
-                                """))
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"role":"MEMBER"}
+                        """))
                 .andExpect(status().isBadRequest());
     }
 }
