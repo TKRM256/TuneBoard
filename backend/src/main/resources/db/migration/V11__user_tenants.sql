@@ -1,5 +1,5 @@
 -- ==============================================
--- V2: user_tenants – multi-member tenant access
+-- V11: user_tenants - multi-member tenant access
 -- ==============================================
 
 CREATE TABLE user_tenants (
@@ -19,8 +19,7 @@ CREATE INDEX idx_user_tenants_user_id ON user_tenants (user_id);
 
 CREATE INDEX idx_user_tenants_tenant_id ON user_tenants (tenant_id);
 
--- Migrate existing tenant owners as ADMIN
--- Use tenant id as user_tenant id (one owner per tenant, no collision, DB-independent)
+-- Migrate existing tenant owners as ADMIN without DB-specific UUID functions
 INSERT INTO
     user_tenants (
         id,
