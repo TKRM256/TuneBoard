@@ -20,7 +20,6 @@ CREATE INDEX idx_user_tenants_user_id ON user_tenants (user_id);
 CREATE INDEX idx_user_tenants_tenant_id ON user_tenants (tenant_id);
 
 -- Migrate existing tenant owners as ADMIN
--- Use tenant id as user_tenant id (one owner per tenant, no collision, DB-independent)
 INSERT INTO
     user_tenants (
         id,
@@ -30,7 +29,7 @@ INSERT INTO
         created_at,
         updated_at
     )
-SELECT t.id, t.user_id, t.id, 'ADMIN', t.created_at, t.updated_at
+SELECT RANDOM_UUID (), t.user_id, t.id, 'ADMIN', t.created_at, t.updated_at
 FROM tenants t
 WHERE
     t.user_id IS NOT NULL
