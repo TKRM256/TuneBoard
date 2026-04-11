@@ -75,6 +75,7 @@ public class TenantsService implements ITenantsService {
                 return TenantsCreateResponse.builder()
                                 .id(savedTenants.getId())
                                 .name(savedTenants.getName())
+                                .role(TenantRole.ADMIN.name())
                                 .build();
         }
 

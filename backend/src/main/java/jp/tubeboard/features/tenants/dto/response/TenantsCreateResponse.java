@@ -5,6 +5,6 @@ import java.util.UUID;
 import lombok.Builder;
 
 @Builder
-public record TenantsCreateResponse(UUID id, String name) {
+public record TenantsCreateResponse(UUID id, String name, String role) {
 
 }
