@@ -25,6 +25,9 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
       .get<TenantMemberResponse[]>(`/tenants/${tenantId}/members`)
       .then((response) => {
         if (response) setMembers(response);
+      })
+      .catch(() => {
+        toast.error("メンバー一覧の取得に失敗しました", { position: "top-center" });
       });
   }, [tenantId]);
 
