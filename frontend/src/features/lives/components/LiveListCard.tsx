@@ -10,11 +10,12 @@ interface LiveListCardProps {
   lives: LiveResponse[];
   tenantName: string;
   tenantId: string;
+  isAdmin?: boolean;
   onUpdateSuccess: (live: LiveResponse) => void;
   onDelete: (id: string) => void;
 }
 
-export const LiveListCard = ({ lives, tenantName, tenantId, onUpdateSuccess, onDelete }: LiveListCardProps) => {
+export const LiveListCard = ({ lives, tenantName, tenantId, isAdmin, onUpdateSuccess, onDelete }: LiveListCardProps) => {
   return (
     <Card>
       <CardHeader>
@@ -37,6 +38,7 @@ export const LiveListCard = ({ lives, tenantName, tenantId, onUpdateSuccess, onD
                 key={live.id}
                 live={live}
                 tenantId={tenantId}
+                isAdmin={isAdmin}
                 onUpdateSuccess={onUpdateSuccess}
                 onDelete={onDelete}
               />

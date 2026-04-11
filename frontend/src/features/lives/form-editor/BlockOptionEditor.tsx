@@ -20,7 +20,6 @@ export const BlockOptionEditor = ({ block, optionSourceCandidates, onUpdateBlock
         <AccordionTrigger className="py-2 text-sm hover:no-underline">選択肢設定</AccordionTrigger>
         <AccordionContent className="space-y-3 pb-3">
           <div>
-            <p className="text-xs text-muted-foreground">選択肢の取得元</p>
             <Select
               value={currentSourceValue || '__manual__'}
               onValueChange={(value) => onUpdateOptionSource(block.id, value === '__manual__' ? null : { blockId: value.split(':')[0], fieldId: value.split(':')[1] })}
@@ -47,7 +46,6 @@ export const BlockOptionEditor = ({ block, optionSourceCandidates, onUpdateBlock
           </div>
           {!block.optionSource ? (
             <div>
-              <p className="text-xs text-muted-foreground">選択肢（1行に1件）</p>
               <Textarea
                 value={block.options.join('\n')}
                 onChange={(event) => onUpdateBlock(block.id, { options: event.target.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) })}
@@ -56,7 +54,7 @@ export const BlockOptionEditor = ({ block, optionSourceCandidates, onUpdateBlock
               />
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">回答時に参照元フィールドの値から選択肢を自動生成します。</p>
+            <p className="text-xs text-muted-foreground">回答時に参照元フィールドの値から選択肢を生成</p>
           )}
         </AccordionContent>
       </AccordionItem>

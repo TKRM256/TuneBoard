@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, ChevronLeft, Clock, Copy, ExternalLink, FileCheck2, MapPin, MoreHorizontal, Settings2, Wrench } from 'lucide-react';
+import { AlertTriangle, CalendarDays, ChevronLeft, Clock, Copy, ExternalLink, FileCheck2, MapPin, Settings2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -15,14 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { apiClient } from '@/lib/api/client';
+import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import {
   buildPublicLiveUrl,
   formatDeadline,
@@ -46,22 +40,25 @@ export const LiveManagementPage = () => {
   const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('');
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!liveId) return;
+    if (!liveId || !tenantId) return;
 
     Promise.all([
       apiClient.get<LiveResponse>(`/lives/${liveId}`),
       apiClient.get<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`),
       apiClient.get<SongDuplicateResponse>(`/lives/${liveId}/songs/duplicates`),
       apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`),
+      apiClient.get<TenantsResponse>(`/tenants/get/${tenantId}`),
     ])
-      .then(([liveRes, configRes, dupRes, detailsRes]) => {
+      .then(([liveRes, configRes, dupRes, detailsRes, tenantRes]) => {
         if (liveRes) setLive(liveRes);
         if (configRes) setConfig(normalizeSettingSheetConfig(configRes));
         setDuplicates(dupRes ?? null);
         setDetails(detailsRes ?? []);
+        if (tenantRes) setIsAdmin(tenantRes.role === 'ADMIN');
       })
       .catch(() => {
         toast.error('ライブ情報の取得に失敗しました', { position: 'top-center' });
@@ -69,7 +66,7 @@ export const LiveManagementPage = () => {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [liveId]);
+  }, [liveId, tenantId]);
 
   const tableColumns = useMemo(() => collectColumns(config), [config]);
 
@@ -144,57 +141,34 @@ export const LiveManagementPage = () => {
               </div>
               <p className="text-xs text-muted-foreground sm:text-sm">{formatLiveDate(live.date)} · {formatOptionalText(live.location)}</p>
             </div>
-            <div className="flex justify-end shrink-0 items-center gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/tenants/${tenantId}/lives`}>
-                  <ChevronLeft className="size-4" />
-                  戻る
-                </Link>
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={copyPublicUrl}>
-                    <Copy className="size-4" />
-                    公開URLをコピー
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {config?.publicSubmissionEnabled === true ? (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <a href={sharedListUrl} target="_blank" rel="noreferrer">
-                          <ExternalLink className="size-4" />
-                          共有提出一覧を開く
-                        </a>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={copySharedListLink}>
-                        <Copy className="size-4" />
-                        共有リンクをコピー
-                      </DropdownMenuItem>
-                    </>
-                  ) : (
-                    <DropdownMenuItem disabled>
-                      <ExternalLink className="size-4" />
-                      共有一覧（非公開中）
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <Button asChild variant="outline" size="sm" className="shrink-0">
+              <Link to={`/tenants/${tenantId}/lives`}>
+                <ChevronLeft className="size-4" />
+                戻る
+              </Link>
+            </Button>
           </div>
         </CardHeader>
       </Card>
 
+      {/* リンク */}
+      <Card>
+        <CardContent className="space-y-2 pt-4">
+          <LinkRow label="公開フォーム" url={publicUrl} onCopy={copyPublicUrl} />
+          {config?.publicSubmissionEnabled === true ? (
+            <LinkRow label="共有提出一覧" url={sharedListUrl} onCopy={copySharedListLink} />
+          ) : (
+            <p className="text-xs text-muted-foreground">※ 提出共有は非公開中です。表示設定から変更できます。</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />
+      <div className={`grid grid-cols-2 gap-3 ${isAdmin ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
+        {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
         <QuickActionExternal icon={<ExternalLink className="size-5" />} label="公開フォーム" href={publicUrl} />
         <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
-        <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />
+        {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
       </div>
 
       {/* Live Info */}
@@ -203,7 +177,7 @@ export const LiveManagementPage = () => {
           <h2 className="text-base font-semibold">ライブ情報</h2>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <InfoRow icon={CalendarDays} label="開催日" value={formatLiveDate(live.date)} />
             <InfoRow icon={MapPin} label="会場" value={formatOptionalText(live.location)} />
             <InfoRow icon={Clock} label="回答締切" value={formatDeadline(live.deadlineAt)} />
@@ -217,7 +191,6 @@ export const LiveManagementPage = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="space-y-1">
               <h2 className="text-base font-semibold">提出一覧</h2>
-              <p className="text-xs text-muted-foreground">全{details.length}件 · 行をクリックすると詳細を確認できます</p>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>
@@ -231,7 +204,7 @@ export const LiveManagementPage = () => {
           {details.length === 0 ? (
             <p className="text-sm text-muted-foreground">まだ提出はありません。</p>
           ) : tableColumns.length === 0 ? (
-            <p className="text-sm text-muted-foreground">「表示設定」で共有に表示をONにすると、ここに一覧表示されます。</p>
+            <p className="text-sm text-muted-foreground">「表示設定」で共有に表示をONにしてください</p>
           ) : (
             <div className="max-h-[50vh] overflow-auto rounded-lg border">
               <Table>
@@ -342,6 +315,23 @@ function QuickActionExternal({ icon, label, href }: { icon: ReactNode; label: st
       {icon}
       <span className="text-xs font-medium">{label}</span>
     </a>
+  );
+}
+
+function LinkRow({ label, url, onCopy }: { label: string; url: string; onCopy: () => void }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="shrink-0 font-medium">{label}</span>
+      <span className="min-w-0 flex-1 truncate text-muted-foreground">{url}</span>
+      <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={onCopy} title="URLをコピー">
+        <Copy className="size-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="size-7 shrink-0" asChild title="新しいタブで開く">
+        <a href={url} target="_blank" rel="noreferrer">
+          <ExternalLink className="size-3.5" />
+        </a>
+      </Button>
+    </div>
   );
 }
 

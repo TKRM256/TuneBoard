@@ -49,7 +49,7 @@ public class LivesService implements ILivesService {
         @Transactional
         public LiveResponse create(LiveCreateRequest request) {
                 User currentUser = userService.getCurrentUser();
-                Tenants tenant = helper.findTenant(request.tenantId(), currentUser.getId());
+                Tenants tenant = helper.findAdminTenant(request.tenantId(), currentUser.getId());
 
                 Live live = Live.builder()
                                 .tenant(tenant)
@@ -71,7 +71,7 @@ public class LivesService implements ILivesService {
                 User currentUser = userService.getCurrentUser();
 
                 return liveRepository
-                                .findAllByTenantUserIdAndDeletedAtIsNullOrderByDateAscCreatedAtDesc(currentUser.getId())
+                                .findAllAccessibleByUserId(currentUser.getId())
                                 .stream()
                                 .map(helper::toResponse)
                                 .toList();
@@ -83,7 +83,7 @@ public class LivesService implements ILivesService {
                 helper.findTenant(tenantId, currentUser.getId());
 
                 return liveRepository
-                                .findAllByTenantIdAndTenantUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(tenantId,
+                                .findAllByTenantIdAndAccessibleByUserId(tenantId,
                                                 currentUser.getId())
                                 .stream()
                                 .map(helper::toResponse)
@@ -98,7 +98,7 @@ public class LivesService implements ILivesService {
         @Override
         @Transactional
         public LiveResponse update(LiveUpdateRequest request) {
-                Live live = helper.findOwnedLive(request.id());
+                Live live = helper.findAdminLive(request.id());
 
                 live.setName(request.name());
                 live.setDate(request.date());
@@ -117,7 +117,7 @@ public class LivesService implements ILivesService {
         @Override
         @Transactional
         public void delete(UUID id) {
-                Live live = helper.findOwnedLive(id);
+                Live live = helper.findAdminLive(id);
 
                 live.markDeleted();
                 liveRepository.save(live);
@@ -150,7 +150,7 @@ public class LivesService implements ILivesService {
         @Override
         @Transactional
         public SettingSheetConfigResponse updateSettingSheetConfig(UUID id, SettingSheetConfigUpdateRequest request) {
-                Live live = helper.findOwnedLive(id);
+                Live live = helper.findAdminLive(id);
 
                 SettingSheetConfigResponse normalized = settingSheetConfigService.normalizeSettingSheetConfig(request);
                 live.setSettingsJson(settingSheetConfigService.writeSettingSheetConfig(normalized));
@@ -175,7 +175,7 @@ public class LivesService implements ILivesService {
                 helper.findOwnedLive(liveId);
 
                 return settingSheetSubmissionRepository
-                                .findAllByLiveIdAndLiveTenantUserIdAndLiveDeletedAtIsNullOrderByCreatedAtDesc(liveId,
+                                .findAllByLiveIdAndAccessibleByUserId(liveId,
                                                 currentUser.getId())
                                 .stream()
                                 .map(helper::toSubmissionResponse)
@@ -203,7 +203,7 @@ public class LivesService implements ILivesService {
                 helper.findOwnedLive(liveId);
 
                 return settingSheetSubmissionRepository
-                                .findAllByLiveIdAndLiveTenantUserIdAndLiveDeletedAtIsNullOrderByCreatedAtDesc(liveId,
+                                .findAllByLiveIdAndAccessibleByUserId(liveId,
                                                 currentUser.getId())
                                 .stream()
                                 .map(submission -> {
@@ -316,14 +316,14 @@ public class LivesService implements ILivesService {
         @Override
         @Transactional
         public SongDuplicateResponse refreshSongDuplicates(UUID liveId) {
-                helper.findOwnedLive(liveId);
+                helper.findAdminLive(liveId);
                 return songDuplicateDetectionService.forceComputeAndStoreSync(liveId);
         }
 
         @Override
         @Transactional
         public SongDuplicateResponse toggleDismissSongDuplicate(UUID liveId, String normalizedTitle) {
-                helper.findOwnedLive(liveId);
+                helper.findAdminLive(liveId);
                 return songDuplicateDetectionService.toggleDismiss(liveId, normalizedTitle);
         }
 
