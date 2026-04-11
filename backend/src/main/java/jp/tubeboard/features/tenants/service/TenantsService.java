@@ -3,7 +3,10 @@ package jp.tubeboard.features.tenants.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -72,6 +75,7 @@ public class TenantsService implements ITenantsService {
                 return TenantsCreateResponse.builder()
                                 .id(savedTenants.getId())
                                 .name(savedTenants.getName())
+                                .role(TenantRole.ADMIN.name())
                                 .build();
         }
 
@@ -116,12 +120,18 @@ public class TenantsService implements ITenantsService {
                         tenantsList = tenantsRepository.findAllAccessibleByUserId(currentUser.getId());
                 }
 
+                Map<UUID, TenantRole> userTenantMap = userTenantRepository
+                                .findAllByUserIdAndDeletedAtIsNull(currentUser.getId())
+                                .stream()
+                                .collect(Collectors.toMap(
+                                                ut -> ut.getTenant().getId(),
+                                                UserTenant::getRole,
+                                                (a, b) -> a));
+
                 return tenantsList.stream().map(tenants -> {
-                        String role = userTenantRepository
-                                        .findByTenantIdAndUserIdAndDeletedAtIsNull(tenants.getId(),
-                                                        currentUser.getId())
-                                        .map(ut -> ut.getRole().name())
-                                        .orElse(TenantRole.MEMBER.name());
+                        String role = userTenantMap
+                                        .getOrDefault(tenants.getId(), TenantRole.MEMBER)
+                                        .name();
                         return TenantResponse.builder()
                                         .id(tenants.getId())
                                         .name(tenants.getName())
