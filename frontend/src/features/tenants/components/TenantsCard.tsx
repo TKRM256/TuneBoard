@@ -22,7 +22,7 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
   const [isEditing, setIsEditing] = useState(false);
     const [showMembers, setShowMembers] = useState(false);
     const [formValues, setFormValues] = useState<TenantsFormValues>({ name: { value: tenant.name } });
-    const isAdmin = tenant.role === "ADMIN";
+    const isAdmin = tenant.role === "ADMIN" || tenant.role === "OWNER";
 
     const onSubmit = () => {
       apiClient.post<TenantsResponse>("/tenants/update", {
@@ -67,8 +67,8 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <h4 className="wrap-break-word text-base font-medium sm:text-lg">{tenant.name}</h4>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${isAdmin ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                        {isAdmin ? "管理者" : "メンバー"}
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tenant.role === "OWNER" ? "bg-amber-100 text-amber-700" : isAdmin ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                        {tenant.role === "OWNER" ? "ホスト" : isAdmin ? "管理者" : "メンバー"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>

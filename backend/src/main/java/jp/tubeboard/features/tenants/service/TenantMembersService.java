@@ -75,6 +75,10 @@ public class TenantMembersService {
                 .findByTenantIdAndUserIdAndDeletedAtIsNull(tenantId, targetUserId)
                 .orElseThrow(() -> new TenantsNotFoundException("メンバーが見つかりません"));
 
+        if (userTenant.getRole() == TenantRole.OWNER) {
+            throw new BadRequestException("ホストユーザーは削除できません");
+        }
+
         userTenant.markDeleted();
         userTenantRepository.save(userTenant);
     }
@@ -85,6 +89,9 @@ public class TenantMembersService {
         User currentUser = requireAdmin(tenantId);
         TenantRole newRole = parseRole(request.role());
 
+        if (newRole == TenantRole.OWNER) {
+            throw new BadRequestException("OWNERロールには変更できません");
+        }
         if (currentUser.getId().equals(targetUserId)) {
             throw new BadRequestException("自分自身のロールは変更できません");
         }
@@ -93,15 +100,22 @@ public class TenantMembersService {
                 .findByTenantIdAndUserIdAndDeletedAtIsNull(tenantId, targetUserId)
                 .orElseThrow(() -> new TenantsNotFoundException("メンバーが見つかりません"));
 
+        if (userTenant.getRole() == TenantRole.OWNER) {
+            throw new BadRequestException("ホストユーザーのロールは変更できません");
+        }
+
         userTenant.setRole(newRole);
         return toResponse(userTenantRepository.save(userTenant));
     }
 
     private User requireAdmin(UUID tenantId) {
         User currentUser = userService.getCurrentUser();
-        userTenantRepository.findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
-                tenantId, currentUser.getId(), TenantRole.ADMIN)
+        UserTenant ut = userTenantRepository
+                .findByTenantIdAndUserIdAndDeletedAtIsNull(tenantId, currentUser.getId())
                 .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
+        if (!ut.getRole().isAdminLevel()) {
+            throw new TenantsNotFoundException("管理者権限がありません");
+        }
         return currentUser;
     }
 

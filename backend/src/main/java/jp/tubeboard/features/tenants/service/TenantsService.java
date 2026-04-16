@@ -69,13 +69,13 @@ public class TenantsService implements ITenantsService {
                 userTenantRepository.save(UserTenant.builder()
                                 .user(currentUser)
                                 .tenant(savedTenants)
-                                .role(TenantRole.ADMIN)
+                                .role(TenantRole.OWNER)
                                 .build());
 
                 return TenantsCreateResponse.builder()
                                 .id(savedTenants.getId())
                                 .name(savedTenants.getName())
-                                .role(TenantRole.ADMIN.name())
+                                .role(TenantRole.OWNER.name())
                                 .build();
         }
 
@@ -83,8 +83,9 @@ public class TenantsService implements ITenantsService {
         public TenantsUpdateResponse update(TenantsUpdateRequest request) {
                 User currentUser = userService.getCurrentUser();
 
-                userTenantRepository.findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
-                                request.id(), currentUser.getId(), TenantRole.ADMIN)
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(
+                                request.id(), currentUser.getId())
+                                .filter(ut -> ut.getRole().isAdminLevel())
                                 .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
 
                 Tenants tenants = tenantsRepository
@@ -114,7 +115,7 @@ public class TenantsService implements ITenantsService {
                         userTenantRepository.save(UserTenant.builder()
                                         .user(currentUser)
                                         .tenant(tenant)
-                                        .role(TenantRole.ADMIN)
+                                        .role(TenantRole.OWNER)
                                         .build());
                         createDummyLiveData(tenant);
                         tenantsList = tenantsRepository.findAllAccessibleByUserId(currentUser.getId());
@@ -161,8 +162,9 @@ public class TenantsService implements ITenantsService {
         public void delete(UUID id) {
                 User currentUser = userService.getCurrentUser();
 
-                userTenantRepository.findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
-                                id, currentUser.getId(), TenantRole.ADMIN)
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(
+                                id, currentUser.getId())
+                                .filter(ut -> ut.getRole().isAdminLevel())
                                 .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
 
                 Tenants tenants = tenantsRepository.findByIdAndAccessibleByUserId(id, currentUser.getId())

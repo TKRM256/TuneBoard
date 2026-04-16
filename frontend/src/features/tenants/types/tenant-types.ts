@@ -29,3 +29,18 @@ export interface AddMemberFormValues {
     error?: string;
   };
 }
+
+export interface CreateInvitationResponse {
+  invitationId: string;
+  token: string;
+  role: string;
+  expiresAt: string;
+}
+
+export interface InvitationInfoResponse {
+  tenantId: string;
+  tenantName: string;
+  role: string;
+  expiresAt: string;
+  expired: boolean;
+}
