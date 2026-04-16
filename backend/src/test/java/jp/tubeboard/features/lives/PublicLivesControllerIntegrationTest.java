@@ -38,6 +38,7 @@ import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.repository.TenantsRepository;
+import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 
 @IntegrationTest
 @AutoConfigureMockMvc
@@ -60,10 +61,14 @@ class PublicLivesControllerIntegrationTest {
         @Autowired
         private SettingSheetSubmissionRepository settingSheetSubmissionRepository;
 
+        @Autowired
+        private UserTenantRepository userTenantRepository;
+
         @BeforeEach
         void setUp() {
                 settingSheetSubmissionRepository.deleteAll();
                 liveRepository.deleteAll();
+                userTenantRepository.deleteAll();
                 tenantsRepository.deleteAll();
                 userRepository.deleteAll();
         }

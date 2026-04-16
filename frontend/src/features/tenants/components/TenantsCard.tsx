@@ -15,11 +15,14 @@ import { ConfirmButton } from "@/components/original/ConfirmButton";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { InlineEditPanel } from "@/components/original/InlineEditPanel";
-import { ChevronRight } from "lucide-react";
+import { TenantMembersPanel } from "./TenantMembersPanel";
+import { ChevronRight, Users } from "lucide-react";
 
 export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: TenantsResponse; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
+    const [showMembers, setShowMembers] = useState(false);
     const [formValues, setFormValues] = useState<TenantsFormValues>({ name: { value: tenant.name } });
+    const isAdmin = tenant.role === "ADMIN";
 
     const onSubmit = () => {
       apiClient.post<TenantsResponse>("/tenants/update", {
@@ -62,7 +65,12 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
             <CardHeader>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                   <div className="min-w-0">
-                    <h4 className="wrap-break-word text-base font-medium sm:text-lg">{tenant.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="wrap-break-word text-base font-medium sm:text-lg">{tenant.name}</h4>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${isAdmin ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                        {isAdmin ? "管理者" : "メンバー"}
+                      </span>
+                    </div>
                     <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -72,9 +80,17 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
                         <ChevronRight className="size-4" />
                       </Link>
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing((prev) => !prev)}>
-                      {isEditing ? "キャンセル" : "編集"}
-                    </Button>
+                    {isAdmin && (
+                      <Button variant="outline" size="sm" onClick={() => { setShowMembers((prev) => !prev); setIsEditing(false); }}>
+                        <Users className="size-4" />
+                        メンバー
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button variant="outline" size="sm" onClick={() => { setIsEditing((prev) => !prev); setShowMembers(false); }}>
+                        {isEditing ? "キャンセル" : "編集"}
+                      </Button>
+                    )}
                   </div>
                 </div>
             </CardHeader>
@@ -101,6 +117,11 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
                       </div>
                     </motion.div>
             </InlineEditPanel>
+            {isAdmin && (
+              <InlineEditPanel open={showMembers}>
+                <TenantMembersPanel tenantId={tenant.id} />
+              </InlineEditPanel>
+            )}
         </Card>
         </motion.div>);
 }

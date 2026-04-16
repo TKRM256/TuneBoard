@@ -250,7 +250,6 @@ export const LiveFormEditorPage = () => {
           <CardHeader>
             <div>
               <h2 className="text-lg font-semibold">ブロック構成</h2>
-              <p className="text-sm text-muted-foreground">並び順、見た目、必須設定、入れ子構造をここで調整します。</p>
             </div>
           </CardHeader>
           <CardContent>

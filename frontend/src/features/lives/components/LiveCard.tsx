@@ -35,11 +35,12 @@ import {
 interface LiveCardProps {
   live: LiveResponse;
   tenantId: string;
+  isAdmin?: boolean;
   onUpdateSuccess: (live: LiveResponse) => void;
   onDelete: (id: string) => void;
 }
 
-export const LiveCard = ({ live, tenantId, onUpdateSuccess, onDelete }: LiveCardProps) => {
+export const LiveCard = ({ live, tenantId, isAdmin, onUpdateSuccess, onDelete }: LiveCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formValues, setFormValues] = useState<LiveFormValues>(() => createLiveFormFromResponse(live));
 
@@ -118,13 +119,15 @@ export const LiveCard = ({ live, tenantId, onUpdateSuccess, onDelete }: LiveCard
           <div className="flex items-center gap-1.5">
             <Button asChild size="sm">
               <Link to={`/tenants/${tenantId}/lives/${live.id}`}>
-                管理
+                {isAdmin ? '管理' : '詳細'}
                 <ChevronRight className="size-4" />
               </Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setIsEditing((prev) => !prev)}>
-              {isEditing ? "キャンセル" : "編集"}
-            </Button>            
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditing((prev) => !prev)}>
+                {isEditing ? "キャンセル" : "編集"}
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>

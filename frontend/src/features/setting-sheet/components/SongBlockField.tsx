@@ -78,7 +78,7 @@ export const SongBlockField = ({
 
       {showItunesSelector ? (
         <>
-          <div className="mt-3">
+          <div className="mt-3 min-w-0">
             <ItunesTrackSelector
               selected={itunesLink}
               onSelect={handleItunesSelect}
@@ -113,8 +113,8 @@ export const SongBlockField = ({
               iTunesで検索
             </Button>
           ) : null}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+            <div className="min-w-0">
               <Label htmlFor={`${inputId}-title`} className="text-xs text-muted-foreground">曲名</Label>
               <Input
                 id={`${inputId}-title`}
@@ -124,7 +124,7 @@ export const SongBlockField = ({
                 className="mt-1"
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <Label htmlFor={`${inputId}-artist`} className="text-xs text-muted-foreground">アーティスト名</Label>
               <Input
                 id={`${inputId}-artist`}
@@ -139,8 +139,8 @@ export const SongBlockField = ({
       ) : null}
 
       {!onItunesLinkChange ? (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div>
+        <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
+          <div className="min-w-0">
             <Label htmlFor={`${inputId}-title`} className="text-xs text-muted-foreground">曲名</Label>
             <Input
               id={`${inputId}-title`}
@@ -150,7 +150,7 @@ export const SongBlockField = ({
               className="mt-1"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <Label htmlFor={`${inputId}-artist`} className="text-xs text-muted-foreground">アーティスト名</Label>
             <Input
               id={`${inputId}-artist`}

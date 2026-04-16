@@ -104,8 +104,8 @@ export const TenantLivesPage = () => {
         </CardHeader>
       </Card>
 
-      <CreateLiveCard tenantId={tenant.id} onCreateSuccess={handleCreateSuccess} />
-      <LiveListCard lives={lives} tenantName={tenant.name} tenantId={tenant.id} onUpdateSuccess={handleUpdateSuccess} onDelete={handleDelete} />
+      {tenant.role === 'ADMIN' && <CreateLiveCard tenantId={tenant.id} onCreateSuccess={handleCreateSuccess} />}
+      <LiveListCard lives={lives} tenantName={tenant.name} tenantId={tenant.id} isAdmin={tenant.role === 'ADMIN'} onUpdateSuccess={handleUpdateSuccess} onDelete={handleDelete} />
     </div>
   );
 };

@@ -17,11 +17,12 @@ interface SongDuplicatesPanelProps {
   isLoading: boolean;
   onRefresh: () => void;
   onDismiss?: (normalizedTitle: string) => void;
+  isAdmin?: boolean;
 }
 
-export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss }: SongDuplicatesPanelProps) => {
+export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isAdmin = true }: SongDuplicatesPanelProps) => {
 
-  const menuButton = (
+  const menuButton = isAdmin ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="size-8" disabled={isLoading}>
@@ -35,7 +36,7 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss }: S
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  ) : null;
 
   if (data == null) {
     return (

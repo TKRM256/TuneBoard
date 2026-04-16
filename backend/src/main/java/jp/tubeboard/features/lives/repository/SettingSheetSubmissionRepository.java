@@ -5,6 +5,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
@@ -24,4 +26,17 @@ public interface SettingSheetSubmissionRepository extends JpaRepository<SettingS
 			Long userId);
 
 	List<SettingSheetSubmission> findAllByLiveIdOrderByCreatedAtDesc(UUID liveId);
+
+	@Query("SELECT s FROM SettingSheetSubmission s JOIN UserTenant ut ON ut.tenant = s.live.tenant "
+			+ "WHERE s.live.id = :liveId AND ut.user.id = :userId "
+			+ "AND s.live.deletedAt IS NULL AND ut.deletedAt IS NULL "
+			+ "ORDER BY s.createdAt DESC")
+	List<SettingSheetSubmission> findAllByLiveIdAndAccessibleByUserId(
+			@Param("liveId") UUID liveId, @Param("userId") Long userId);
+
+	@Query("SELECT s FROM SettingSheetSubmission s JOIN UserTenant ut ON ut.tenant = s.live.tenant "
+			+ "WHERE s.id = :id AND s.live.id = :liveId AND ut.user.id = :userId "
+			+ "AND s.live.deletedAt IS NULL AND ut.deletedAt IS NULL")
+	Optional<SettingSheetSubmission> findByIdAndLiveIdAndAccessibleByUserId(
+			@Param("id") UUID id, @Param("liveId") UUID liveId, @Param("userId") Long userId);
 }
