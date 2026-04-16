@@ -2,23 +2,27 @@ import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "sonner";
 import type { ApiClientError } from "@/lib/api/type";
-import type { TenantMemberResponse, AddMemberFormValues } from "../types/tenant-types";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import type { TenantMemberResponse, CreateInvitationResponse } from "../types/tenant-types";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ConfirmButton } from "@/components/original/ConfirmButton";
-import { Trash2 } from "lucide-react";
+import { Trash2, Copy, Check, Link } from "lucide-react";
 import { motion } from "framer-motion";
+
+interface InvitationLinkState {
+  url: string;
+  expiresAt: string;
+  role: string;
+}
 
 export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
   const [members, setMembers] = useState<TenantMemberResponse[]>([]);
-  const [formValues, setFormValues] = useState<AddMemberFormValues>({
-    email: { value: "" },
-    role: { value: "MEMBER" },
-  });
+  const [inviteRole, setInviteRole] = useState("MEMBER");
+  const [invitation, setInvitation] = useState<InvitationLinkState | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const fetchMembers = useCallback(() => {
     apiClient
@@ -35,36 +39,30 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
     fetchMembers();
   }, [fetchMembers]);
 
-  const handleAdd = () => {
-    setFormValues((prev) => ({
-      email: { ...prev.email, error: undefined },
-      role: { ...prev.role, error: undefined },
-    }));
-
+  const handleGenerateInvitation = () => {
+    setIsGenerating(true);
+    setInvitation(null);
     apiClient
-      .post<TenantMemberResponse>(`/tenants/${tenantId}/members`, {
-        email: formValues.email.value,
-        role: formValues.role.value,
-      })
+      .post<CreateInvitationResponse>(`/tenants/${tenantId}/invitations`, { role: inviteRole })
       .then((response) => {
         if (response) {
-          setMembers((prev) => [...prev, response]);
-          setFormValues({ email: { value: "" }, role: { value: "MEMBER" } });
-          toast.success("メンバーを追加しました", { position: "top-center" });
+          const url = `${window.location.origin}/invitation/${response.token}`;
+          setInvitation({ url, expiresAt: response.expiresAt, role: response.role });
         }
       })
       .catch((error: ApiClientError) => {
         const msg = error.apiError?.message;
-        const fieldErrors = error.apiError?.fieldErrors;
-        if (fieldErrors) {
-          setFormValues((prev) => ({
-            email: { ...prev.email, error: fieldErrors["email"] },
-            role: { ...prev.role, error: fieldErrors["role"] },
-          }));
-        } else if (msg) {
-          toast.error(msg, { position: "top-center" });
-        }
-      });
+        toast.error(msg ?? "招待リンクの生成に失敗しました", { position: "top-center" });
+      })
+      .finally(() => setIsGenerating(false));
+  };
+
+  const handleCopy = () => {
+    if (!invitation) return;
+    navigator.clipboard.writeText(invitation.url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const handleRemove = (userId: number) => {
@@ -150,53 +148,50 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
         ))}
       </div>
 
-      {/* Add member form */}
-      <div className="border-t pt-3">
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor={`add-email-${tenantId}`}>
-              メールアドレス<span className="text-red-500">*</span>
-            </FieldLabel>
-            <div className="flex gap-2">
-              <Input
-                id={`add-email-${tenantId}`}
-                type="email"
-                placeholder="user@example.com"
-                value={formValues.email.value}
-                onChange={(e) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    email: { value: e.target.value, error: undefined },
-                  }))
-                }
-                className="flex-1"
-              />
-              <Select
-                value={formValues.role.value}
-                onValueChange={(v) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    role: { value: v, error: undefined },
-                  }))
-                }
-              >
-                <SelectTrigger className="w-28">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ADMIN">管理者</SelectItem>
-                  <SelectItem value="MEMBER">メンバー</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button size="sm" onClick={handleAdd}>
-                追加
+      {/* Invite link generation */}
+      <div className="space-y-2 border-t pt-3">
+        <p className="text-xs font-medium text-muted-foreground">招待リンクを発行</p>
+        <div className="flex gap-2">
+          <Select value={inviteRole} onValueChange={setInviteRole}>
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ADMIN">管理者</SelectItem>
+              <SelectItem value="MEMBER">メンバー</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleGenerateInvitation}
+            disabled={isGenerating}
+            className="flex items-center gap-1"
+          >
+            <Link className="size-3.5" />
+            リンクを発行
+          </Button>
+        </div>
+
+        {invitation && (
+          <div className="rounded-md border bg-muted/50 p-2 space-y-1">
+            <div className="flex items-center gap-2">
+              <p className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                {invitation.url}
+              </p>
+              <Button size="icon" variant="ghost" className="size-6 shrink-0" onClick={handleCopy}>
+                {copied ? (
+                  <Check className="size-3.5 text-green-500" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
               </Button>
             </div>
-            {formValues.email.error ? (
-              <FieldError>{formValues.email.error}</FieldError>
-            ) : null}
-          </Field>
-        </FieldGroup>
+            <p className="text-xs text-muted-foreground">
+              有効期限: {new Date(invitation.expiresAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} まで
+            </p>
+          </div>
+        )}
       </div>
     </motion.div>
   );

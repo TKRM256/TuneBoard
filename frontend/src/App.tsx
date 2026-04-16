@@ -13,6 +13,7 @@ const LiveManagementPage = lazy(() => import('./features/lives/pages/LiveManagem
 const LiveFormEditorPage = lazy(() => import('./features/lives/pages/LiveFormEditorPage').then((module) => ({ default: module.LiveFormEditorPage })));
 const LiveSubmissionsPage = lazy(() => import('./features/lives/pages/LiveSubmissionsPage').then((module) => ({ default: module.LiveSubmissionsPage })));
 const LiveVisibilitySettingsPage = lazy(() => import('./features/lives/pages/LiveVisibilitySettingsPage').then((module) => ({ default: module.LiveVisibilitySettingsPage })));
+const InvitationAcceptPage = lazy(() => import('./features/tenants/pages/InvitationAcceptPage').then((module) => ({ default: module.InvitationAcceptPage })));
 
 const routeFallback = (
   <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
@@ -30,6 +31,7 @@ function App() {
           <Route path="/public/lives/:publicToken/submissions/:submissionId" element={<Suspense fallback={routeFallback}><PublicLivePage /></Suspense>} />
           <Route path="/public/lives/:publicToken/submissions/:submissionId/shared" element={<Suspense fallback={routeFallback}><PublicSubmissionSharedPage /></Suspense>} />
           <Route path="/public/lives/:publicToken/submissions/shared" element={<Suspense fallback={routeFallback}><PublicSubmissionSharedPage /></Suspense>} />
+          <Route path="/invitation/:token" element={<Suspense fallback={routeFallback}><InvitationAcceptPage /></Suspense>} />
           <Route
             path="/"
             element={
