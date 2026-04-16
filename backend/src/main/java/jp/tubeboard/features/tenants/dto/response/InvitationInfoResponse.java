@@ -8,6 +8,5 @@ public record InvitationInfoResponse(
         String tenantName,
         String role,
         LocalDateTime expiresAt,
-        boolean expired,
-        boolean used) {
+        boolean expired) {
 }

@@ -86,20 +86,16 @@ export const InvitationAcceptPage = () => {
 
   const roleLabel = info.role === "ADMIN" ? "管理者" : "メンバー";
 
-  if (info.expired || info.used) {
+  if (info.expired) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <Card className="w-full max-w-sm text-center">
           <CardHeader>
-            <CardTitle className="text-destructive">
-              {info.expired ? "有効期限切れ" : "使用済みリンク"}
-            </CardTitle>
+            <CardTitle className="text-destructive">有効期限切れ</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {info.expired
-                ? "この招待リンクは有効期限が切れています。管理者に新しいリンクを発行してもらってください。"
-                : "この招待リンクは既に使用されています。"}
+              この招待リンクは有効期限が切れています。管理者に新しいリンクを発行してもらってください。
             </p>
           </CardContent>
           <CardFooter className="justify-center">

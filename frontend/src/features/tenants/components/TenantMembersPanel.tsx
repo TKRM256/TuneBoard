@@ -39,6 +39,14 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
     fetchMembers();
   }, [fetchMembers]);
 
+    const handleCopy = () => {
+    if (!invitation) return;
+    navigator.clipboard.writeText(invitation.url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const handleGenerateInvitation = () => {
     setIsGenerating(true);
     setInvitation(null);
@@ -48,21 +56,16 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
         if (response) {
           const url = `${window.location.origin}/invitation/${response.token}`;
           setInvitation({ url, expiresAt: response.expiresAt, role: response.role });
+          navigator.clipboard.writeText(url);        
         }
       })
       .catch((error: ApiClientError) => {
         const msg = error.apiError?.message;
         toast.error(msg ?? "招待リンクの生成に失敗しました", { position: "top-center" });
       })
-      .finally(() => setIsGenerating(false));
-  };
-
-  const handleCopy = () => {
-    if (!invitation) return;
-    navigator.clipboard.writeText(invitation.url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+      .finally(() => { 
+        setIsGenerating(false);
+       });
   };
 
   const handleRemove = (userId: number) => {
@@ -119,8 +122,30 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
                 {member.email}
               </p>
             </div>
-            {member.role === "ADMIN" ? (
-              <Badge variant="default">管理者</Badge>
+            {member.role === "OWNER" ? (
+              <Badge variant="default" className="bg-amber-100 text-amber-700 hover:bg-amber-100">ホスト</Badge>
+            ) : member.role === "ADMIN" ? (
+              <>
+                <Select
+                  value={member.role}
+                  onValueChange={(v) => handleRoleChange(member.userId, v)}
+                >
+                  <SelectTrigger className="h-7 w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">管理者</SelectItem>
+                    <SelectItem value="MEMBER">メンバー</SelectItem>
+                  </SelectContent>
+                </Select>
+                <ConfirmButton
+                  onClick={() => handleRemove(member.userId)}
+                  defaultVariant="ghost"
+                  confirmVariant="destructive"
+                >
+                  <Trash2 className="size-4" />
+                </ConfirmButton>
+              </>
             ) : (
               <>
                 <Select

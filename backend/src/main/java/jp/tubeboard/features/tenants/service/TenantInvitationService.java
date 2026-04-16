@@ -40,6 +40,9 @@ public class TenantInvitationService {
     public CreateInvitationResponse createInvitation(UUID tenantId, CreateInvitationRequest request) {
         requireAdmin(tenantId);
         TenantRole role = parseRole(request.role());
+        if (role == TenantRole.OWNER) {
+            throw new BadRequestException("OWNERロールの招待は作成できません");
+        }
 
         Tenants tenant = tenantsRepository.findById(tenantId)
                 .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
@@ -65,15 +68,13 @@ public class TenantInvitationService {
                 .orElseThrow(() -> new BadRequestException("招待リンクが無効です"));
 
         boolean expired = LocalDateTime.now().isAfter(invitation.getExpiresAt());
-        boolean used = invitation.getUsedAt() != null;
 
         return new InvitationInfoResponse(
                 invitation.getTenant().getId(),
                 invitation.getTenant().getName(),
                 invitation.getRole().name(),
                 invitation.getExpiresAt(),
-                expired,
-                used);
+                expired);
     }
 
     @Transactional
@@ -83,9 +84,6 @@ public class TenantInvitationService {
 
         if (LocalDateTime.now().isAfter(invitation.getExpiresAt())) {
             throw new BadRequestException("招待リンクの有効期限が切れています");
-        }
-        if (invitation.getUsedAt() != null) {
-            throw new BadRequestException("この招待リンクは既に使用されています");
         }
 
         User currentUser = userService.getCurrentUser();
@@ -100,15 +98,13 @@ public class TenantInvitationService {
                 .tenant(invitation.getTenant())
                 .role(invitation.getRole())
                 .build());
-
-        invitation.setUsedAt(LocalDateTime.now());
-        invitationRepository.save(invitation);
     }
 
     private void requireAdmin(UUID tenantId) {
         User currentUser = userService.getCurrentUser();
-        userTenantRepository.findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
-                tenantId, currentUser.getId(), TenantRole.ADMIN)
+        userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(
+                tenantId, currentUser.getId())
+                .filter(ut -> ut.getRole().isAdminLevel())
                 .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
     }
 

@@ -87,14 +87,14 @@ class TenantsControllerIntegrationTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].id").value(tenantId.toString()))
                                 .andExpect(jsonPath("$[0].name").value("軽音サークル"))
-                                .andExpect(jsonPath("$[0].role").value("ADMIN"));
+                                .andExpect(jsonPath("$[0].role").value("OWNER"));
 
                 mockMvc.perform(get("/api/tenants/get/{tenantId}", tenantId)
                                 .header("Authorization", "Bearer " + token))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.id").value(tenantId.toString()))
                                 .andExpect(jsonPath("$.name").value("軽音サークル"))
-                                .andExpect(jsonPath("$.role").value("ADMIN"));
+                                .andExpect(jsonPath("$.role").value("OWNER"));
 
                 mockMvc.perform(post("/api/tenants/update")
                                 .header("Authorization", "Bearer " + token)

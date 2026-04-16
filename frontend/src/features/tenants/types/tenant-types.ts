@@ -43,5 +43,4 @@ export interface InvitationInfoResponse {
   role: string;
   expiresAt: string;
   expired: boolean;
-  used: boolean;
 }

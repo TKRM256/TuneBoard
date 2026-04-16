@@ -16,9 +16,6 @@ export const TenantsPage = () => {
               setTenants(response);
           }
       })
-      .catch((error) => {
-          console.log(error);
-      });
   }
 
   const onCreateSuccess = (newTenant: TenantsResponse) => {
