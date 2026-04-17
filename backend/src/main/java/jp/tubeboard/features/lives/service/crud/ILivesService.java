@@ -30,6 +30,12 @@ public interface ILivesService {
 
         void delete(UUID id);
 
+        List<LiveResponse> listTrashedByTenant(UUID tenantId);
+
+        void restoreLive(UUID id);
+
+        void purgeLive(UUID id);
+
         PublicLiveResponse findPublicLive(String publicToken);
 
         SettingSheetConfigResponse getDefaultSettingSheetConfig();
@@ -58,6 +64,14 @@ public interface ILivesService {
         SettingSheetSubmissionResponse updatePublicSettingSheetSubmission(String publicToken,
                         UUID submissionId,
                         PublicSettingSheetSubmissionRequest request);
+
+        void deleteSubmission(UUID liveId, UUID submissionId);
+
+        void restoreSubmission(UUID liveId, UUID submissionId);
+
+        void purgeSubmission(UUID liveId, UUID submissionId);
+
+        List<SettingSheetSubmissionResponse> listTrashedSubmissions(UUID liveId);
 
         SongDuplicateResponse detectSongDuplicates(UUID liveId);
 

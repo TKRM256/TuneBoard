@@ -20,4 +20,9 @@ public interface ITenantsService {
 
     public void delete(UUID id);
 
+    public List<TenantResponse> listTrashed();
+
+    public void restore(UUID id);
+
+    public void purge(UUID id);
 }

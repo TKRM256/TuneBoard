@@ -149,7 +149,7 @@ public class SongDuplicateDetectionService {
 
     private SongDuplicateResponse doComputeAndStore(UUID liveId, boolean force) {
         List<SettingSheetSubmission> submissions = settingSheetSubmissionRepository
-                .findAllByLiveIdOrderByCreatedAtDesc(liveId);
+                .findAllByLiveIdAndDeletedAtIsNullOrderByCreatedAtDesc(liveId);
 
         Live live = submissions.stream().findFirst()
                 .map(SettingSheetSubmission::getLive)
@@ -658,7 +658,7 @@ public class SongDuplicateDetectionService {
             UUID excludeSubmissionId) {
 
         List<SettingSheetSubmission> submissions = settingSheetSubmissionRepository
-                .findAllByLiveIdOrderByCreatedAtDesc(live.getId());
+                .findAllByLiveIdAndDeletedAtIsNullOrderByCreatedAtDesc(live.getId());
 
         if (excludeSubmissionId != null) {
             submissions = submissions.stream()

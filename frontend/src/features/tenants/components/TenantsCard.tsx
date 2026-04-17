@@ -18,7 +18,7 @@ import { InlineEditPanel } from "@/components/original/InlineEditPanel";
 import { TenantMembersPanel } from "./TenantMembersPanel";
 import { ChevronRight, Users } from "lucide-react";
 
-export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: TenantsResponse; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void }) => {
+export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { tenant: TenantsResponse; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void; onRestore?: (tenant: TenantsResponse) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
     const [showMembers, setShowMembers] = useState(false);
     const [formValues, setFormValues] = useState<TenantsFormValues>({ name: { value: tenant.name } });
@@ -54,7 +54,20 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete}: { tenant: Tenant
       apiClient.post<void>("/tenants/delete", {
         id: tenant.id}).then(() => {
           if (onDelete) onDelete(tenant.id);
-          toast.success("テナントが削除されました",{position: "top-center"});
+          toast.success("テナントを削除しました", {
+            position: "top-center",
+            action: {
+              label: "取り消す",
+              onClick: () => {
+                apiClient.post<void>("/tenants/restore", { id: tenant.id }).then(() => {
+                  if (onRestore) onRestore(tenant);
+                  toast.success("テナントを復元しました", { position: "top-center" });
+                }).catch(() => {
+                  toast.error("復元に失敗しました", { position: "top-center" });
+                });
+              },
+            },
+          });
         }
       );
     }

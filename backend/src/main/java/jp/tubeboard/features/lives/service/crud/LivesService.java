@@ -1,5 +1,6 @@
 package jp.tubeboard.features.lives.service.crud;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,7 +29,10 @@ import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
+import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
+import jp.tubeboard.features.tenants.model.TenantRole;
 import jp.tubeboard.features.tenants.model.Tenants;
+import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 import lombok.AllArgsConstructor;
 
 @Service
@@ -42,6 +46,7 @@ public class LivesService implements ILivesService {
         private final SettingSheetSubmissionService settingSheetSubmissionService;
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
         private final SongDuplicateDetectionService songDuplicateDetectionService;
+        private final UserTenantRepository userTenantRepository;
 
         private final LiveServiceHelper helper;
 
@@ -121,6 +126,93 @@ public class LivesService implements ILivesService {
 
                 live.markDeleted();
                 liveRepository.save(live);
+        }
+
+        @Override
+        public List<LiveResponse> listTrashedByTenant(UUID tenantId) {
+                User currentUser = userService.getCurrentUser();
+                helper.findTenant(tenantId, currentUser.getId());
+                LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
+
+                return liveRepository
+                                .findAllTrashedByTenantIdAndAccessibleByUserId(tenantId, currentUser.getId(), cutoff)
+                                .stream()
+                                .map(helper::toResponse)
+                                .toList();
+        }
+
+        @Override
+        @Transactional
+        public void restoreLive(UUID id) {
+                User currentUser = userService.getCurrentUser();
+                Live live = liveRepository.findTrashedByIdAndAccessibleByUserId(id, currentUser.getId())
+                                .orElseThrow(() -> new LivesNotFoundException("ライブが見つかりません"));
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(
+                                live.getTenant().getId(), currentUser.getId())
+                                .filter(ut -> ut.getRole().isAdminLevel())
+                                .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
+
+                live.restore();
+                liveRepository.save(live);
+        }
+
+        @Override
+        @Transactional
+        public void deleteSubmission(UUID liveId, UUID submissionId) {
+                SettingSheetSubmission submission = helper.findOwnedSubmission(liveId, submissionId);
+                submission.markDeleted();
+                settingSheetSubmissionRepository.save(submission);
+        }
+
+        @Override
+        @Transactional
+        public void restoreSubmission(UUID liveId, UUID submissionId) {
+                User currentUser = userService.getCurrentUser();
+                SettingSheetSubmission submission = settingSheetSubmissionRepository
+                                .findTrashedByIdAndLiveIdAndAccessibleByUserId(submissionId, liveId,
+                                                currentUser.getId())
+                                .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
+                submission.restore();
+                settingSheetSubmissionRepository.save(submission);
+        }
+
+        @Override
+        @Transactional
+        public void purgeLive(UUID id) {
+                User currentUser = userService.getCurrentUser();
+                Live live = liveRepository.findTrashedByIdAndAccessibleByUserId(id, currentUser.getId())
+                                .orElseThrow(() -> new LivesNotFoundException("ライブが見つかりません"));
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(
+                                live.getTenant().getId(), currentUser.getId())
+                                .filter(ut -> ut.getRole().isAdminLevel())
+                                .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
+
+                settingSheetSubmissionRepository.deleteAllByLiveId(live.getId());
+                liveRepository.delete(live);
+        }
+
+        @Override
+        @Transactional
+        public void purgeSubmission(UUID liveId, UUID submissionId) {
+                User currentUser = userService.getCurrentUser();
+                SettingSheetSubmission submission = settingSheetSubmissionRepository
+                                .findTrashedByIdAndLiveIdAndAccessibleByUserId(submissionId, liveId,
+                                                currentUser.getId())
+                                .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
+                settingSheetSubmissionRepository.delete(submission);
+        }
+
+        @Override
+        public List<SettingSheetSubmissionResponse> listTrashedSubmissions(UUID liveId) {
+                User currentUser = userService.getCurrentUser();
+                helper.findOwnedLive(liveId);
+                LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
+
+                return settingSheetSubmissionRepository
+                                .findAllTrashedByLiveIdAndAccessibleByUserId(liveId, currentUser.getId(), cutoff)
+                                .stream()
+                                .map(helper::toSubmissionResponse)
+                                .toList();
         }
 
         @Override
@@ -273,7 +365,8 @@ public class LivesService implements ILivesService {
                 }
 
                 return settingSheetSubmissionRepository
-                                .findAllByLivePublicTokenAndLiveDeletedAtIsNullOrderByCreatedAtDesc(publicToken)
+                                .findAllByLivePublicTokenAndLiveDeletedAtIsNullAndDeletedAtIsNullOrderByCreatedAtDesc(
+                                                publicToken)
                                 .stream()
                                 .map(submission -> {
                                         PublicSettingSheetSubmissionRequest payload = settingSheetSubmissionService

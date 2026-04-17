@@ -2,12 +2,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { TenantsResponse } from "../types/tenant-types";
 import { TenantsCard } from "./TenantsCard";
 
-export const ListTenantsCard = ({ tenants, onUpdateSuccess, onDelete }: { tenants: TenantsResponse[]; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void }) => {    
+export const ListTenantsCard = ({ tenants, onUpdateSuccess, onDelete, onRestore, trashTrigger }: { tenants: TenantsResponse[]; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void; onRestore?: (tenant: TenantsResponse) => void; trashTrigger?: React.ReactNode }) => {    
     return (
         <div>
             <Card>
                 <CardHeader>
-                    <h3 className="text-lg font-semibold">テナント一覧</h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">テナント一覧</h3>
+                        {trashTrigger}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-2">
@@ -17,6 +20,7 @@ export const ListTenantsCard = ({ tenants, onUpdateSuccess, onDelete }: { tenant
                                 tenant={tenant} 
                                 onUpdateSuccess={onUpdateSuccess}
                                 onDelete={onDelete}
+                                onRestore={onRestore}
                             />
                         ))}
                     </div>

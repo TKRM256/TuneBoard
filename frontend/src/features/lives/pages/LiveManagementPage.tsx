@@ -58,7 +58,7 @@ export const LiveManagementPage = () => {
         if (configRes) setConfig(normalizeSettingSheetConfig(configRes));
         setDuplicates(dupRes ?? null);
         setDetails(detailsRes ?? []);
-        if (tenantRes) setIsAdmin(tenantRes.role === 'ADMIN');
+        if (tenantRes) setIsAdmin(tenantRes.role === 'ADMIN' || tenantRes.role === 'OWNER');
       })
       .catch(() => {
         toast.error('ライブ情報の取得に失敗しました', { position: 'top-center' });

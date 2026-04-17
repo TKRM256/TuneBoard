@@ -55,8 +55,8 @@ public class LiveServiceHelper {
 
         public Tenants findAdminTenant(UUID tenantId, Long userId) {
                 Tenants tenant = findTenant(tenantId, userId);
-                userTenantRepository.findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
-                                tenantId, userId, TenantRole.ADMIN)
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(tenantId, userId)
+                                .filter(ut -> ut.getRole().isAdminLevel())
                                 .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
                 return tenant;
         }
@@ -75,15 +75,17 @@ public class LiveServiceHelper {
                 User currentUser = userService.getCurrentUser();
                 Live live = liveRepository.findByIdAndAccessibleByUserId(id, currentUser.getId())
                                 .orElseThrow(() -> new LivesNotFoundException("ライブが見つかりません"));
-                userTenantRepository.findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
-                                live.getTenant().getId(), currentUser.getId(), TenantRole.ADMIN)
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(
+                                live.getTenant().getId(), currentUser.getId())
+                                .filter(ut -> ut.getRole().isAdminLevel())
                                 .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
                 return live;
         }
 
         public SettingSheetSubmission findPublicSubmission(String publicToken, UUID submissionId) {
                 return settingSheetSubmissionRepository
-                                .findByIdAndLivePublicTokenAndLiveDeletedAtIsNull(submissionId, publicToken)
+                                .findByIdAndLivePublicTokenAndLiveDeletedAtIsNullAndDeletedAtIsNull(submissionId,
+                                                publicToken)
                                 .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
         }
 

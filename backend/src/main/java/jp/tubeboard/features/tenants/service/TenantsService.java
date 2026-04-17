@@ -36,6 +36,7 @@ import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
 import jp.tubeboard.features.tenants.model.TenantRole;
 import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.model.UserTenant;
+import jp.tubeboard.features.tenants.repository.TenantInvitationRepository;
 import jp.tubeboard.features.tenants.repository.TenantsRepository;
 import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 import jp.tubeboard.features.tenants.service.interfaces.ITenantsService;
@@ -47,6 +48,7 @@ public class TenantsService implements ITenantsService {
 
         private final TenantsRepository tenantsRepository;
         private final UserTenantRepository userTenantRepository;
+        private final TenantInvitationRepository tenantInvitationRepository;
         private final UserService userService;
         private final LiveRepository liveRepository;
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
@@ -159,6 +161,7 @@ public class TenantsService implements ITenantsService {
         }
 
         @Override
+        @Transactional
         public void delete(UUID id) {
                 User currentUser = userService.getCurrentUser();
 
@@ -170,8 +173,80 @@ public class TenantsService implements ITenantsService {
                 Tenants tenants = tenantsRepository.findByIdAndAccessibleByUserId(id, currentUser.getId())
                                 .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
 
-                tenants.setDeletedAt(LocalDateTime.now());
+                tenants.markDeleted();
                 tenantsRepository.save(tenants);
+        }
+
+        @Override
+        public List<TenantResponse> listTrashed() {
+                User currentUser = userService.getCurrentUser();
+                LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
+
+                Map<UUID, TenantRole> userTenantMap = userTenantRepository
+                                .findAllByUserIdAndDeletedAtIsNull(currentUser.getId())
+                                .stream()
+                                .collect(Collectors.toMap(
+                                                ut -> ut.getTenant().getId(),
+                                                UserTenant::getRole,
+                                                (a, b) -> a));
+
+                return tenantsRepository.findAllTrashedAccessibleByUserId(currentUser.getId(), cutoff)
+                                .stream()
+                                .map(tenant -> {
+                                        String role = userTenantMap
+                                                        .getOrDefault(tenant.getId(), TenantRole.MEMBER)
+                                                        .name();
+                                        return TenantResponse.builder()
+                                                        .id(tenant.getId())
+                                                        .name(tenant.getName())
+                                                        .role(role)
+                                                        .build();
+                                })
+                                .toList();
+        }
+
+        @Override
+        @Transactional
+        public void restore(UUID id) {
+                User currentUser = userService.getCurrentUser();
+
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(
+                                id, currentUser.getId())
+                                .filter(ut -> ut.getRole().isAdminLevel())
+                                .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
+
+                Tenants tenants = tenantsRepository.findTrashedByIdAndAccessibleByUserId(id, currentUser.getId())
+                                .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
+
+                tenants.restore();
+                tenantsRepository.save(tenants);
+        }
+
+        @Override
+        @Transactional
+        public void purge(UUID id) {
+                User currentUser = userService.getCurrentUser();
+
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(
+                                id, currentUser.getId())
+                                .filter(ut -> ut.getRole().isAdminLevel())
+                                .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
+
+                Tenants tenants = tenantsRepository.findTrashedByIdAndAccessibleByUserId(id, currentUser.getId())
+                                .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
+
+                purgeTenantRelations(tenants.getId());
+                tenantsRepository.delete(tenants);
+        }
+
+        private void purgeTenantRelations(UUID tenantId) {
+                List<Live> lives = liveRepository.findAllByTenantIdOrderByCreatedAtDesc(tenantId);
+                for (Live live : lives) {
+                        settingSheetSubmissionRepository.deleteAllByLiveId(live.getId());
+                }
+                liveRepository.deleteAllByTenantId(tenantId);
+                tenantInvitationRepository.deleteAllByTenantId(tenantId);
+                userTenantRepository.deleteAllByTenantId(tenantId);
         }
 
         private void createDummyLiveData(Tenants tenant) {
