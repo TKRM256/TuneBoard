@@ -164,7 +164,7 @@ export const LiveManagementPage = () => {
       </Card>
 
       {/* Quick Actions */}
-      <div className={`grid grid-cols-2 gap-3 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-3'}`}>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
         <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
         {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
