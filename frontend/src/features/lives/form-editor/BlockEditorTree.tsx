@@ -98,7 +98,7 @@ export const BlockEditorTree = ({
 
   return (
     <div className="space-y-3">
-        {blocks.map((block, index) => (
+        {blocks.length > 0 ? blocks.map((block, index) => (
           <div key={block.id}>
             {renderBlockEditor(block, index, null)}
             <div className="mt-2 flex justify-end">
@@ -109,7 +109,15 @@ export const BlockEditorTree = ({
                 />
               </div>
           </div>
-        ))}
+        )):
+        <div className="mt-2 flex justify-end">
+          <AddBlockMenu
+            options={SETTING_SHEET_BLOCK_OPTIONS}
+            onSelect={(type) => onInsert(null, 0, type)}
+            buttonLabel="追加"
+          />
+        </div>
+        }      
       </div>
   );
 };

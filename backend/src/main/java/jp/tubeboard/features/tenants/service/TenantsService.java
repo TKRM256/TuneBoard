@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -281,6 +280,7 @@ public class TenantsService implements ITenantsService {
                 PublicSettingSheetSubmissionRequest payload = new PublicSettingSheetSubmissionRequest(List.of(
                                 new FieldAnswerRequest("band-name", List.of(bandName), List.of()),
                                 new FieldAnswerRequest("submission-status", List.of("完成"), List.of()),
+                                new FieldAnswerRequest("members", List.of(), createDummyMembers(bandName)),
                                 new FieldAnswerRequest("setlist", List.of(), List.of(
                                                 new PublicSettingSheetSubmissionRequest.GroupItemRequest("song-entry",
                                                                 List.of(
@@ -299,6 +299,41 @@ public class TenantsService implements ITenantsService {
                 } catch (JsonProcessingException ex) {
                         throw new IllegalStateException("ダミーデータの作成に失敗しました", ex);
                 }
+        }
+
+        private List<PublicSettingSheetSubmissionRequest.GroupItemRequest> createDummyMembers(String bandName) {
+                if ("Dummy Band B".equals(bandName)) {
+                        return List.of(
+                                        createDummyMember("ミユ", true, List.of("Vo")),
+                                        createDummyMember("ソラ", false, List.of("Gt", "Cho")),
+                                        createDummyMember("ハル", false, List.of("Ba")),
+                                        createDummyMember("レン", false, List.of("Dr")));
+                }
+
+                if ("Dummy Band C".equals(bandName)) {
+                        return List.of(
+                                        createDummyMember("ユナ", true, List.of("Vo", "Gt")),
+                                        createDummyMember("コウ", false, List.of("Gt")),
+                                        createDummyMember("シン", false, List.of("Ba")),
+                                        createDummyMember("ナオ", false, List.of("Dr")));
+                }
+
+                return List.of(
+                                createDummyMember("アヤ", true, List.of("Vo")),
+                                createDummyMember("ケン", false, List.of("Gt")),
+                                createDummyMember("リョウ", false, List.of("Ba")),
+                                createDummyMember("タクミ", false, List.of("Dr")));
+        }
+
+        private PublicSettingSheetSubmissionRequest.GroupItemRequest createDummyMember(String name,
+                        boolean representative,
+                        List<String> parts) {
+                return new PublicSettingSheetSubmissionRequest.GroupItemRequest(null, List.of(
+                                new FieldAnswerRequest("member-name", List.of(name), List.of()),
+                                new FieldAnswerRequest("member-representative",
+                                                List.of(Boolean.toString(representative)),
+                                                List.of()),
+                                new FieldAnswerRequest("member-parts", parts, List.of())));
         }
 
 }

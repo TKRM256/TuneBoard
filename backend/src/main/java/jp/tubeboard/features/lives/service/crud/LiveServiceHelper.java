@@ -25,7 +25,6 @@ import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.repository.ItunesTrackLinkRepository;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
-import jp.tubeboard.features.tenants.model.TenantRole;
 import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.repository.TenantsRepository;
 import jp.tubeboard.features.tenants.repository.UserTenantRepository;

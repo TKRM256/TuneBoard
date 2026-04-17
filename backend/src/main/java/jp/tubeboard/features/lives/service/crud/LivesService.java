@@ -30,7 +30,6 @@ import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
-import jp.tubeboard.features.tenants.model.TenantRole;
 import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 import lombok.AllArgsConstructor;

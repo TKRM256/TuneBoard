@@ -1,7 +1,7 @@
 /** Live submissions list with detail dialog and song duplicate detection. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Copy, ExternalLink, MoreHorizontal, Search, Trash2 } from 'lucide-react';
+import { ChevronLeft,Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -15,12 +15,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -231,18 +225,8 @@ export const LiveSubmissionsPage = () => {
   }
 
   const selectedDetail = details.find((d) => d.id === selectedSubmissionId) ?? null;
-  const sharedListUrl = `${window.location.origin}/public/lives/${live.publicToken}/submissions/shared`;
   const buildEditFormUrl = (submissionId: string) => `${window.location.origin}/public/lives/${live.publicToken}/submissions/${submissionId}`;
-
-  const copySharedLink = async () => {
-    try {
-      await navigator.clipboard.writeText(sharedListUrl);
-      toast.success('共有リンクをコピーしました', { position: 'top-center' });
-    } catch {
-      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
-    }
-  };
-
+  
   const copyEditLink = async (submissionId: string) => {
     try {
       await navigator.clipboard.writeText(buildEditFormUrl(submissionId));
@@ -284,7 +268,7 @@ export const LiveSubmissionsPage = () => {
         <CardHeader className="gap-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="space-y-1">
-              <h1 className="text-lg font-semibold sm:text-2xl">提出済みSettingSheet</h1>
+              <h1 className="text-lg font-semibold sm:text-2xl">提出済みフォーム</h1>
               <p className="text-xs text-muted-foreground sm:text-sm">{live.name} / {formatLiveDate(live.date)} / 全{details.length}件</p>
             </div>
             <div className="flex items-center gap-2">
@@ -293,26 +277,7 @@ export const LiveSubmissionsPage = () => {
                   <ChevronLeft className="size-4" />
                   戻る
                 </Link>
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onClick={copySharedLink}>
-                    <Copy className="size-4" />
-                    共有一覧リンクをコピー
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href={sharedListUrl} target="_blank" rel="noreferrer">
-                      <ExternalLink className="size-4" />
-                      共有一覧を開く
-                    </a>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              </Button>              
             </div>
           </div>
         </CardHeader>
@@ -326,11 +291,6 @@ export const LiveSubmissionsPage = () => {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  {hasVisibleColumns
-                    ? '共有ページと同じ公開項目のみ表示。行をクリックすると詳細を確認できます。'
-                    : '共有ページで公開する項目を設定すると、その項目だけがここでも一覧表示されます。'}
-                </p>
               </div>
               {isAdmin && <TrashButton onClick={handleOpenTrash} count={trashedDetails.length} />}
             </div>

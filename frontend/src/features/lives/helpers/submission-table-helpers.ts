@@ -77,5 +77,9 @@ export function extractCellValue(
     .map((item) => extractCellValue(item.answers, restPath, blockType))
     .filter((value) => value !== '未入力');
 
-  return nestedValues.length === 0 ? '未入力' : nestedValues.join('\n');
+  return nestedValues.length === 0 ? '未入力' : nestedValues.map(
+    (value) => {
+      return blockType === 'BOOLEAN' ? (value === 'true' ? 'はい' : 'いいえ') : value;
+    }
+  ).join('\n');
 }
