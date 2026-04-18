@@ -138,7 +138,6 @@ export const PublicSubmissionSharedPage = () => {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   className="pl-9"
-                  placeholder="公開項目で検索"
                   disabled={!hasVisibleColumns}
                 />
             </div>
