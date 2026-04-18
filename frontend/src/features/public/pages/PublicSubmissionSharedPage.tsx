@@ -143,9 +143,8 @@ export const PublicSubmissionSharedPage = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-              <span>件数: {filteredSubmissions.length}件</span>
-              <span>公開項目: {columns.length}件</span>
+            <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
+              <span>提出: {filteredSubmissions.length}件</span>
               <Link to={`/public/lives/${publicToken}`} className="underline underline-offset-4">公開フォームに戻る</Link>
             </div>
           </CardContent>
@@ -188,7 +187,6 @@ export const PublicSubmissionSharedPage = () => {
                   </Table>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">このページには管理者が公開設定した項目のみ表示されます。</p>
           </CardContent>
         </Card>
       </div>
