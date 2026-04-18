@@ -55,9 +55,8 @@ export const TenantsPage = () => {
 
   const handleRestoreFromTrash = (id: string) => {
     apiClient.post<void>("/tenants/restore", { id }).then(() => {
-      const restored = trashedTenants.find((t) => t.id === id);
       setTrashedTenants((prev) => prev.filter((t) => t.id !== id));
-      if (restored) setTenants((prev) => [restored, ...prev]);
+      fetchTenants();
       toast.success("テナントを復元しました", { position: "top-center" });
     }).catch(() => {
       toast.error("復元に失敗しました", { position: "top-center" });
