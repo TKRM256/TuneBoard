@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { Copy, ExternalLink, Send } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +44,8 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
     settingSheetConfig,
     submissionStatusMessage,
     updateScopedAnswers,
+    submittedFormUrl,
+    copySubmittedFormUrl,
   } = useSettingSheetForm({
     publicToken,
     live,
@@ -57,23 +58,6 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
       return block.options;
     }
     return resolveOptionSourceValues(settingSheetConfig.blocks, formValues.answers, block.optionSource as SettingSheetOptionSource);
-  };
-
-  const submittedFormUrl = submission
-    ? `${window.location.origin}/public/lives/${publicToken}/submissions/${submission.id}`
-    : null;
-
-  const copySubmittedFormUrl = async () => {
-    if (!submittedFormUrl) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(submittedFormUrl);
-      toast.success('編集リンクをコピーしました', { position: 'top-center' });
-    } catch {
-      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
-    }
   };
 
   return (
@@ -118,31 +102,27 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                   <span className="min-w-0 wrap-break-word">提出済み一覧を見る</span>
                 </a>
               )}
-              <div className="rounded-2xl border border-dashed p-2 text-sm">
-                <p className="text-xs text-muted-foreground">
+              <div className="flex gap-2 items-center justify-between rounded-2xl border border-dashed p-2 text-sm">
+                <p className="text-sm text-muted-foreground">
                   {draftSavedAt ? `下書きを自動保存: ${new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(draftSavedAt))}` : 'まだ下書き保存はありません。'}
                 </p>
+              {submission && submittedFormUrl ? (
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={copySubmittedFormUrl}>
+                    編集用リンクをコピー
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+              ) : null}
+
               </div>
+
+
             </CardHeader>
           </Card>
         </aside>
 
         <main className="min-w-0 space-y-6">
-          {submission && submittedFormUrl ? (
-            <Alert>
-              <AlertTitle>この回答は保存されています</AlertTitle>
-              <AlertDescription className="space-y-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <p className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                    {submittedFormUrl}
-                  </p>
-                  <Button type="button" variant="outline" size="sm" onClick={copySubmittedFormUrl}>
-                    <Copy className="size-4" />
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          ) : null}
 
           {isSubmissionClosed ? (
             <Alert>
