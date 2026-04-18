@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { Copy, ExternalLink, Send } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +44,8 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
     settingSheetConfig,
     submissionStatusMessage,
     updateScopedAnswers,
+    submittedFormUrl,
+    copySubmittedFormUrl,
   } = useSettingSheetForm({
     publicToken,
     live,
@@ -57,23 +58,6 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
       return block.options;
     }
     return resolveOptionSourceValues(settingSheetConfig.blocks, formValues.answers, block.optionSource as SettingSheetOptionSource);
-  };
-
-  const submittedFormUrl = submission
-    ? `${window.location.origin}/public/lives/${publicToken}/submissions/${submission.id}`
-    : null;
-
-  const copySubmittedFormUrl = async () => {
-    if (!submittedFormUrl) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(submittedFormUrl);
-      toast.success('編集リンクをコピーしました', { position: 'top-center' });
-    } catch {
-      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
-    }
   };
 
   return (
