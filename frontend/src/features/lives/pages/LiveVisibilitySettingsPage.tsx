@@ -514,7 +514,7 @@ function VisibilityTreeNode({
             className={sharedToggleClassName}
           >
             {block.publicVisible ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-            {block.publicVisible ? '共有中' : '非公開'}
+            共有
           </Toggle>
           <Toggle
             variant="outline"
@@ -524,7 +524,7 @@ function VisibilityTreeNode({
             className={formToggleClassName}
           >
             {!block.hidden ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-            {block.hidden ? '非表示' : '表示中'}
+            フォーム
           </Toggle>
         </div>
       </div>
