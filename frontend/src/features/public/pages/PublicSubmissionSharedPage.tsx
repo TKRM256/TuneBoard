@@ -12,13 +12,14 @@ import { apiClient } from '@/lib/api/client';
 import { ApiClientError } from '@/lib/api/type';
 import {
   isSectionBlock,
-  isRepeatableGroupBlock,
   type PublicLiveResponse,
   type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetBlock,
-  type SettingSheetSubmissionAnswerResponse,
   type SettingSheetConfigResponse,
 } from '@/features/lives/types/live-types';
+
+import { extractCellValue } from '../../lives/helpers/submission-table-helpers';
+
 
 interface ColumnDef {
   id: string;
@@ -137,7 +138,6 @@ export const PublicSubmissionSharedPage = () => {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   className="pl-9"
-                  placeholder="公開項目で検索"
                   disabled={!hasVisibleColumns}
                 />
             </div>
@@ -230,45 +230,4 @@ function collectColumns(config: SettingSheetConfigResponse | null): ColumnDef[] 
 
   visit(config.blocks, [], []);
   return columns;
-}
-
-function extractCellValue(
-  answers: SettingSheetSubmissionAnswerResponse[],
-  path: string[],
-  blockType: SettingSheetBlock['type'],
-): string {
-  if (path.length === 0) {
-    return '未入力';
-  }
-
-  const [currentId, ...restPath] = path;
-  const answer = answers.find((entry) => entry.fieldId === currentId);
-  if (!answer) {
-    return '未入力';
-  }
-
-  if (restPath.length === 0) {
-    if (blockType === 'REPEATABLE_GROUP') {
-      if (answer.items.length === 0) {
-        return '未入力';
-      }
-      return `${answer.items.length}件`;
-    }
-
-    return answer.values.length > 0 ? answer.values.join(' / ') : '未入力';
-  }
-
-  const nestedValues = answer.items
-    .map((item) => extractCellValue(item.answers, restPath, blockType))
-    .filter((value) => value !== '未入力');
-
-  if (nestedValues.length === 0) {
-    if (isRepeatableGroupBlock(blockType)) {
-      return '未入力';
-    }
-
-    return '未入力';
-  }
-
-  return nestedValues.join('\n');
 }

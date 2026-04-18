@@ -318,7 +318,7 @@ export const LiveSubmissionsPage = () => {
             </div>
             <div className="relative w-full sm:max-w-sm">
               <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
-              <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-8" placeholder="公開項目で検索" disabled={!hasVisibleColumns} />
+              <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-8" disabled={!hasVisibleColumns} />
             </div>
             <div>
               <p>提出: {filteredDetails.length}件</p>
