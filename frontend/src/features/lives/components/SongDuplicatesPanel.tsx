@@ -17,10 +17,11 @@ interface SongDuplicatesPanelProps {
   isLoading: boolean;
   onRefresh: () => void;
   onDismiss?: (normalizedTitle: string) => void;
+  isDismissing?: (normalizedTitle: string) => boolean;
   isAdmin?: boolean;
 }
 
-export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isAdmin = true }: SongDuplicatesPanelProps) => {
+export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isDismissing, isAdmin = true }: SongDuplicatesPanelProps) => {
 
   const menuButton = isAdmin ? (
     <DropdownMenu>
@@ -93,6 +94,7 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isA
               group={group}
               index={groupIndex}
               onDismiss={onDismiss}
+              isDismissing={isDismissing}
             />
           ))}
           {dismissedGroups.length > 0 && (
@@ -106,7 +108,7 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isA
                   )}
                   <ConfidenceBadge confidence={group.confidence} />
                   {onDismiss && (
-                    <Button variant="ghost" size="sm" className="ml-auto h-7 text-xs" onClick={() => onDismiss(group.normalizedTitle)}>
+                    <Button variant="ghost" size="sm" className="ml-auto h-7 text-xs" onClick={() => onDismiss(group.normalizedTitle)} disabled={isDismissing?.(group.normalizedTitle)}>
                       除外解除
                     </Button>
                   )}
@@ -149,10 +151,12 @@ function DuplicateGroupCard({
   group,
   index,
   onDismiss,
+  isDismissing,
 }: {
   group: SongDuplicateGroup;
   index: number;
   onDismiss?: (normalizedTitle: string) => void;
+  isDismissing?: (normalizedTitle: string) => boolean;
 }) {
   return (
     <div className="space-y-2">
@@ -177,6 +181,7 @@ function DuplicateGroupCard({
             size="sm"
             className="ml-auto h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
             onClick={() => onDismiss(group.normalizedTitle)}
+            disabled={isDismissing?.(group.normalizedTitle)}
           >
             <X className="size-3" />
             被りじゃない

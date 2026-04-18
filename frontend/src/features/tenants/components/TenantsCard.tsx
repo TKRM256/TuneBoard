@@ -17,25 +17,30 @@ import { Link } from "react-router-dom";
 import { InlineEditPanel } from "@/components/original/InlineEditPanel";
 import { TenantMembersPanel } from "./TenantMembersPanel";
 import { ChevronRight, Users } from "lucide-react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 
 export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { tenant: TenantsResponse; onUpdateSuccess: (updatedTenant: TenantsResponse) => void; onDelete?: (id: string) => void; onRestore?: (tenant: TenantsResponse) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
     const [showMembers, setShowMembers] = useState(false);
     const [formValues, setFormValues] = useState<TenantsFormValues>({ name: { value: tenant.name } });
     const isAdmin = tenant.role === "ADMIN" || tenant.role === "OWNER";
+    const { run: runRestoreTenant } = useSingleFlight();
 
-    const onSubmit = () => {
-      apiClient.post<TenantsResponse>("/tenants/update", {
-        id: tenant.id,
-        name: formValues.name.value
-      }).then((response) => {
+    const onSubmit = async () => {
+      try {
+        const response = await apiClient.post<TenantsResponse>("/tenants/update", {
+          id: tenant.id,
+          name: formValues.name.value
+        });
+
         if(response){
           onUpdateSuccess(response);
           setIsEditing(false);
           toast.success("テナントが更新されました",{position: "top-center"});
         }
-      }).catch((error: ApiClientError) => {
-        const serverFieldErrors = error.apiError?.fieldErrors;
+      } catch (error: unknown) {
+        const apiError = error as ApiClientError;
+        const serverFieldErrors = apiError.apiError?.fieldErrors;
         if(!serverFieldErrors) return;
         for(const key in serverFieldErrors){
           if(key in formValues){
@@ -47,29 +52,36 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
               }
             }));
           }
-      }});
+        }
+      }
     };
 
-    const handleDelete = () => {
-      apiClient.post<void>("/tenants/delete", {
-        id: tenant.id}).then(() => {
-          if (onDelete) onDelete(tenant.id);
-          toast.success("テナントを削除しました", {
-            position: "top-center",
-            action: {
-              label: "取り消す",
-              onClick: () => {
-                apiClient.post<void>("/tenants/restore", { id: tenant.id }).then(() => {
-                  if (onRestore) onRestore(tenant);
-                  toast.success("テナントを復元しました", { position: "top-center" });
-                }).catch(() => {
-                  toast.error("復元に失敗しました", { position: "top-center" });
-                });
-              },
+    const restoreTenant = () => runRestoreTenant(async () => {
+      await apiClient.post<void>("/tenants/restore", { id: tenant.id });
+      if (onRestore) onRestore(tenant);
+      toast.success("テナントを復元しました", { position: "top-center" });
+    });
+
+    const handleDelete = async () => {
+      try {
+        await apiClient.post<void>("/tenants/delete", {
+          id: tenant.id});
+
+        if (onDelete) onDelete(tenant.id);
+        toast.success("テナントを削除しました", {
+          position: "top-center",
+          action: {
+            label: "取り消す",
+            onClick: () => {
+              void restoreTenant().catch(() => {
+                toast.error("復元に失敗しました", { position: "top-center" });
+              });
             },
-          });
-        }
-      );
+          },
+        });
+      } catch {
+        toast.error("テナントの削除に失敗しました", { position: "top-center" });
+      }
     }
 
     return (

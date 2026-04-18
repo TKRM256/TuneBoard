@@ -11,7 +11,7 @@ import {
   type SettingSheetSubmissionResponse,
 } from '@/features/lives/types/live-types';
 import { apiClient } from '@/lib/api/client';
-import type { ApiClientError } from '@/lib/api/type';
+import { ApiClientError } from '@/lib/api/type';
 
 import {
   createDefaultSettingSheetValues,
@@ -24,6 +24,7 @@ import {
   type SettingSheetFormValues,
   type SettingSheetIssue,
 } from '../types';
+import { useSingleFlight } from '@/hooks/use-single-flight';
 
 interface UseSettingSheetFormParams {
   publicToken: string;
@@ -53,8 +54,8 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
 
   const [formValues, setFormValues] = useState<SettingSheetFormValues>(() => initialDraft?.values ?? initialValues);
   const [issues, setIssues] = useState<SettingSheetIssue[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(() => initialDraft?.savedAt ?? null);
+  const { isRunning: isSubmitting, run: runSubmit } = useSingleFlight();
 
   const isSubmissionClosed = isPublicSubmissionClosed(live);
   const submissionStatusMessage = getPublicSubmissionStatusMessage(live);
@@ -152,58 +153,62 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
       return;
     }
 
-    setIsSubmitting(true);
-    const requestPath = submission
-      ? `/public/lives/${publicToken}/setting-sheet/submissions/${submission.id}`
-      : `/public/lives/${publicToken}/setting-sheet/submissions`;
-    const request = toSettingSheetSubmissionPayload(formValues, settingSheetConfig);
-    const submitRequest = submission
-      ? apiClient.put<SettingSheetSubmissionResponse>(requestPath, request)
-      : apiClient.post<SettingSheetSubmissionResponse>(requestPath, request);
+    void runSubmit(async () => {
+      const requestPath = submission
+        ? `/public/lives/${publicToken}/setting-sheet/submissions/${submission.id}`
+        : `/public/lives/${publicToken}/setting-sheet/submissions`;
+      const request = toSettingSheetSubmissionPayload(formValues, settingSheetConfig);
 
-    submitRequest
-      .then((response) => {
+      try {
+        const response = submission
+          ? await apiClient.put<SettingSheetSubmissionResponse>(requestPath, request)
+          : await apiClient.post<SettingSheetSubmissionResponse>(requestPath, request);
+
         setIssues([]);
         window.localStorage.removeItem(storageKey);
         setDraftSavedAt(null);
 
         if (submission) {
-          toast.success('提出済みシートを更新しました。', { position: 'top-center',
+          toast.success('提出済みシートを更新しました。', {
+            position: 'top-center',
             action: {
-            label: '編集用リンクをコピー',
-            onClick: () => {
-              copySubmittedFormUrl();
+              label: '編集用リンクをコピー',
+              onClick: () => {
+                void copySubmittedFormUrl();
+              },
             },
-        },});
+          });
           return;
         }
 
         const savedSubmission = response as SettingSheetSubmissionResponse | void;
         if (savedSubmission?.id) {
           const savedSubmissionUrl = buildSubmittedFormUrl(savedSubmission.id);
-          toast.success('ライブフォームを送信しました。', { position: 'top-center', 
+          toast.success('ライブフォームを送信しました。', {
+            position: 'top-center',
             action: {
-            label: '編集用リンクをコピー',
-            onClick: () => {
-              void copyFormUrl(savedSubmissionUrl);
+              label: '編集用リンクをコピー',
+              onClick: () => {
+                void copyFormUrl(savedSubmissionUrl);
+              },
             },
-        }, });
+          });
           onSubmitted(savedSubmission.id);
           return;
         }
 
         setFormValues(createDefaultSettingSheetValues(settingSheetConfig.blocks));
         toast.success('ライブフォームを送信しました。', { position: 'top-center' });
-        })
-        .catch((error: ApiClientError) => {
-          applyServerErrors(error);
-          toast.error(error.apiError?.message ?? (submission ? '提出済みシートの更新に失敗しました。' : 'ライブフォームの送信に失敗しました。'), {
-            position: 'top-center',
-          });
-        })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+      } catch (error: unknown) {
+        const apiError = error instanceof ApiClientError ? error : undefined;
+        if (apiError) {
+          applyServerErrors(apiError);
+        }
+        toast.error(apiError?.apiError?.message ?? (submission ? '提出済みシートの更新に失敗しました。' : 'ライブフォームの送信に失敗しました。'), {
+          position: 'top-center',
+        });
+      }
+    });
   };
 
   return {

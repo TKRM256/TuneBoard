@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ConfirmButton } from "@/components/original/ConfirmButton";
 import { Trash2, Copy, Check, Link } from "lucide-react";
 import { motion } from "framer-motion";
+import { useKeyedSingleFlight, useSingleFlight } from "@/hooks/use-single-flight";
 
 interface InvitationLinkState {
   url: string;
@@ -21,8 +22,9 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
   const [members, setMembers] = useState<TenantMemberResponse[]>([]);
   const [inviteRole, setInviteRole] = useState("MEMBER");
   const [invitation, setInvitation] = useState<InvitationLinkState | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { isRunning: isGenerating, run: runGenerateInvitation } = useSingleFlight();
+  const { isRunning: isRoleChanging, run: runRoleChange } = useKeyedSingleFlight<number>();
 
   const fetchMembers = useCallback(() => {
     apiClient
@@ -48,24 +50,20 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
   };
 
   const handleGenerateInvitation = () => {
-    setIsGenerating(true);
-    setInvitation(null);
-    apiClient
-      .post<CreateInvitationResponse>(`/tenants/${tenantId}/invitations`, { role: inviteRole })
-      .then((response) => {
+    void runGenerateInvitation(async () => {
+      setInvitation(null);
+      try {
+        const response = await apiClient.post<CreateInvitationResponse>(`/tenants/${tenantId}/invitations`, { role: inviteRole });
         if (response) {
           const url = `${window.location.origin}/invitation/${response.token}`;
           setInvitation({ url, expiresAt: response.expiresAt, role: response.role });
-          navigator.clipboard.writeText(url);        
+          await navigator.clipboard.writeText(url);
         }
-      })
-      .catch((error: ApiClientError) => {
-        const msg = error.apiError?.message;
+      } catch (error: unknown) {
+        const msg = (error as ApiClientError).apiError?.message;
         toast.error(msg ?? "招待リンクの生成に失敗しました", { position: "top-center" });
-      })
-      .finally(() => { 
-        setIsGenerating(false);
-       });
+      }
+    });
   };
 
   const handleRemove = (userId: number) => {
@@ -82,23 +80,23 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
   };
 
   const handleRoleChange = (userId: number, role: string) => {
-    apiClient
-      .put<TenantMemberResponse>(
-        `/tenants/${tenantId}/members/${userId}/role`,
-        { role }
-      )
-      .then((response) => {
+    void runRoleChange(userId, async () => {
+      try {
+        const response = await apiClient.put<TenantMemberResponse>(
+          `/tenants/${tenantId}/members/${userId}/role`,
+          { role }
+        );
         if (response) {
           setMembers((prev) =>
             prev.map((m) => (m.userId === userId ? response : m))
           );
           toast.success("ロールを変更しました", { position: "top-center" });
         }
-      })
-      .catch((error: ApiClientError) => {
-        const msg = error.apiError?.message;
+      } catch (error: unknown) {
+        const msg = (error as ApiClientError).apiError?.message;
         if (msg) toast.error(msg, { position: "top-center" });
-      });
+      }
+    });
   };
 
   return (
@@ -129,6 +127,7 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
                 <Select
                   value={member.role}
                   onValueChange={(v) => handleRoleChange(member.userId, v)}
+                  disabled={isRoleChanging(member.userId)}
                 >
                   <SelectTrigger className="h-7 w-28">
                     <SelectValue />
@@ -142,6 +141,7 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
                   onClick={() => handleRemove(member.userId)}
                   defaultVariant="ghost"
                   confirmVariant="destructive"
+                  disabled={isRoleChanging(member.userId)}
                 >
                   <Trash2 className="size-4" />
                 </ConfirmButton>
@@ -151,6 +151,7 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
                 <Select
                   value={member.role}
                   onValueChange={(v) => handleRoleChange(member.userId, v)}
+                  disabled={isRoleChanging(member.userId)}
                 >
                   <SelectTrigger className="h-7 w-28">
                     <SelectValue />
@@ -164,6 +165,7 @@ export const TenantMembersPanel = ({ tenantId }: { tenantId: string }) => {
                   onClick={() => handleRemove(member.userId)}
                   defaultVariant="ghost"
                   confirmVariant="destructive"
+                  disabled={isRoleChanging(member.userId)}
                 >
                   <Trash2 className="size-4" />
                 </ConfirmButton>

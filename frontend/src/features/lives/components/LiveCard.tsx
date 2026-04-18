@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { apiClient } from '@/lib/api/client';
 import type { ApiClientError } from '@/lib/api/type';
+import { useSingleFlight } from '@/hooks/use-single-flight';
 
 import {
   createLiveFormFromResponse,
@@ -44,6 +45,7 @@ interface LiveCardProps {
 export const LiveCard = ({ live, tenantId, isAdmin, onUpdateSuccess, onDelete, onRestore }: LiveCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formValues, setFormValues] = useState<LiveFormValues>(() => createLiveFormFromResponse(live));
+  const { run: runRestoreLive } = useSingleFlight();
 
   const setFieldValue = (field: keyof LiveFormValues, value: string) => {
     setFormValues((prev) => ({
@@ -71,47 +73,50 @@ export const LiveCard = ({ live, tenantId, isAdmin, onUpdateSuccess, onDelete, o
     });
   };
 
-  const onSubmit = () => {
-    apiClient
-      .post<LiveResponse>('/lives/update', {
+  const onSubmit = async () => {
+    try {
+      const response = await apiClient.post<LiveResponse>('/lives/update', {
         id: live.id,
         ...toLiveUpdatePayload(formValues),
-      })
-      .then((response) => {
-        if (!response) {
-          return;
-        }
-
-        onUpdateSuccess(response);
-        setFormValues(createLiveFormFromResponse(response));
-        setIsEditing(false);
-        toast.success('ライブを更新しました', { position: 'top-center' });
-      })
-      .catch((error: ApiClientError) => {
-        applyServerErrors(error);
       });
+
+      if (!response) {
+        return;
+      }
+
+      onUpdateSuccess(response);
+      setFormValues(createLiveFormFromResponse(response));
+      setIsEditing(false);
+      toast.success('ライブを更新しました', { position: 'top-center' });
+    } catch (error: unknown) {
+      applyServerErrors(error as ApiClientError);
+    }
   };
 
-  const handleDelete = () => {
-    apiClient.post<void>('/lives/delete', { id: live.id }).then(() => {
+  const restoreLive = () => runRestoreLive(async () => {
+    await apiClient.post<void>('/lives/restore', { id: live.id });
+    if (onRestore) onRestore(live);
+    toast.success('ライブを復元しました', { position: 'top-center' });
+  });
+
+  const handleDelete = async () => {
+    try {
+      await apiClient.post<void>('/lives/delete', { id: live.id });
       onDelete(live.id);
       toast.success('ライブを削除しました', {
         position: 'top-center',
         action: {
           label: '取り消す',
           onClick: () => {
-            apiClient.post<void>('/lives/restore', { id: live.id }).then(() => {
-              if (onRestore) onRestore(live);
-              toast.success('ライブを復元しました', { position: 'top-center' });
-            }).catch(() => {
+            void restoreLive().catch(() => {
               toast.error('復元に失敗しました', { position: 'top-center' });
             });
           },
         },
       });
-    }).catch(() => {
+    } catch {
       toast.error('ライブの削除に失敗しました', { position: 'top-center' });
-    });
+    }
   };
 
   const badgeVariant = live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary';

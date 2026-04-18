@@ -19,6 +19,7 @@ import { LiveListCard } from '../components/LiveListCard';
 import type { LiveResponse } from '../types/live-types';
 import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import { apiClient } from '@/lib/api/client';
+import { useKeyedSingleFlight } from '@/hooks/use-single-flight';
 
 export const TenantLivesPage = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -28,6 +29,7 @@ export const TenantLivesPage = () => {
   const [trashOpen, setTrashOpen] = useState(false);
   const [trashFetched, setTrashFetched] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { run: runTrashAction, isRunning: isTrashActionRunning } = useKeyedSingleFlight<string>();
 
   useEffect(() => {
     if (!tenantId) {
@@ -79,22 +81,28 @@ export const TenantLivesPage = () => {
   };
 
   const handleRestoreFromTrash = (id: string) => {
-    apiClient.post<void>('/lives/restore', { id }).then(() => {
-      const restored = trashedLives.find((l) => l.id === id);
-      setTrashedLives((prev) => prev.filter((l) => l.id !== id));
-      if (restored) setLives((prev) => [restored, ...prev]);
-      toast.success('ライブを復元しました', { position: 'top-center' });
-    }).catch(() => {
-      toast.error('復元に失敗しました', { position: 'top-center' });
+    void runTrashAction(id, async () => {
+      try {
+        await apiClient.post<void>('/lives/restore', { id });
+        const restored = trashedLives.find((l) => l.id === id);
+        setTrashedLives((prev) => prev.filter((l) => l.id !== id));
+        if (restored) setLives((prev) => [restored, ...prev]);
+        toast.success('ライブを復元しました', { position: 'top-center' });
+      } catch {
+        toast.error('復元に失敗しました', { position: 'top-center' });
+      }
     });
   };
 
   const handlePurgeLive = (id: string) => {
-    apiClient.post<void>('/lives/purge', { id }).then(() => {
-      setTrashedLives((prev) => prev.filter((l) => l.id !== id));
-      toast.success('ライブを完全に削除しました', { position: 'top-center' });
-    }).catch(() => {
-      toast.error('完全削除に失敗しました', { position: 'top-center' });
+    void runTrashAction(id, async () => {
+      try {
+        await apiClient.post<void>('/lives/purge', { id });
+        setTrashedLives((prev) => prev.filter((l) => l.id !== id));
+        toast.success('ライブを完全に削除しました', { position: 'top-center' });
+      } catch {
+        toast.error('完全削除に失敗しました', { position: 'top-center' });
+      }
     });
   };
 
@@ -170,6 +178,7 @@ export const TenantLivesPage = () => {
         onRestore={handleRestoreFromTrash}
         onPurge={handlePurgeLive}
         entityLabel="ライブ"
+        isPending={isTrashActionRunning}
       />
     </div>
   );
