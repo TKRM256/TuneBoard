@@ -38,9 +38,10 @@ interface LiveCardProps {
   isAdmin?: boolean;
   onUpdateSuccess: (live: LiveResponse) => void;
   onDelete: (id: string) => void;
+  onRestore?: (live: LiveResponse) => void;
 }
 
-export const LiveCard = ({ live, tenantId, isAdmin, onUpdateSuccess, onDelete }: LiveCardProps) => {
+export const LiveCard = ({ live, tenantId, isAdmin, onUpdateSuccess, onDelete, onRestore }: LiveCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formValues, setFormValues] = useState<LiveFormValues>(() => createLiveFormFromResponse(live));
 
@@ -94,7 +95,20 @@ export const LiveCard = ({ live, tenantId, isAdmin, onUpdateSuccess, onDelete }:
   const handleDelete = () => {
     apiClient.post<void>('/lives/delete', { id: live.id }).then(() => {
       onDelete(live.id);
-      toast.success('ライブを削除しました', { position: 'top-center' });
+      toast.success('ライブを削除しました', {
+        position: 'top-center',
+        action: {
+          label: '取り消す',
+          onClick: () => {
+            apiClient.post<void>('/lives/restore', { id: live.id }).then(() => {
+              if (onRestore) onRestore(live);
+              toast.success('ライブを復元しました', { position: 'top-center' });
+            }).catch(() => {
+              toast.error('復元に失敗しました', { position: 'top-center' });
+            });
+          },
+        },
+      });
     }).catch(() => {
       toast.error('ライブの削除に失敗しました', { position: 'top-center' });
     });

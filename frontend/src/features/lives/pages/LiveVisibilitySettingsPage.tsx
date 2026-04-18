@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toggle } from '@/components/ui/toggle';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
+
 import {
   canContainBlocks,
   normalizeSettingSheetConfig,
@@ -166,8 +167,7 @@ export const LiveVisibilitySettingsPage = () => {
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
-                <ChevronLeft className="size-4" />
-                <span className="hidden sm:inline">ダッシュボードに</span>戻る
+                <ChevronLeft className="size-4" />戻る
               </Link>
             </Button>
           </div>

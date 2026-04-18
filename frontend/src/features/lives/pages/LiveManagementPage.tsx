@@ -58,7 +58,7 @@ export const LiveManagementPage = () => {
         if (configRes) setConfig(normalizeSettingSheetConfig(configRes));
         setDuplicates(dupRes ?? null);
         setDetails(detailsRes ?? []);
-        if (tenantRes) setIsAdmin(tenantRes.role === 'ADMIN');
+        if (tenantRes) setIsAdmin(tenantRes.role === 'ADMIN' || tenantRes.role === 'OWNER');
       })
       .catch(() => {
         toast.error('ライブ情報の取得に失敗しました', { position: 'top-center' });
@@ -164,9 +164,8 @@ export const LiveManagementPage = () => {
       </Card>
 
       {/* Quick Actions */}
-      <div className={`grid grid-cols-2 gap-3 ${isAdmin ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
-        <QuickActionExternal icon={<ExternalLink className="size-5" />} label="公開フォーム" href={publicUrl} />
         <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
         {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
       </div>
@@ -301,20 +300,6 @@ function QuickActionLink({ icon, label, to }: { icon: ReactNode; label: string; 
       {icon}
       <span className="text-xs font-medium">{label}</span>
     </Link>
-  );
-}
-
-function QuickActionExternal({ icon, label, href }: { icon: ReactNode; label: string; href: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="flex flex-col items-center justify-center gap-1.5 rounded-lg border bg-card px-2 py-4 text-card-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-    >
-      {icon}
-      <span className="text-xs font-medium">{label}</span>
-    </a>
   );
 }
 

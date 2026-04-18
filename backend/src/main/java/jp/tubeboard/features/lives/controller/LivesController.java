@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
+import jp.tubeboard.features.lives.dto.request.LivePurgeRequest;
+import jp.tubeboard.features.lives.dto.request.LiveRestoreRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SongDuplicateDismissRequest;
@@ -47,6 +49,11 @@ public class LivesController {
         return ResponseEntity.ok(livesService.listByTenant(tenantId));
     }
 
+    @GetMapping("/tenant/{tenantId}/trash")
+    public ResponseEntity<List<LiveResponse>> listTrashedByTenant(@PathVariable(name = "tenantId") UUID tenantId) {
+        return ResponseEntity.ok(livesService.listTrashedByTenant(tenantId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<LiveResponse> get(@PathVariable(name = "id") UUID id) {
         return ResponseEntity.ok(livesService.get(id));
@@ -60,6 +67,18 @@ public class LivesController {
     @PostMapping("/delete")
     public ResponseEntity<Void> delete(@RequestBody @Valid LiveDeleteRequest request) {
         livesService.delete(request.id());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/restore")
+    public ResponseEntity<Void> restore(@RequestBody @Valid LiveRestoreRequest request) {
+        livesService.restoreLive(request.id());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/purge")
+    public ResponseEntity<Void> purge(@RequestBody @Valid LivePurgeRequest request) {
+        livesService.purgeLive(request.id());
         return ResponseEntity.noContent().build();
     }
 
@@ -92,11 +111,41 @@ public class LivesController {
         return ResponseEntity.ok(livesService.listOwnedSettingSheetSubmissionDetails(id));
     }
 
+    @GetMapping("/{id}/setting-sheet/submissions/trash")
+    public ResponseEntity<List<SettingSheetSubmissionResponse>> listTrashedSubmissions(
+            @PathVariable(name = "id") UUID id) {
+        return ResponseEntity.ok(livesService.listTrashedSubmissions(id));
+    }
+
     @GetMapping("/{id}/setting-sheet/submissions/{submissionId}")
     public ResponseEntity<PublicSettingSheetSubmissionDetailResponse> getSettingSheetSubmission(
             @PathVariable(name = "id") UUID id,
             @PathVariable(name = "submissionId") UUID submissionId) {
         return ResponseEntity.ok(livesService.getOwnedSettingSheetSubmission(id, submissionId));
+    }
+
+    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/delete")
+    public ResponseEntity<Void> deleteSubmission(
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "submissionId") UUID submissionId) {
+        livesService.deleteSubmission(id, submissionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/restore")
+    public ResponseEntity<Void> restoreSubmission(
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "submissionId") UUID submissionId) {
+        livesService.restoreSubmission(id, submissionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/purge")
+    public ResponseEntity<Void> purgeSubmission(
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "submissionId") UUID submissionId) {
+        livesService.purgeSubmission(id, submissionId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/songs/duplicates")

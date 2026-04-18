@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { toast  } from 'sonner';
 
 import {
   DEFAULT_SETTING_SHEET_CONFIG,
@@ -58,6 +58,31 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
 
   const isSubmissionClosed = isPublicSubmissionClosed(live);
   const submissionStatusMessage = getPublicSubmissionStatusMessage(live);
+
+  const buildSubmittedFormUrl = (submissionId: string) => `${window.location.origin}/public/lives/${publicToken}/submissions/${submissionId}`;
+
+  const submittedFormUrl = submission
+    ? buildSubmittedFormUrl(submission.id)
+    : null;
+
+  const copyFormUrl = async (url: string | null) => {
+    if (!url) {
+      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('編集リンクをコピーしました', { position: 'top-center' });
+    } catch {
+      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
+    }
+  };
+
+  const copySubmittedFormUrl = async () => {
+    await copyFormUrl(submittedFormUrl);
+  };
+
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -143,26 +168,39 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
         setDraftSavedAt(null);
 
         if (submission) {
-          toast.success('提出済みシートを更新しました。', { position: 'top-center' });
+          toast.success('提出済みシートを更新しました。', { position: 'top-center',
+            action: {
+            label: '編集用リンクをコピー',
+            onClick: () => {
+              copySubmittedFormUrl();
+            },
+        },});
           return;
         }
 
         const savedSubmission = response as SettingSheetSubmissionResponse | void;
         if (savedSubmission?.id) {
-          toast.success('ライブフォームを送信しました。', { position: 'top-center' });
+          const savedSubmissionUrl = buildSubmittedFormUrl(savedSubmission.id);
+          toast.success('ライブフォームを送信しました。', { position: 'top-center', 
+            action: {
+            label: '編集用リンクをコピー',
+            onClick: () => {
+              void copyFormUrl(savedSubmissionUrl);
+            },
+        }, });
           onSubmitted(savedSubmission.id);
           return;
         }
 
         setFormValues(createDefaultSettingSheetValues(settingSheetConfig.blocks));
         toast.success('ライブフォームを送信しました。', { position: 'top-center' });
-      })
-      .catch((error: ApiClientError) => {
-        applyServerErrors(error);
-        toast.error(error.apiError?.message ?? (submission ? '提出済みシートの更新に失敗しました。' : 'ライブフォームの送信に失敗しました。'), {
-          position: 'top-center',
-        });
-      })
+        })
+        .catch((error: ApiClientError) => {
+          applyServerErrors(error);
+          toast.error(error.apiError?.message ?? (submission ? '提出済みシートの更新に失敗しました。' : 'ライブフォームの送信に失敗しました。'), {
+            position: 'top-center',
+          });
+        })
       .finally(() => {
         setIsSubmitting(false);
       });
@@ -182,6 +220,8 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
     settingSheetConfig,
     submissionStatusMessage,
     updateScopedAnswers,
+    submittedFormUrl,
+    copySubmittedFormUrl,
   };
 }
 

@@ -83,13 +83,19 @@ public class FormBuilderHelper {
                 children, layoutFull(1), null, "", List.of());
     }
 
-    public FormBlockResponse textBlock(String id, String label, boolean required, LayoutResponse layout) {
-        return textBlock(id, label, required, layout, "");
+    public FormBlockResponse textBlock(String id, String label, boolean required, LayoutResponse layout,
+            boolean publicVisiable) {
+        return textBlock(id, label, publicVisiable, required, layout, "");
     }
 
-    public FormBlockResponse textBlock(String id, String label, boolean required, LayoutResponse layout,
+    public FormBlockResponse textBlock(String id, String label, boolean required, LayoutResponse layout) {
+        return textBlock(id, label, false, required, layout, "");
+    }
+
+    public FormBlockResponse textBlock(String id, String label, boolean publicVisiable, boolean required,
+            LayoutResponse layout,
             String duplicateDetectionRole) {
-        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_SHORT_TEXT, label, "", false, false,
+        return new FormBlockResponse(id, SettingSheetConstants.BLOCK_SHORT_TEXT, label, "", false, publicVisiable,
                 required, false,
                 SettingSheetConstants.APPEARANCE_OUTLINE, SettingSheetConstants.APPEARANCE_PLAIN, List.of(), 0, "", "",
                 "",

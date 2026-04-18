@@ -1,7 +1,7 @@
 /** Live submissions list with detail dialog and song duplicate detection. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Copy, ExternalLink, MoreHorizontal, Search } from 'lucide-react';
+import { ChevronLeft,Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -15,12 +15,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -36,6 +30,7 @@ import {
 import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { collectColumns, extractCellValue } from '../helpers/submission-table-helpers';
+import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
 
 export const LiveSubmissionsPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -49,6 +44,9 @@ export const LiveSubmissionsPage = () => {
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
   const [isDuplicateLoading, setIsDuplicateLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [trashedDetails, setTrashedDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trashFetched, setTrashFetched] = useState(false);
 
   useEffect(() => {
     if (!liveId) {
@@ -80,7 +78,7 @@ export const LiveSubmissionsPage = () => {
         setConfig(configResponse);
         setDetails(detailsResponse ?? []);
         setDuplicates(duplicatesResponse ?? null);
-        if (tenantResponse) setIsAdmin(tenantResponse.role === 'ADMIN');
+        if (tenantResponse) setIsAdmin(tenantResponse.role === 'ADMIN' || tenantResponse.role === 'OWNER');
       } catch {
         if (!cancelled) {
           toast.error('提出情報の取得に失敗しました', { position: 'top-center' });
@@ -142,6 +140,65 @@ export const LiveSubmissionsPage = () => {
     }
   }, [liveId]);
 
+  const fetchTrash = useCallback(() => {
+    apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/trash`)
+      .then((res) => {
+        setTrashedDetails(res ?? []);
+        setTrashFetched(true);
+      });
+  }, [liveId]);
+
+  const handleOpenTrash = useCallback(() => {
+    if (!trashFetched) fetchTrash();
+    setTrashOpen(true);
+  }, [trashFetched, fetchTrash]);
+
+  const handleDeleteSubmission = useCallback((id: string) => {
+    const deleted = details.find((d) => d.id === id);
+    apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/delete`, {}).then(() => {
+      setDetails((prev) => prev.filter((d) => d.id !== id));
+      if (deleted) setTrashedDetails((prev) => [deleted, ...prev]);
+      toast.success('バンドを削除しました', {
+        position: 'top-center',
+        action: {
+          label: '取り消す',
+          onClick: () => {
+            apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/restore`, {}).then(() => {
+              setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
+              if (deleted) setDetails((prev) => [deleted, ...prev]);
+              toast.success('バンドを復元しました', { position: 'top-center' });
+            }).catch(() => {
+              toast.error('復元に失敗しました', { position: 'top-center' });
+            });
+          },
+        },
+      });
+    }).catch(() => {
+      toast.error('バンドの削除に失敗しました', { position: 'top-center' });
+    });
+  }, [details, liveId]);
+
+  const handleRestoreFromTrash = useCallback((id: string) => {
+    apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/restore`, {}).then(() => {
+      setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
+      // answers フィールドのない trash アイテムを直接 details に戻すとクラッシュするため再取得する
+      apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`)
+        .then((res) => setDetails(res ?? []));
+      toast.success('バンドを復元しました', { position: 'top-center' });
+    }).catch(() => {
+      toast.error('復元に失敗しました', { position: 'top-center' });
+    });
+  }, [liveId]);
+
+  const handlePurgeSubmission = useCallback((id: string) => {
+    apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/purge`, {}).then(() => {
+      setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
+      toast.success('バンドを完全に削除しました', { position: 'top-center' });
+    }).catch(() => {
+      toast.error('完全削除に失敗しました', { position: 'top-center' });
+    });
+  }, [liveId]);
+
   const filteredDetails = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) {
@@ -168,18 +225,8 @@ export const LiveSubmissionsPage = () => {
   }
 
   const selectedDetail = details.find((d) => d.id === selectedSubmissionId) ?? null;
-  const sharedListUrl = `${window.location.origin}/public/lives/${live.publicToken}/submissions/shared`;
   const buildEditFormUrl = (submissionId: string) => `${window.location.origin}/public/lives/${live.publicToken}/submissions/${submissionId}`;
-
-  const copySharedLink = async () => {
-    try {
-      await navigator.clipboard.writeText(sharedListUrl);
-      toast.success('共有リンクをコピーしました', { position: 'top-center' });
-    } catch {
-      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
-    }
-  };
-
+  
   const copyEditLink = async (submissionId: string) => {
     try {
       await navigator.clipboard.writeText(buildEditFormUrl(submissionId));
@@ -221,7 +268,7 @@ export const LiveSubmissionsPage = () => {
         <CardHeader className="gap-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="space-y-1">
-              <h1 className="text-lg font-semibold sm:text-2xl">提出済みSettingSheet</h1>
+              <h1 className="text-lg font-semibold sm:text-2xl">提出済みフォーム</h1>
               <p className="text-xs text-muted-foreground sm:text-sm">{live.name} / {formatLiveDate(live.date)} / 全{details.length}件</p>
             </div>
             <div className="flex items-center gap-2">
@@ -230,26 +277,7 @@ export const LiveSubmissionsPage = () => {
                   <ChevronLeft className="size-4" />
                   戻る
                 </Link>
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onClick={copySharedLink}>
-                    <Copy className="size-4" />
-                    共有一覧リンクをコピー
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href={sharedListUrl} target="_blank" rel="noreferrer">
-                      <ExternalLink className="size-4" />
-                      共有一覧を開く
-                    </a>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              </Button>              
             </div>
           </div>
         </CardHeader>
@@ -260,13 +288,11 @@ export const LiveSubmissionsPage = () => {
       <Card>
         <CardHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {hasVisibleColumns
-                  ? '共有ページと同じ公開項目のみ表示。行をクリックすると詳細を確認できます。'
-                  : '共有ページで公開する項目を設定すると、その項目だけがここでも一覧表示されます。'}
-              </p>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
+              </div>
+              {isAdmin && <TrashButton onClick={handleOpenTrash} count={trashedDetails.length} />}
             </div>
             <div className="relative w-full sm:max-w-sm">
               <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
@@ -290,6 +316,7 @@ export const LiveSubmissionsPage = () => {
                       {duplicateMap.size > 0 && (
                         <TableHead className="whitespace-nowrap bg-background text-center">曲かぶり</TableHead>
                       )}
+                      {isAdmin && <TableHead className="bg-background w-10"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -313,6 +340,18 @@ export const LiveSubmissionsPage = () => {
                             )}
                           </TableCell>
                         )}
+                        {isAdmin && (
+                          <TableCell className="align-top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteSubmission(detail.id); }}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -329,6 +368,15 @@ export const LiveSubmissionsPage = () => {
         config={config}
         recordLabel={recordLabel}
         onCopyEditLink={copyEditLink}
+      />
+
+      <TrashSheet
+        open={trashOpen}
+        onOpenChange={setTrashOpen}
+        items={trashedDetails.map((d) => ({ id: d.id, label: d.recordLabel }))}
+        onRestore={handleRestoreFromTrash}
+        onPurge={handlePurgeSubmission}
+        entityLabel="バンド"
       />
     </div>
   );
