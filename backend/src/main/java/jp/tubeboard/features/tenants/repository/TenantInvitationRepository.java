@@ -12,4 +12,6 @@ import jp.tubeboard.features.tenants.model.TenantInvitation;
 public interface TenantInvitationRepository extends JpaRepository<TenantInvitation, UUID> {
 
     Optional<TenantInvitation> findByToken(String token);
+
+    void deleteAllByTenantId(UUID tenantId);
 }

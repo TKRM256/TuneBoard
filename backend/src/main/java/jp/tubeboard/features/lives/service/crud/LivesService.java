@@ -1,5 +1,6 @@
 package jp.tubeboard.features.lives.service.crud;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -121,6 +122,73 @@ public class LivesService implements ILivesService {
 
                 live.markDeleted();
                 liveRepository.save(live);
+        }
+
+        @Override
+        public List<LiveResponse> listTrashedByTenant(UUID tenantId) {
+                User currentUser = userService.getCurrentUser();
+                helper.findAdminTenant(tenantId, currentUser.getId());
+                LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
+
+                return liveRepository
+                                .findAllTrashedByTenantIdAndAccessibleByUserId(tenantId, currentUser.getId(), cutoff)
+                                .stream()
+                                .map(helper::toResponse)
+                                .toList();
+        }
+
+        @Override
+        @Transactional
+        public void restoreLive(UUID id) {
+                Live live = helper.findAdminTrashedLive(id);
+
+                live.restore();
+                liveRepository.save(live);
+        }
+
+        @Override
+        @Transactional
+        public void deleteSubmission(UUID liveId, UUID submissionId) {
+                SettingSheetSubmission submission = helper.findAdminSubmission(liveId, submissionId);
+                submission.markDeleted();
+                settingSheetSubmissionRepository.save(submission);
+        }
+
+        @Override
+        @Transactional
+        public void restoreSubmission(UUID liveId, UUID submissionId) {
+                SettingSheetSubmission submission = helper.findAdminTrashedSubmission(liveId, submissionId);
+                submission.restore();
+                settingSheetSubmissionRepository.save(submission);
+        }
+
+        @Override
+        @Transactional
+        public void purgeLive(UUID id) {
+                Live live = helper.findAdminTrashedLive(id);
+
+                settingSheetSubmissionRepository.deleteAllByLiveId(live.getId());
+                liveRepository.delete(live);
+        }
+
+        @Override
+        @Transactional
+        public void purgeSubmission(UUID liveId, UUID submissionId) {
+                SettingSheetSubmission submission = helper.findAdminTrashedSubmission(liveId, submissionId);
+                settingSheetSubmissionRepository.delete(submission);
+        }
+
+        @Override
+        public List<SettingSheetSubmissionResponse> listTrashedSubmissions(UUID liveId) {
+                User currentUser = userService.getCurrentUser();
+                helper.findAdminLive(liveId);
+                LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
+
+                return settingSheetSubmissionRepository
+                                .findAllTrashedByLiveIdAndAccessibleByUserId(liveId, currentUser.getId(), cutoff)
+                                .stream()
+                                .map(helper::toSubmissionResponse)
+                                .toList();
         }
 
         @Override
@@ -273,7 +341,8 @@ public class LivesService implements ILivesService {
                 }
 
                 return settingSheetSubmissionRepository
-                                .findAllByLivePublicTokenAndLiveDeletedAtIsNullOrderByCreatedAtDesc(publicToken)
+                                .findAllByLivePublicTokenAndLiveDeletedAtIsNullAndDeletedAtIsNullOrderByCreatedAtDesc(
+                                                publicToken)
                                 .stream()
                                 .map(submission -> {
                                         PublicSettingSheetSubmissionRequest payload = settingSheetSubmissionService

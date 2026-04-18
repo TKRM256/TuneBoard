@@ -13,13 +13,18 @@ interface LiveListCardProps {
   isAdmin?: boolean;
   onUpdateSuccess: (live: LiveResponse) => void;
   onDelete: (id: string) => void;
+  onRestore?: (live: LiveResponse) => void;
+  trashTrigger?: React.ReactNode;
 }
 
-export const LiveListCard = ({ lives, tenantName, tenantId, isAdmin, onUpdateSuccess, onDelete }: LiveListCardProps) => {
+export const LiveListCard = ({ lives, tenantName, tenantId, isAdmin, onUpdateSuccess, onDelete, onRestore, trashTrigger }: LiveListCardProps) => {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-lg font-semibold">{tenantName} のライブ一覧</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{tenantName} のライブ一覧</h2>
+          {trashTrigger}
+        </div>
       </CardHeader>
       <CardContent>
         {lives.length === 0 ? (
@@ -41,6 +46,7 @@ export const LiveListCard = ({ lives, tenantName, tenantId, isAdmin, onUpdateSuc
                 isAdmin={isAdmin}
                 onUpdateSuccess={onUpdateSuccess}
                 onDelete={onDelete}
+                onRestore={onRestore}
               />
             ))}
           </div>

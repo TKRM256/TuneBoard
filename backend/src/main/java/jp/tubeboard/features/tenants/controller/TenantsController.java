@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import jp.tubeboard.features.tenants.dto.request.TenantsCreateRequest;
 import jp.tubeboard.features.tenants.dto.request.TenantsDeleteRequest;
+import jp.tubeboard.features.tenants.dto.request.TenantsPurgeRequest;
+import jp.tubeboard.features.tenants.dto.request.TenantsRestoreRequest;
 import jp.tubeboard.features.tenants.dto.request.TenantsUpdateRequest;
 import jp.tubeboard.features.tenants.dto.response.TenantResponse;
 import jp.tubeboard.features.tenants.dto.response.TenantsCreateResponse;
@@ -56,6 +58,23 @@ public class TenantsController {
     @PostMapping("/delete")
     public ResponseEntity<Void> delete(@RequestBody @Valid TenantsDeleteRequest request) {
         tenantsService.delete(request.id());
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/trash")
+    public ResponseEntity<List<TenantResponse>> listTrashed() {
+        return ResponseEntity.ok(tenantsService.listTrashed());
+    }
+
+    @PostMapping("/restore")
+    public ResponseEntity<Void> restore(@RequestBody @Valid TenantsRestoreRequest request) {
+        tenantsService.restore(request.id());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/purge")
+    public ResponseEntity<Void> purge(@RequestBody @Valid TenantsPurgeRequest request) {
+        tenantsService.purge(request.id());
         return ResponseEntity.noContent().build();
     }
 

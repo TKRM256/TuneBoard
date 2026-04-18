@@ -24,13 +24,11 @@ import {
   updateBlockTree,
 } from '../form-editor/utils';
 import {
-  canAddBlock,
   canContainBlocks,
   createBlockTemplate,
   isOptionBlock,
   isTextBlock,
   normalizeSettingSheetConfig,
-  SETTING_SHEET_BLOCK_OPTIONS,
   type LiveResponse,
   type SettingSheetBlock,
   type SettingSheetConfigResponse,
@@ -66,11 +64,7 @@ export const LiveFormEditorPage = () => {
         setIsLoading(false);
       });
   }, [liveId]);
-
-  const addableBlocks = useMemo(
-    () => (config ? SETTING_SHEET_BLOCK_OPTIONS.filter((option) => canAddBlock(config, option.value)) : []),
-    [config],
-  );
+  
   const optionSourceCandidates = useMemo(
     () => collectOptionSourceCandidates(config?.blocks ?? []),
     [config?.blocks],
@@ -239,7 +233,6 @@ export const LiveFormEditorPage = () => {
             liveId={liveId}
             config={config}
             isSaving={isSaving}
-            addableBlocks={addableBlocks}
             setConfig={setConfig}
             onResetToDefault={resetToDefault}
             onSave={saveConfig}

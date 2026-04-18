@@ -73,7 +73,7 @@ public class SettingSheetConfigService {
 
                 List<FormBlockResponse> bandFields = List.of(
                                 formBuilderHelper.textBlock("band-name", "バンド名", true,
-                                                formBuilderHelper.layoutTwoThirds(1)),
+                                                formBuilderHelper.layoutTwoThirds(1), true),
                                 formBuilderHelper.selectBlock("submission-status",
                                                 SettingSheetConstants.BLOCK_SINGLE_SELECT, "提出状況",
                                                 true,

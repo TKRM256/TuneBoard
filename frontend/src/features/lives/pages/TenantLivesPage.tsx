@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
+import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
 import { CreateLiveCard } from '../components/CreateLiveCard';
 import { LiveListCard } from '../components/LiveListCard';
 import type { LiveResponse } from '../types/live-types';
@@ -23,6 +24,9 @@ export const TenantLivesPage = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
   const [tenant, setTenant] = useState<TenantsResponse | null>(null);
   const [lives, setLives] = useState<LiveResponse[]>([]);
+  const [trashedLives, setTrashedLives] = useState<LiveResponse[]>([]);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trashFetched, setTrashFetched] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -46,6 +50,15 @@ export const TenantLivesPage = () => {
       });
   }, [tenantId]);
 
+  const fetchTrash = () => {
+    if (!tenantId) return;
+    apiClient.get<LiveResponse[]>(`/lives/tenant/${tenantId}/trash`)
+      .then((res) => {
+        setTrashedLives(res ?? []);
+        setTrashFetched(true);
+      });
+  };
+
   const handleCreateSuccess = (live: LiveResponse) => {
     setLives((prev) => [live, ...prev]);
   };
@@ -55,7 +68,39 @@ export const TenantLivesPage = () => {
   };
 
   const handleDelete = (id: string) => {
+    const deleted = lives.find((l) => l.id === id);
     setLives((prev) => prev.filter((live) => live.id !== id));
+    if (deleted) setTrashedLives((prev) => [deleted, ...prev]);
+  };
+
+  const handleRestore = (restored: LiveResponse) => {
+    setTrashedLives((prev) => prev.filter((l) => l.id !== restored.id));
+    setLives((prev) => [restored, ...prev]);
+  };
+
+  const handleRestoreFromTrash = (id: string) => {
+    apiClient.post<void>('/lives/restore', { id }).then(() => {
+      const restored = trashedLives.find((l) => l.id === id);
+      setTrashedLives((prev) => prev.filter((l) => l.id !== id));
+      if (restored) setLives((prev) => [restored, ...prev]);
+      toast.success('ライブを復元しました', { position: 'top-center' });
+    }).catch(() => {
+      toast.error('復元に失敗しました', { position: 'top-center' });
+    });
+  };
+
+  const handlePurgeLive = (id: string) => {
+    apiClient.post<void>('/lives/purge', { id }).then(() => {
+      setTrashedLives((prev) => prev.filter((l) => l.id !== id));
+      toast.success('ライブを完全に削除しました', { position: 'top-center' });
+    }).catch(() => {
+      toast.error('完全削除に失敗しました', { position: 'top-center' });
+    });
+  };
+
+  const handleOpenTrash = () => {
+    if (!trashFetched) fetchTrash();
+    setTrashOpen(true);
   };
 
   if (!tenantId) {
@@ -69,6 +114,8 @@ export const TenantLivesPage = () => {
   if (!tenant) {
     return <Navigate to="/tenants" replace />;
   }
+
+  const isAdmin = tenant.role === 'ADMIN' || tenant.role === 'OWNER';
 
   return (
     <div className="space-y-4">
@@ -104,8 +151,27 @@ export const TenantLivesPage = () => {
         </CardHeader>
       </Card>
 
-      {tenant.role === 'ADMIN' && <CreateLiveCard tenantId={tenant.id} onCreateSuccess={handleCreateSuccess} />}
-      <LiveListCard lives={lives} tenantName={tenant.name} tenantId={tenant.id} isAdmin={tenant.role === 'ADMIN'} onUpdateSuccess={handleUpdateSuccess} onDelete={handleDelete} />
+      {isAdmin && <CreateLiveCard tenantId={tenant.id} onCreateSuccess={handleCreateSuccess} />}
+      <LiveListCard
+        lives={lives}
+        tenantName={tenant.name}
+        tenantId={tenant.id}
+        isAdmin={isAdmin}
+        onUpdateSuccess={handleUpdateSuccess}
+        onDelete={handleDelete}
+        onRestore={handleRestore}
+        trashTrigger={isAdmin ? <TrashButton onClick={handleOpenTrash} count={trashedLives.length} /> : undefined}
+      />
+
+      <TrashSheet
+        open={trashOpen}
+        onOpenChange={setTrashOpen}
+        items={trashedLives.map((l) => ({ id: l.id, label: l.name }))}
+        onRestore={handleRestoreFromTrash}
+        onPurge={handlePurgeLive}
+        entityLabel="ライブ"
+      />
     </div>
   );
 };
+

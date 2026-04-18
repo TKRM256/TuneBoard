@@ -36,4 +36,8 @@ public abstract class Audit {
     public void markDeleted() {
         this.deletedAt = LocalDateTime.now();
     }
+
+    public void restore() {
+        this.deletedAt = null;
+    }
 }

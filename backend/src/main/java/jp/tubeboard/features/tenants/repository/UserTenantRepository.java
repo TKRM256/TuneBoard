@@ -17,6 +17,8 @@ public interface UserTenantRepository extends JpaRepository<UserTenant, UUID> {
 
     List<UserTenant> findAllByTenantIdAndDeletedAtIsNull(UUID tenantId);
 
+    void deleteAllByTenantId(UUID tenantId);
+
     Optional<UserTenant> findByTenantIdAndUserIdAndDeletedAtIsNull(UUID tenantId, Long userId);
 
     boolean existsByTenantIdAndUserIdAndDeletedAtIsNull(UUID tenantId, Long userId);

@@ -25,7 +25,6 @@ import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.repository.ItunesTrackLinkRepository;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
-import jp.tubeboard.features.tenants.model.TenantRole;
 import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.repository.TenantsRepository;
 import jp.tubeboard.features.tenants.repository.UserTenantRepository;
@@ -55,9 +54,7 @@ public class LiveServiceHelper {
 
         public Tenants findAdminTenant(UUID tenantId, Long userId) {
                 Tenants tenant = findTenant(tenantId, userId);
-                userTenantRepository.findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
-                                tenantId, userId, TenantRole.ADMIN)
-                                .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
+                requireAdminTenantAccess(tenantId, userId);
                 return tenant;
         }
 
@@ -75,15 +72,22 @@ public class LiveServiceHelper {
                 User currentUser = userService.getCurrentUser();
                 Live live = liveRepository.findByIdAndAccessibleByUserId(id, currentUser.getId())
                                 .orElseThrow(() -> new LivesNotFoundException("ライブが見つかりません"));
-                userTenantRepository.findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
-                                live.getTenant().getId(), currentUser.getId(), TenantRole.ADMIN)
-                                .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
+                requireAdminTenantAccess(live.getTenant().getId(), currentUser.getId());
+                return live;
+        }
+
+        public Live findAdminTrashedLive(UUID id) {
+                User currentUser = userService.getCurrentUser();
+                Live live = liveRepository.findTrashedByIdAndAccessibleByUserId(id, currentUser.getId())
+                                .orElseThrow(() -> new LivesNotFoundException("ライブが見つかりません"));
+                requireAdminTenantAccess(live.getTenant().getId(), currentUser.getId());
                 return live;
         }
 
         public SettingSheetSubmission findPublicSubmission(String publicToken, UUID submissionId) {
                 return settingSheetSubmissionRepository
-                                .findByIdAndLivePublicTokenAndLiveDeletedAtIsNull(submissionId, publicToken)
+                                .findByIdAndLivePublicTokenAndLiveDeletedAtIsNullAndDeletedAtIsNull(submissionId,
+                                                publicToken)
                                 .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
         }
 
@@ -91,6 +95,24 @@ public class LiveServiceHelper {
                 User currentUser = userService.getCurrentUser();
                 return settingSheetSubmissionRepository
                                 .findByIdAndLiveIdAndAccessibleByUserId(submissionId, liveId,
+                                                currentUser.getId())
+                                .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
+        }
+
+        public SettingSheetSubmission findAdminSubmission(UUID liveId, UUID submissionId) {
+                User currentUser = userService.getCurrentUser();
+                findAdminLive(liveId);
+                return settingSheetSubmissionRepository
+                                .findByIdAndLiveIdAndAccessibleByUserId(submissionId, liveId,
+                                                currentUser.getId())
+                                .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
+        }
+
+        public SettingSheetSubmission findAdminTrashedSubmission(UUID liveId, UUID submissionId) {
+                User currentUser = userService.getCurrentUser();
+                findAdminLive(liveId);
+                return settingSheetSubmissionRepository
+                                .findTrashedByIdAndLiveIdAndAccessibleByUserId(submissionId, liveId,
                                                 currentUser.getId())
                                 .orElseThrow(() -> new LivesNotFoundException("提出済みセッティングシートが見つかりません"));
         }
@@ -192,5 +214,11 @@ public class LiveServiceHelper {
                 if (deadlineAt != null && deadlineAt.isBefore(LocalDateTime.now())) {
                         throw new BadRequestException("回答受付は終了しました");
                 }
+        }
+
+        private void requireAdminTenantAccess(UUID tenantId, Long userId) {
+                userTenantRepository.findByTenantIdAndUserIdAndDeletedAtIsNull(tenantId, userId)
+                                .filter(ut -> ut.getRole().isAdminLevel())
+                                .orElseThrow(() -> new TenantsNotFoundException("管理者権限がありません"));
         }
 }
