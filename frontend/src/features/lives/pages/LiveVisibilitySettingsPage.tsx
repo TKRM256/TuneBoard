@@ -34,6 +34,18 @@ interface VisibilityLeafTarget {
   hidden: boolean;
 }
 
+const toggleBaseClassName = 'h-7 px-2 text-xs gap-1 border shadow-xs transition-colors';
+const sharedToggleClassName = cn(
+  toggleBaseClassName,
+  'border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/60 dark:hover:text-slate-100',
+  'data-[state=on]:border-emerald-300 data-[state=on]:bg-emerald-50 data-[state=on]:text-emerald-700 data-[state=on]:hover:bg-emerald-100 data-[state=on]:hover:text-emerald-800 dark:data-[state=on]:border-emerald-700 dark:data-[state=on]:bg-emerald-950/30 dark:data-[state=on]:text-emerald-300 dark:data-[state=on]:hover:bg-emerald-950/50 dark:data-[state=on]:hover:text-emerald-200',
+);
+const formToggleClassName = cn(
+  toggleBaseClassName,
+  'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-700 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50 dark:hover:text-rose-200',
+  'data-[state=on]:border-sky-300 data-[state=on]:bg-sky-50 data-[state=on]:text-sky-700 data-[state=on]:hover:bg-sky-100 data-[state=on]:hover:text-sky-800 dark:data-[state=on]:border-sky-700 dark:data-[state=on]:bg-sky-950/30 dark:data-[state=on]:text-sky-300 dark:data-[state=on]:hover:bg-sky-950/50 dark:data-[state=on]:hover:text-sky-200',
+);
+
 export const LiveVisibilitySettingsPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
   const [live, setLive] = useState<LiveResponse | null>(null);
@@ -180,8 +192,9 @@ export const LiveVisibilitySettingsPage = () => {
             </div>
             <Toggle
               variant="outline"
+              pressed={config?.publicSubmissionEnabled === true}
               onPressedChange={togglePublicSubmissionEnabled}
-              className="gap-1.5"
+              className={sharedToggleClassName}
             >
               {config?.publicSubmissionEnabled ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
               {config?.publicSubmissionEnabled ? '公開中' : '非公開'}
@@ -498,20 +511,20 @@ function VisibilityTreeNode({
             size="sm"
             pressed={block.publicVisible === true}
             onPressedChange={(pressed) => onToggleVisibility(block.id, 'publicVisible', pressed)}
-            className="gap-1 text-xs h-7 px-2"
+            className={sharedToggleClassName}
           >
             {block.publicVisible ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-            共有
+            {block.publicVisible ? '共有中' : '非公開'}
           </Toggle>
           <Toggle
             variant="outline"
             size="sm"
             pressed={block.hidden !== true}
             onPressedChange={(pressed) => onToggleVisibility(block.id, 'hidden', !pressed)}
-            className="gap-1 text-xs h-7 px-2"
+            className={formToggleClassName}
           >
             {!block.hidden ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-            フォーム
+            {block.hidden ? '非表示' : '表示中'}
           </Toggle>
         </div>
       </div>
