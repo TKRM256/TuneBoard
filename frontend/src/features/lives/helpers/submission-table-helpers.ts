@@ -51,6 +51,10 @@ export function collectColumns(config: SettingSheetConfigResponse | null): Colum
   return columns;
 }
 
+function formatBooleanValue(value: string): string {
+  return value === 'true' || value === 'はい' ? 'はい' : 'いいえ';
+}
+
 export function extractCellValue(
   answers: SettingSheetSubmissionAnswerResponse[],
   path: string[],
@@ -70,7 +74,11 @@ export function extractCellValue(
     if (blockType === 'REPEATABLE_GROUP') {
       return answer.items.length === 0 ? '未入力' : `${answer.items.length}件`;
     }
-    return answer.values.length > 0 ? answer.values.join(' / ') : '未入力';
+    return answer.values.length > 0 ? answer.values.map(
+      (value) => {
+        return blockType === 'BOOLEAN' ? formatBooleanValue(value) : value;
+      }
+    ).join(' / ') : '未入力';
   }
 
   const nestedValues = answer.items
@@ -79,7 +87,7 @@ export function extractCellValue(
 
   return nestedValues.length === 0 ? '未入力' : nestedValues.map(
     (value) => {
-      return blockType === 'BOOLEAN' ? (value === 'true' ? 'はい' : 'いいえ') : value;
+      return blockType === 'BOOLEAN' ? formatBooleanValue(value) : value;
     }
   ).join('\n');
 }

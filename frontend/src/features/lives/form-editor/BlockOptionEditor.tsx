@@ -48,7 +48,9 @@ export const BlockOptionEditor = ({ block, optionSourceCandidates, onUpdateBlock
             <div>
               <Textarea
                 value={block.options.join('\n')}
-                onChange={(event) => onUpdateBlock(block.id, { options: event.target.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) })}
+                onChange={(event) => {
+                  onUpdateBlock(block.id, { options: event.target.value.split(/\r?\n/) });
+                }}
                 rows={5}
                 className="mt-1"
               />
