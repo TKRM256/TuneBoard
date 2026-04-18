@@ -1,6 +1,7 @@
 import { Outlet, Link } from 'react-router-dom';
 import { useAuthContext } from '@/features/auth/authContext';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { LogOut } from 'lucide-react';
 
 export const Layout = () => {
@@ -18,6 +19,7 @@ export const Layout = () => {
                         </Link>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm sm:justify-end">
+                        <ThemeToggle className="w-full sm:w-auto" />
                         {isAuthLoading ? (
                             <span className="text-muted-foreground">認証確認中...</span>
                         ) : authMe?.authenticated ? (

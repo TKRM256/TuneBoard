@@ -1,6 +1,5 @@
 package jp.tubeboard.features.tenants.service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -11,21 +10,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-
 import jp.tubeboard.features.auth.User;
 import jp.tubeboard.features.auth.UserService;
-import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
-import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest.FieldAnswerRequest;
 import jp.tubeboard.features.lives.model.Live;
-import jp.tubeboard.features.lives.model.LiveStatus;
-import jp.tubeboard.features.lives.model.SettingSheetSubmission;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
-import jp.tubeboard.features.lives.service.SettingSheetConstants;
-import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.tenants.dto.request.TenantsCreateRequest;
 import jp.tubeboard.features.tenants.dto.request.TenantsUpdateRequest;
 import jp.tubeboard.features.tenants.dto.response.TenantResponse;
@@ -51,8 +40,7 @@ public class TenantsService implements ITenantsService {
         private final UserService userService;
         private final LiveRepository liveRepository;
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
-        private final SettingSheetConfigService settingSheetConfigService;
-        private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+        private final DemoTenantSeedService demoTenantSeedService;
 
         @Value("${app.dev.seed-dummy:false}")
         private boolean seedDummy;
@@ -109,16 +97,7 @@ public class TenantsService implements ITenantsService {
 
                 List<Tenants> tenantsList = tenantsRepository.findAllAccessibleByUserId(currentUser.getId());
                 if (seedDummy && tenantsList.isEmpty()) {
-                        Tenants tenant = tenantsRepository.save(Tenants.builder()
-                                        .name("デモサークル")
-                                        .user(currentUser)
-                                        .build());
-                        userTenantRepository.save(UserTenant.builder()
-                                        .user(currentUser)
-                                        .tenant(tenant)
-                                        .role(TenantRole.OWNER)
-                                        .build());
-                        createDummyLiveData(tenant);
+                        demoTenantSeedService.seedFor(currentUser);
                         tenantsList = tenantsRepository.findAllAccessibleByUserId(currentUser.getId());
                 }
 
@@ -247,93 +226,4 @@ public class TenantsService implements ITenantsService {
                 tenantInvitationRepository.deleteAllByTenantId(tenantId);
                 userTenantRepository.deleteAllByTenantId(tenantId);
         }
-
-        private void createDummyLiveData(Tenants tenant) {
-                Live live = liveRepository.save(Live.builder()
-                                .tenant(tenant)
-                                .publicToken(UUID.randomUUID().toString())
-                                .name("春ライブ（デモ）")
-                                .date(LocalDate.now().plusDays(14))
-                                .location("学内ホール")
-                                .deadlineAt(LocalDateTime.now().plusDays(7))
-                                .status(LiveStatus.PUBLISHED)
-                                .settingsJson(settingSheetConfigService.writeSettingSheetConfig(
-                                                settingSheetConfigService.defaultSettingSheetConfig()))
-                                .build());
-
-                settingSheetSubmissionRepository.save(createSubmission(live, "Dummy Band A", "夏祭り", "スピッツ"));
-                settingSheetSubmissionRepository.save(createSubmission(live, "Dummy Band B", "夏祭り", "スピッツ"));
-                settingSheetSubmissionRepository
-                                .save(createSubmission(live, "Dummy Band C", "リライト", "ASIAN KUNG-FU GENERATION"));
-        }
-
-        private SettingSheetSubmission createSubmission(Live live, String bandName, String songTitle, String artist) {
-                return SettingSheetSubmission.builder()
-                                .live(live)
-                                .recordLabel(bandName)
-                                .submissionStatus(SettingSheetConstants.SUBMISSION_STATUS)
-                                .payloadJson(toPayloadJson(bandName, songTitle, artist))
-                                .build();
-        }
-
-        private String toPayloadJson(String bandName, String songTitle, String artist) {
-                PublicSettingSheetSubmissionRequest payload = new PublicSettingSheetSubmissionRequest(List.of(
-                                new FieldAnswerRequest("band-name", List.of(bandName), List.of()),
-                                new FieldAnswerRequest("submission-status", List.of("完成"), List.of()),
-                                new FieldAnswerRequest("members", List.of(), createDummyMembers(bandName)),
-                                new FieldAnswerRequest("setlist", List.of(), List.of(
-                                                new PublicSettingSheetSubmissionRequest.GroupItemRequest("song-entry",
-                                                                List.of(
-                                                                                new FieldAnswerRequest("song",
-                                                                                                List.of(songTitle,
-                                                                                                                artist),
-                                                                                                List.of()),
-                                                                                new FieldAnswerRequest("song-parts",
-                                                                                                List.of("Vo", "Gt",
-                                                                                                                "Ba",
-                                                                                                                "Dr"),
-                                                                                                List.of())))))),
-                                null);
-                try {
-                        return objectMapper.writeValueAsString(payload);
-                } catch (JsonProcessingException ex) {
-                        throw new IllegalStateException("ダミーデータの作成に失敗しました", ex);
-                }
-        }
-
-        private List<PublicSettingSheetSubmissionRequest.GroupItemRequest> createDummyMembers(String bandName) {
-                if ("Dummy Band B".equals(bandName)) {
-                        return List.of(
-                                        createDummyMember("ミユ", true, List.of("Vo")),
-                                        createDummyMember("ソラ", false, List.of("Gt", "Cho")),
-                                        createDummyMember("ハル", false, List.of("Ba")),
-                                        createDummyMember("レン", false, List.of("Dr")));
-                }
-
-                if ("Dummy Band C".equals(bandName)) {
-                        return List.of(
-                                        createDummyMember("ユナ", true, List.of("Vo", "Gt")),
-                                        createDummyMember("コウ", false, List.of("Gt")),
-                                        createDummyMember("シン", false, List.of("Ba")),
-                                        createDummyMember("ナオ", false, List.of("Dr")));
-                }
-
-                return List.of(
-                                createDummyMember("アヤ", true, List.of("Vo")),
-                                createDummyMember("ケン", false, List.of("Gt")),
-                                createDummyMember("リョウ", false, List.of("Ba")),
-                                createDummyMember("タクミ", false, List.of("Dr")));
-        }
-
-        private PublicSettingSheetSubmissionRequest.GroupItemRequest createDummyMember(String name,
-                        boolean representative,
-                        List<String> parts) {
-                return new PublicSettingSheetSubmissionRequest.GroupItemRequest(null, List.of(
-                                new FieldAnswerRequest("member-name", List.of(name), List.of()),
-                                new FieldAnswerRequest("member-representative",
-                                                List.of(Boolean.toString(representative)),
-                                                List.of()),
-                                new FieldAnswerRequest("member-parts", parts, List.of())));
-        }
-
 }

@@ -2,7 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './index.css'
-import { Toaster } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/theme-provider'
 import { createLogger } from './lib/logger'
 
 const log = createLogger('Global');
@@ -25,7 +26,9 @@ import.meta.hot?.dispose(() => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App/>
-    <Toaster />
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <App/>
+      <Toaster />
+    </ThemeProvider>
   </StrictMode>,
 )
