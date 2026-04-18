@@ -164,7 +164,7 @@ export const LiveManagementPage = () => {
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-3">
         {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
         <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
         {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
@@ -190,6 +190,7 @@ export const LiveManagementPage = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="space-y-1">
               <h2 className="text-base font-semibold">提出一覧</h2>
+              <p>提出: {details.length} 件</p>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>
@@ -205,7 +206,7 @@ export const LiveManagementPage = () => {
           ) : tableColumns.length === 0 ? (
             <p className="text-sm text-muted-foreground">「表示設定」で共有に表示をONにしてください</p>
           ) : (
-            <div className="max-h-[50vh] overflow-auto rounded-lg border">
+            <div className="rounded-lg border">
               <Table>
                 <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>

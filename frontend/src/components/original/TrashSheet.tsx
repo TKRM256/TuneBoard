@@ -30,11 +30,13 @@ interface TrashSheetProps {
   onRestore: (id: string) => void;
   onPurge: (id: string) => void;
   entityLabel: string;
+  isPending?: (id: string) => boolean;
 }
 
-export const TrashSheet = ({ open, onOpenChange, items, onRestore, onPurge, entityLabel }: TrashSheetProps) => {
+export const TrashSheet = ({ open, onOpenChange, items, onRestore, onPurge, entityLabel, isPending }: TrashSheetProps) => {
   const [confirmPurgeId, setConfirmPurgeId] = useState<string | null>(null);
   const confirmTarget = items.find((i) => i.id === confirmPurgeId);
+  const isConfirmPending = confirmPurgeId ? (isPending?.(confirmPurgeId) ?? false) : false;
 
   return (
     <>
@@ -58,6 +60,9 @@ export const TrashSheet = ({ open, onOpenChange, items, onRestore, onPurge, enti
               </div>
             ) : (
               items.map((item) => (
+                (() => {
+                  const itemPending = isPending?.(item.id) ?? false;
+                  return (
                 <div
                   key={item.id}
                   className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2.5"
@@ -69,6 +74,7 @@ export const TrashSheet = ({ open, onOpenChange, items, onRestore, onPurge, enti
                       size="sm"
                       className="text-xs"
                       onClick={() => onRestore(item.id)}
+                      disabled={itemPending}
                     >
                       <RotateCcw className="mr-1 size-3" />
                       復元
@@ -78,12 +84,15 @@ export const TrashSheet = ({ open, onOpenChange, items, onRestore, onPurge, enti
                       size="sm"
                       className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setConfirmPurgeId(item.id)}
+                      disabled={itemPending}
                     >
                       <Trash2 className="mr-1 size-3" />
                       完全削除
                     </Button>
                   </div>
                 </div>
+                  );
+                })()
               ))
             )}
           </div>
@@ -102,6 +111,7 @@ export const TrashSheet = ({ open, onOpenChange, items, onRestore, onPurge, enti
             <AlertDialogCancel>キャンセル</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isConfirmPending}
               onClick={() => {
                 if (confirmPurgeId) {
                   onPurge(confirmPurgeId);

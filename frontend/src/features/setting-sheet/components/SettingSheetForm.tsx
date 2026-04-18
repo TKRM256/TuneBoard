@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { ThemeToggle } from '@/components/theme-toggle';
 import {
   getPublicSubmissionStatusMessage,
   formatDeadline,
@@ -66,11 +67,14 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
         <aside className="min-w-0 space-y-6 xl:sticky xl:top-6 xl:self-start">
           <Card className="min-w-0 overflow-hidden text-card-foreground shadow-sm backdrop-blur">
             <CardHeader className="space-y-5 pb-6">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-[0.35em]">TUNEBOARD</p>
-                <Badge variant={live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary'}>
-                  {LIVE_STATUS_LABELS[live.status]}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle className="shrink-0" />
+                  <Badge variant={live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary'}>
+                    {LIVE_STATUS_LABELS[live.status]}
+                  </Badge>
+                </div>
               </div>
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight text-card-foreground sm:text-4xl">{live.name}</h1>

@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { SettingSheetForm } from '@/features/setting-sheet/components/SettingSheetForm';
 import { usePublicLiveData } from '../hooks/usePublicLiveData';
@@ -15,8 +16,9 @@ export const PublicLivePage = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-xl">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
             <h1 className="text-2xl font-semibold">TuneBoard</h1>
+            <ThemeToggle className="shrink-0" />
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">{errorMessage}</p>

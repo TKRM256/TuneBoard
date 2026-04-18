@@ -12,17 +12,20 @@ import { CreateAccordionCard } from "@/components/original/CreateAccordionCard";
 export const CreateTenantsCard = ({ onCreateSuccess }: { onCreateSuccess: (newTenant: TenantsResponse) => void }) => {
   const [formValues, setFormValues] = useState<TenantsFormValues>({ name: { value: "" } });
   
-  const onSubmit = () => {
-    apiClient.post<TenantsResponse>("/tenants/create", {
-      name: formValues.name.value
-    }).then((response) => {
+  const onSubmit = async () => {
+    try {
+      const response = await apiClient.post<TenantsResponse>("/tenants/create", {
+        name: formValues.name.value
+      });
+
       if(response){
         onCreateSuccess(response);
         setFormValues({ name: { value: "" } });
         toast.success("テナントが作成されました",{position: "top-center"});
       }
-    }).catch((error: ApiClientError) => {
-      const serverFieldErrors = error.apiError?.fieldErrors;
+    } catch (error: unknown) {
+      const apiError = error as ApiClientError;
+      const serverFieldErrors = apiError.apiError?.fieldErrors;
       if(!serverFieldErrors) return;
       for(const key in serverFieldErrors){
         if(key in formValues){
@@ -34,7 +37,7 @@ export const CreateTenantsCard = ({ onCreateSuccess }: { onCreateSuccess: (newTe
             }
           }));
         }
-    }});
+    }};
   };
 
   return (
