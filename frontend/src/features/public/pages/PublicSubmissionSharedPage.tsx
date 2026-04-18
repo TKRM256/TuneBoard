@@ -164,7 +164,7 @@ export const PublicSubmissionSharedPage = () => {
             ) : filteredSubmissions.length === 0 ? (
               <p className="text-sm text-muted-foreground">検索条件に一致する提出がありません。</p>
             ) : (
-              <div className="overflow-auto rounded-lg border">
+              <div className="rounded-lg border">
                   <Table>
                     <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow>
