@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
@@ -106,8 +107,9 @@ export const PublicSubmissionSharedPage = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-2xl">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
             <h1 className="text-xl font-semibold">TuneBoard</h1>
+            <ThemeToggle className="shrink-0" />
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">{errorMessage || '共有データが見つかりませんでした。'}</p>
@@ -123,11 +125,13 @@ export const PublicSubmissionSharedPage = () => {
       <div className="mx-auto max-w-7xl space-y-4">
         <Card>
           <CardHeader className="space-y-3">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="text-xl font-semibold">{live.name} - 提出共有一覧</h1>
               </div>
-              <div className="relative w-full lg:max-w-sm">
+              <ThemeToggle className="w-full sm:w-auto" />
+            </div>
+            <div className="relative w-full lg:max-w-sm">
                 <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
                 <Input
                   value={searchQuery}
@@ -136,7 +140,6 @@ export const PublicSubmissionSharedPage = () => {
                   placeholder="公開項目で検索"
                   disabled={!hasVisibleColumns}
                 />
-              </div>
             </div>
           </CardHeader>
           <CardContent>

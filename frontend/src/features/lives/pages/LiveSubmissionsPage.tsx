@@ -298,6 +298,9 @@ export const LiveSubmissionsPage = () => {
               <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
               <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-8" placeholder="公開項目で検索" disabled={!hasVisibleColumns} />
             </div>
+            <div>
+              <p>提出: {filteredDetails.length}件</p>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -306,7 +309,7 @@ export const LiveSubmissionsPage = () => {
           ) : filteredDetails.length === 0 ? (
             <p className="text-sm text-muted-foreground">該当する提出はありません。</p>
           ) : (
-            <div className="max-h-[70vh] overflow-auto rounded-lg border">
+            <div className="rounded-lg border">
                 <Table>
                   <TableHeader className="sticky top-0 z-20 bg-background">
                     <TableRow>
