@@ -1,4 +1,5 @@
 import { apiClient, clearAccessToken, API_BASE_URL } from '@/lib/api/client';
+import { useSingleFlight } from '@/hooks/use-single-flight';
 import { useState, useEffect, useCallback } from 'react';
 
 export interface AuthMe {
@@ -12,6 +13,7 @@ export interface AuthMe {
 export const useAuth = () => {
     const [authMe, setAuthMe] = useState<AuthMe | null>(null);
     const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { run: runLogout } = useSingleFlight();
 
     const checkAuth = useCallback(() => {
       setIsAuthLoading(true);
@@ -47,7 +49,6 @@ export const useAuth = () => {
     
     useEffect(() => {
       exchangeTokenAfterLogin();
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       checkAuth();
     }, [checkAuth, exchangeTokenAfterLogin]);
     
@@ -61,12 +62,18 @@ export const useAuth = () => {
     }, []);
     
     const logout = useCallback (() => {
-      clearAccessToken();
-      apiClient.post('/auth/logout').finally(() => {
-        setAuthMe(null);
-        checkAuth();
+      void runLogout(async () => {
+        clearAccessToken();
+        try {
+          await apiClient.post('/auth/logout');
+        } catch (error) {
+          void error;
+        } finally {
+          setAuthMe(null);
+          checkAuth();
+        }
       });
-    }, [checkAuth]);
+    }, [checkAuth, runLogout]);
 
     return { loginWithGoogle, logout, authMe, checkAuth, isAuthLoading };
 }

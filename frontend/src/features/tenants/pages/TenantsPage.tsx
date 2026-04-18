@@ -5,6 +5,7 @@ import { apiClient } from "@/lib/api/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TrashButton, TrashSheet } from "@/components/original/TrashSheet";
+import { useKeyedSingleFlight } from "@/hooks/use-single-flight";
 
 
 export const TenantsPage = () => {
@@ -13,6 +14,7 @@ export const TenantsPage = () => {
   const [trashedTenants, setTrashedTenants] = useState<TenantsResponse[]>([]);
   const [trashOpen, setTrashOpen] = useState(false);
   const [trashFetched, setTrashFetched] = useState(false);
+  const { run: runTrashAction, isRunning: isTrashActionRunning } = useKeyedSingleFlight<string>();
 
   const fetchTenants = () => {
     apiClient.get<TenantsResponse[]>("/tenants/list")
@@ -54,21 +56,27 @@ export const TenantsPage = () => {
   }
 
   const handleRestoreFromTrash = (id: string) => {
-    apiClient.post<void>("/tenants/restore", { id }).then(() => {
-      setTrashedTenants((prev) => prev.filter((t) => t.id !== id));
-      fetchTenants();
-      toast.success("テナントを復元しました", { position: "top-center" });
-    }).catch(() => {
-      toast.error("復元に失敗しました", { position: "top-center" });
+    void runTrashAction(id, async () => {
+      try {
+        await apiClient.post<void>("/tenants/restore", { id });
+        setTrashedTenants((prev) => prev.filter((t) => t.id !== id));
+        fetchTenants();
+        toast.success("テナントを復元しました", { position: "top-center" });
+      } catch {
+        toast.error("復元に失敗しました", { position: "top-center" });
+      }
     });
   }
 
   const handlePurgeTenant = (id: string) => {
-    apiClient.post<void>("/tenants/purge", { id }).then(() => {
-      setTrashedTenants((prev) => prev.filter((t) => t.id !== id));
-      toast.success("テナントを完全に削除しました", { position: "top-center" });
-    }).catch(() => {
-      toast.error("完全削除に失敗しました", { position: "top-center" });
+    void runTrashAction(id, async () => {
+      try {
+        await apiClient.post<void>("/tenants/purge", { id });
+        setTrashedTenants((prev) => prev.filter((t) => t.id !== id));
+        toast.success("テナントを完全に削除しました", { position: "top-center" });
+      } catch {
+        toast.error("完全削除に失敗しました", { position: "top-center" });
+      }
     });
   }
 
@@ -98,6 +106,7 @@ export const TenantsPage = () => {
         onRestore={handleRestoreFromTrash}
         onPurge={handlePurgeTenant}
         entityLabel="テナント"
+        isPending={isTrashActionRunning}
       />
     </div>
   );

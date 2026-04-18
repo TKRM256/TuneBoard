@@ -57,21 +57,20 @@ export const CreateLiveCard = ({ tenantId, onCreateSuccess }: CreateLiveCardProp
     });
   };
 
-  const onSubmit = () => {
-    apiClient
-      .post<LiveResponse>('/lives/create', toLiveCreatePayload(tenantId, formValues))
-      .then((response) => {
-        if (!response) {
-          return;
-        }
+  const onSubmit = async () => {
+    try {
+      const response = await apiClient.post<LiveResponse>('/lives/create', toLiveCreatePayload(tenantId, formValues))
 
-        onCreateSuccess(response);
-        setFormValues(createTenantScopedLiveForm());
-        toast.success('ライブを作成しました', { position: 'top-center' });
-      })
-      .catch((error: ApiClientError) => {
-        applyServerErrors(error);
-      });
+      if (!response) {
+        return;
+      }
+
+      onCreateSuccess(response);
+      setFormValues(createTenantScopedLiveForm());
+      toast.success('ライブを作成しました', { position: 'top-center' });
+    } catch (error: unknown) {
+      applyServerErrors(error as ApiClientError);
+    }
   };
 
   return (

@@ -31,6 +31,10 @@ import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { collectColumns, extractCellValue } from '../helpers/submission-table-helpers';
 import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
+import { useKeyedSingleFlight, useSingleFlight } from '@/hooks/use-single-flight';
+
+const getSubmissionActionKey = (id: string) => `submission:${id}`;
+const getDuplicateActionKey = (normalizedTitle: string) => `duplicate:${normalizedTitle}`;
 
 export const LiveSubmissionsPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -42,11 +46,13 @@ export const LiveSubmissionsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
-  const [isDuplicateLoading, setIsDuplicateLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [trashedDetails, setTrashedDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
   const [trashOpen, setTrashOpen] = useState(false);
   const [trashFetched, setTrashFetched] = useState(false);
+  const { isRunning: isDuplicateLoading, run: runDuplicateRefresh } = useSingleFlight();
+  const { run: runSubmissionAction, isRunning: isSubmissionActionRunning } = useKeyedSingleFlight<string>();
+  const { run: runDuplicateDismiss, isRunning: isDuplicateDismissRunning } = useKeyedSingleFlight<string>();
 
   useEffect(() => {
     if (!liveId) {
@@ -115,30 +121,42 @@ export const LiveSubmissionsPage = () => {
     return map;
   }, [duplicates]);
 
-  const refreshDuplicates = useCallback(async () => {
-    setIsDuplicateLoading(true);
-    try {
-      const response = await apiClient.post<SongDuplicateResponse>(`/lives/${liveId}/songs/duplicates/refresh`);
-      setDuplicates(response ?? null);
-      toast.success('曲かぶり検出を再実行しました', { position: 'top-center' });
-    } catch {
-      toast.error('曲かぶり検出の再実行に失敗しました', { position: 'top-center' });
-    } finally {
-      setIsDuplicateLoading(false);
-    }
-  }, [liveId]);
+  const refreshDuplicates = useCallback(() => {
+    void runDuplicateRefresh(async () => {
+      try {
+        const response = await apiClient.post<SongDuplicateResponse>(`/lives/${liveId}/songs/duplicates/refresh`);
+        setDuplicates(response ?? null);
+        toast.success('曲かぶり検出を再実行しました', { position: 'top-center' });
+      } catch {
+        toast.error('曲かぶり検出の再実行に失敗しました', { position: 'top-center' });
+      }
+    });
+  }, [liveId, runDuplicateRefresh]);
 
-  const handleDismiss = useCallback(async (normalizedTitle: string) => {
-    try {
-      const response = await apiClient.post<SongDuplicateResponse>(
-        `/lives/${liveId}/songs/duplicates/dismiss`,
-        { normalizedTitle },
-      );
-      setDuplicates(response ?? null);
-    } catch {
-      toast.error('除外設定に失敗しました', { position: 'top-center' });
-    }
-  }, [liveId]);
+  const restoreDeletedSubmission = useCallback((id: string, deleted: PublicSettingSheetSubmissionDetailResponse | undefined) => {
+    return runSubmissionAction(getSubmissionActionKey(id), async () => {
+      await apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/restore`, {});
+      setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
+      if (deleted) {
+        setDetails((prev) => [deleted, ...prev]);
+      }
+      toast.success('バンドを復元しました', { position: 'top-center' });
+    });
+  }, [liveId, runSubmissionAction]);
+
+  const handleDismiss = useCallback((normalizedTitle: string) => {
+    void runDuplicateDismiss(getDuplicateActionKey(normalizedTitle), async () => {
+      try {
+        const response = await apiClient.post<SongDuplicateResponse>(
+          `/lives/${liveId}/songs/duplicates/dismiss`,
+          { normalizedTitle },
+        );
+        setDuplicates(response ?? null);
+      } catch {
+        toast.error('除外設定に失敗しました', { position: 'top-center' });
+      }
+    });
+  }, [liveId, runDuplicateDismiss]);
 
   const fetchTrash = useCallback(() => {
     apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/trash`)
@@ -155,49 +173,53 @@ export const LiveSubmissionsPage = () => {
 
   const handleDeleteSubmission = useCallback((id: string) => {
     const deleted = details.find((d) => d.id === id);
-    apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/delete`, {}).then(() => {
-      setDetails((prev) => prev.filter((d) => d.id !== id));
-      if (deleted) setTrashedDetails((prev) => [deleted, ...prev]);
-      toast.success('バンドを削除しました', {
-        position: 'top-center',
-        action: {
-          label: '取り消す',
-          onClick: () => {
-            apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/restore`, {}).then(() => {
-              setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
-              if (deleted) setDetails((prev) => [deleted, ...prev]);
-              toast.success('バンドを復元しました', { position: 'top-center' });
-            }).catch(() => {
-              toast.error('復元に失敗しました', { position: 'top-center' });
-            });
+    void runSubmissionAction(getSubmissionActionKey(id), async () => {
+      try {
+        await apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/delete`, {});
+        setDetails((prev) => prev.filter((d) => d.id !== id));
+        if (deleted) setTrashedDetails((prev) => [deleted, ...prev]);
+        toast.success('バンドを削除しました', {
+          position: 'top-center',
+          action: {
+            label: '取り消す',
+            onClick: () => {
+              void restoreDeletedSubmission(id, deleted).catch(() => {
+                toast.error('復元に失敗しました', { position: 'top-center' });
+              });
+            },
           },
-        },
-      });
-    }).catch(() => {
-      toast.error('バンドの削除に失敗しました', { position: 'top-center' });
+        });
+      } catch {
+        toast.error('バンドの削除に失敗しました', { position: 'top-center' });
+      }
     });
-  }, [details, liveId]);
+  }, [details, liveId, runSubmissionAction, restoreDeletedSubmission]);
 
   const handleRestoreFromTrash = useCallback((id: string) => {
-    apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/restore`, {}).then(() => {
-      setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
-      // answers フィールドのない trash アイテムを直接 details に戻すとクラッシュするため再取得する
-      apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`)
-        .then((res) => setDetails(res ?? []));
-      toast.success('バンドを復元しました', { position: 'top-center' });
-    }).catch(() => {
-      toast.error('復元に失敗しました', { position: 'top-center' });
+    void runSubmissionAction(getSubmissionActionKey(id), async () => {
+      try {
+        await apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/restore`, {});
+        setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
+        const response = await apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`);
+        setDetails(response ?? []);
+        toast.success('バンドを復元しました', { position: 'top-center' });
+      } catch {
+        toast.error('復元に失敗しました', { position: 'top-center' });
+      }
     });
-  }, [liveId]);
+  }, [liveId, runSubmissionAction]);
 
   const handlePurgeSubmission = useCallback((id: string) => {
-    apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/purge`, {}).then(() => {
-      setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
-      toast.success('バンドを完全に削除しました', { position: 'top-center' });
-    }).catch(() => {
-      toast.error('完全削除に失敗しました', { position: 'top-center' });
+    void runSubmissionAction(getSubmissionActionKey(id), async () => {
+      try {
+        await apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/purge`, {});
+        setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
+        toast.success('バンドを完全に削除しました', { position: 'top-center' });
+      } catch {
+        toast.error('完全削除に失敗しました', { position: 'top-center' });
+      }
     });
-  }, [liveId]);
+  }, [liveId, runSubmissionAction]);
 
   const filteredDetails = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -283,7 +305,7 @@ export const LiveSubmissionsPage = () => {
         </CardHeader>
       </Card>
 
-      <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={isAdmin ? handleDismiss : undefined} isAdmin={isAdmin} />
+      <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={isAdmin ? handleDismiss : undefined} isDismissing={(normalizedTitle) => isDuplicateDismissRunning(getDuplicateActionKey(normalizedTitle))} isAdmin={isAdmin} />
 
       <Card>
         <CardHeader>
@@ -350,6 +372,7 @@ export const LiveSubmissionsPage = () => {
                               size="icon"
                               className="size-7"
                               onClick={(e) => { e.stopPropagation(); handleDeleteSubmission(detail.id); }}
+                              disabled={isSubmissionActionRunning(getSubmissionActionKey(detail.id))}
                             >
                               <Trash2 className="size-4 text-destructive" />
                             </Button>
@@ -380,6 +403,7 @@ export const LiveSubmissionsPage = () => {
         onRestore={handleRestoreFromTrash}
         onPurge={handlePurgeSubmission}
         entityLabel="バンド"
+        isPending={(id) => isSubmissionActionRunning(getSubmissionActionKey(id))}
       />
     </div>
   );
