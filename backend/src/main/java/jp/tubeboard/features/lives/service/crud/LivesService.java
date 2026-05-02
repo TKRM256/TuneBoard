@@ -24,11 +24,15 @@ import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
+import jp.tubeboard.features.lives.pdf.PdfLayoutOptions;
+import jp.tubeboard.features.lives.pdf.SettingSheetPdfService;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import jp.tubeboard.features.tenants.model.Tenants;
 import lombok.AllArgsConstructor;
 
@@ -43,6 +47,7 @@ public class LivesService implements ILivesService {
         private final SettingSheetSubmissionService settingSheetSubmissionService;
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
         private final SongDuplicateDetectionService songDuplicateDetectionService;
+        private final SettingSheetPdfService settingSheetPdfService;
 
         private final LiveServiceHelper helper;
 
@@ -403,5 +408,20 @@ public class LivesService implements ILivesService {
                 Live live = liveRepository.findByPublicTokenAndDeletedAtIsNull(publicToken)
                                 .orElseThrow(() -> new LivesNotFoundException("公開ライブが見つかりません"));
                 return songDuplicateDetectionService.checkSongDuplicate(live, request, excludeSubmissionId);
+        }
+
+        @Override
+        public SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, PdfLayoutOptions options) {
+                Live live = helper.findOwnedLive(liveId);
+                LiveResponse liveResponse = helper.toResponse(live);
+                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
+                PublicSettingSheetSubmissionDetailResponse detail = getOwnedSettingSheetSubmission(liveId,
+                                submissionId);
+                try {
+                        byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail, options);
+                        return new SubmissionPdfResult(bytes, detail.recordLabel());
+                } catch (IOException ex) {
+                        throw new UncheckedIOException("PDF生成に失敗しました", ex);
+                }
         }
 }

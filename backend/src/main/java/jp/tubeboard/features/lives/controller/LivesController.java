@@ -1,14 +1,19 @@
 package jp.tubeboard.features.lives.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -24,7 +29,11 @@ import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDeta
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
+import jp.tubeboard.features.lives.pdf.PdfLayoutOptions;
+import jp.tubeboard.features.lives.pdf.PdfOrientation;
+import jp.tubeboard.features.lives.pdf.PdfPaperSize;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
+import jp.tubeboard.features.lives.service.crud.ILivesService.SubmissionPdfResult;
 import lombok.AllArgsConstructor;
 
 @RestController
@@ -165,5 +174,56 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SongDuplicateDismissRequest request) {
         return ResponseEntity.ok(livesService.toggleDismissSongDuplicate(id, request.normalizedTitle()));
+    }
+
+    @GetMapping("/{id}/setting-sheet/submissions/{submissionId}/pdf")
+    public ResponseEntity<byte[]> downloadSubmissionPdf(
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "submissionId") UUID submissionId,
+            @RequestParam(name = "paperSize", required = false) String paperSize,
+            @RequestParam(name = "orientation", required = false) String orientation,
+            @RequestParam(name = "baseFontSize", required = false) Float baseFontSize,
+            @RequestParam(name = "marginMm", required = false) Float marginMm,
+            @RequestParam(name = "includeItunesLinks", required = false) Boolean includeItunesLinks,
+            @RequestParam(name = "autoFitOnePage", required = false) Boolean autoFitOnePage) {
+        PdfLayoutOptions options = new PdfLayoutOptions(
+                parsePaperSize(paperSize),
+                parseOrientation(orientation),
+                baseFontSize,
+                marginMm,
+                includeItunesLinks,
+                autoFitOnePage);
+        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId, options);
+        String filename = sanitizeFilename(result.filenameStem()) + ".pdf";
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"submission.pdf\"; filename*=UTF-8''" + encoded)
+                .body(result.bytes());
+    }
+
+    private PdfPaperSize parsePaperSize(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return PdfPaperSize.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private PdfOrientation parseOrientation(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return PdfOrientation.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private String sanitizeFilename(String stem) {
+        if (stem == null || stem.isBlank()) return "submission";
+        String cleaned = stem.replaceAll("[\\\\/:*?\"<>|\\r\\n\\t]", "_").trim();
+        return cleaned.length() > 80 ? cleaned.substring(0, 80) : cleaned;
     }
 }
