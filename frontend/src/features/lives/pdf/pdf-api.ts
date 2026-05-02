@@ -1,67 +1,55 @@
 /** API helpers for fetching/downloading setting-sheet PDFs from the backend. */
 import { API_BASE_URL, getAccessToken } from '@/lib/api/client';
 import { ApiClientError } from '@/lib/api/type';
+import type { PdfLayoutOptions } from './pdf-options';
 
-export type PdfPaperSize = 'A3' | 'A4' | 'A5' | 'B4' | 'B5' | 'LETTER';
-export type PdfOrientation = 'PORTRAIT' | 'LANDSCAPE';
-
-export interface PdfLayoutOptions {
-  paperSize?: PdfPaperSize;
-  orientation?: PdfOrientation;
-  baseFontSize?: number;
-  marginMm?: number;
-  includeItunesLinks?: boolean;
-  autoFitOnePage?: boolean;
-}
-
-export interface PdfPaperSizeOption {
-  value: PdfPaperSize;
-  label: string;
-  description: string;
-}
-
-export const PDF_PAPER_SIZE_OPTIONS: PdfPaperSizeOption[] = [
-  { value: 'A4', label: 'A4', description: '210 × 297 mm（標準）' },
-  { value: 'A3', label: 'A3', description: '297 × 420 mm（大判）' },
-  { value: 'A5', label: 'A5', description: '148 × 210 mm（コンパクト）' },
-  { value: 'B4', label: 'B4', description: '257 × 364 mm' },
-  { value: 'B5', label: 'B5', description: '182 × 257 mm' },
-  { value: 'LETTER', label: 'Letter', description: '216 × 279 mm（米国）' },
-];
-
-export const PDF_ORIENTATION_OPTIONS: Array<{ value: PdfOrientation; label: string }> = [
-  { value: 'LANDSCAPE', label: '横向き' },
-  { value: 'PORTRAIT', label: '縦向き' },
-];
-
-function buildQueryString(options: PdfLayoutOptions): string {
-  const params = new URLSearchParams();
-  if (options.paperSize) params.set('paperSize', options.paperSize);
-  if (options.orientation) params.set('orientation', options.orientation);
-  if (options.baseFontSize !== undefined) params.set('baseFontSize', String(options.baseFontSize));
-  if (options.marginMm !== undefined) params.set('marginMm', String(options.marginMm));
-  if (options.includeItunesLinks !== undefined) params.set('includeItunesLinks', String(options.includeItunesLinks));
-  if (options.autoFitOnePage !== undefined) params.set('autoFitOnePage', String(options.autoFitOnePage));
-  const qs = params.toString();
-  return qs ? `?${qs}` : '';
-}
-
-interface PdfFetchResult {
+export interface PdfFetchResult {
   blob: Blob;
   filename: string;
+}
+
+interface FetchOptions {
+  signal?: AbortSignal;
 }
 
 export async function fetchSubmissionPdf(
   liveId: string,
   submissionId: string,
   options: PdfLayoutOptions,
+  fetchOptions: FetchOptions = {},
 ): Promise<PdfFetchResult> {
-  const url = `${API_BASE_URL}/lives/${liveId}/setting-sheet/submissions/${submissionId}/pdf${buildQueryString(options)}`;
-  const headers = new Headers();
+  return postForBlob(
+    `/lives/${liveId}/setting-sheet/submissions/${submissionId}/pdf`,
+    options,
+    fetchOptions,
+  );
+}
+
+export async function fetchSubmissionsZip(
+  liveId: string,
+  submissionIds: string[],
+  options: PdfLayoutOptions,
+  fetchOptions: FetchOptions = {},
+): Promise<PdfFetchResult> {
+  return postForBlob(
+    `/lives/${liveId}/setting-sheet/submissions/pdf-zip`,
+    { submissionIds, layout: options },
+    fetchOptions,
+  );
+}
+
+async function postForBlob(path: string, body: unknown, opts: FetchOptions): Promise<PdfFetchResult> {
+  const headers = new Headers({ 'Content-Type': 'application/json', 'X-Requested-With': 'TuneBoard' });
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const response = await fetch(url, { method: 'GET', headers, credentials: 'same-origin' });
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    credentials: 'same-origin',
+    signal: opts.signal,
+  });
   if (!response.ok) {
     throw new ApiClientError(response.status);
   }
@@ -81,7 +69,7 @@ function parseFilename(disposition: string): string {
   }
   const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
   if (plainMatch) return plainMatch[1].trim();
-  return 'submission.pdf';
+  return 'download';
 }
 
 export function downloadBlob(blob: Blob, filename: string) {
