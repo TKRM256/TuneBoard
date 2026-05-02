@@ -12,6 +12,7 @@ const TenantLivesPage = lazy(() => import('./features/lives/pages/TenantLivesPag
 const LiveManagementPage = lazy(() => import('./features/lives/pages/LiveManagementPage').then((module) => ({ default: module.LiveManagementPage })));
 const LiveFormEditorPage = lazy(() => import('./features/lives/pages/LiveFormEditorPage').then((module) => ({ default: module.LiveFormEditorPage })));
 const LiveSubmissionsPage = lazy(() => import('./features/lives/pages/LiveSubmissionsPage').then((module) => ({ default: module.LiveSubmissionsPage })));
+const PdfPreviewPage = lazy(() => import('./features/lives/pdf/PdfPreviewPage').then((module) => ({ default: module.PdfPreviewPage })));
 const LiveVisibilitySettingsPage = lazy(() => import('./features/lives/pages/LiveVisibilitySettingsPage').then((module) => ({ default: module.LiveVisibilitySettingsPage })));
 const InvitationAcceptPage = lazy(() => import('./features/tenants/pages/InvitationAcceptPage').then((module) => ({ default: module.InvitationAcceptPage })));
 
@@ -46,6 +47,8 @@ function App() {
             <Route path="tenants/:tenantId/lives/:liveId" element={<Suspense fallback={routeFallback}><LiveManagementPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/form" element={<Suspense fallback={routeFallback}><LiveFormEditorPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/submissions" element={<Suspense fallback={routeFallback}><LiveSubmissionsPage /></Suspense>} />
+            <Route path="tenants/:tenantId/lives/:liveId/submissions/pdf-preview" element={<Suspense fallback={routeFallback}><PdfPreviewPage /></Suspense>} />
+            <Route path="tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview" element={<Suspense fallback={routeFallback}><PdfPreviewPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/settings" element={<Suspense fallback={routeFallback}><LiveVisibilitySettingsPage /></Suspense>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
