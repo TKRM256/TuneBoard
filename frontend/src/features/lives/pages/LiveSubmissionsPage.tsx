@@ -30,6 +30,7 @@ import {
 import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { collectColumns, extractCellValue } from '../helpers/submission-table-helpers';
+import { downloadBlob, fetchSubmissionPdf } from '../pdf/pdf-api';
 import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
 import { useKeyedSingleFlight, useSingleFlight } from '@/hooks/use-single-flight';
 
@@ -208,6 +209,19 @@ export const LiveSubmissionsPage = () => {
       }
     });
   }, [liveId, runSubmissionAction]);
+
+  const handleDownloadSubmissionPdf = useCallback(async (submissionId: string) => {
+    if (!liveId) return;
+    const toastId = toast.loading('PDFを生成中...', { position: 'top-center' });
+    try {
+      const { blob, filename } = await fetchSubmissionPdf(liveId, submissionId, {});
+      downloadBlob(blob, filename);
+      toast.success('PDFをダウンロードしました', { id: toastId, position: 'top-center' });
+    } catch (error) {
+      console.error('PDF download failed', error);
+      toast.error('PDFのダウンロードに失敗しました', { id: toastId, position: 'top-center' });
+    }
+  }, [liveId]);
 
   const handlePurgeSubmission = useCallback((id: string) => {
     void runSubmissionAction(getSubmissionActionKey(id), async () => {
@@ -394,6 +408,7 @@ export const LiveSubmissionsPage = () => {
         config={config}
         recordLabel={recordLabel}
         onCopyEditLink={copyEditLink}
+        onOpenPdfPreview={handleDownloadSubmissionPdf}
       />
 
       <TrashSheet
