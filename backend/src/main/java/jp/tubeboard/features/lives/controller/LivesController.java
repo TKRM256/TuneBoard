@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -22,16 +21,15 @@ import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
 import jp.tubeboard.features.lives.dto.request.LivePurgeRequest;
 import jp.tubeboard.features.lives.dto.request.LiveRestoreRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.PdfGenerateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SongDuplicateDismissRequest;
+import jp.tubeboard.features.lives.dto.request.SubmissionsZipRequest;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
-import jp.tubeboard.features.lives.pdf.PdfLayoutOptions;
-import jp.tubeboard.features.lives.pdf.PdfOrientation;
-import jp.tubeboard.features.lives.pdf.PdfPaperSize;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
 import jp.tubeboard.features.lives.service.crud.ILivesService.SubmissionPdfResult;
 import lombok.AllArgsConstructor;
@@ -176,49 +174,37 @@ public class LivesController {
         return ResponseEntity.ok(livesService.toggleDismissSongDuplicate(id, request.normalizedTitle()));
     }
 
-    @GetMapping("/{id}/setting-sheet/submissions/{submissionId}/pdf")
+    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/pdf")
     public ResponseEntity<byte[]> downloadSubmissionPdf(
             @PathVariable(name = "id") UUID id,
             @PathVariable(name = "submissionId") UUID submissionId,
-            @RequestParam(name = "paperSize", required = false) String paperSize,
-            @RequestParam(name = "orientation", required = false) String orientation,
-            @RequestParam(name = "baseFontSize", required = false) Float baseFontSize,
-            @RequestParam(name = "marginMm", required = false) Float marginMm,
-            @RequestParam(name = "includeItunesLinks", required = false) Boolean includeItunesLinks,
-            @RequestParam(name = "autoFitOnePage", required = false) Boolean autoFitOnePage) {
-        PdfLayoutOptions options = new PdfLayoutOptions(
-                parsePaperSize(paperSize),
-                parseOrientation(orientation),
-                baseFontSize,
-                marginMm,
-                includeItunesLinks,
-                autoFitOnePage);
-        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId, options);
-        String filename = sanitizeFilename(result.filenameStem()) + ".pdf";
+            @RequestBody(required = false) PdfGenerateRequest request) {
+        PdfGenerateRequest body = request != null ? request : emptyRequest();
+        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId, body.toLayoutOptions());
+        return pdfResponse(result, "pdf", MediaType.APPLICATION_PDF);
+    }
+
+    @PostMapping("/{id}/setting-sheet/submissions/pdf-zip")
+    public ResponseEntity<byte[]> downloadSubmissionsZip(
+            @PathVariable(name = "id") UUID id,
+            @RequestBody @Valid SubmissionsZipRequest request) {
+        SubmissionPdfResult result = livesService.generateSubmissionsZip(id, request.submissionIds(),
+                request.toLayoutOptions());
+        return pdfResponse(result, "zip", MediaType.parseMediaType("application/zip"));
+    }
+
+    private PdfGenerateRequest emptyRequest() {
+        return new PdfGenerateRequest(null, null, null, null, null, null, null, null, null, null);
+    }
+
+    private ResponseEntity<byte[]> pdfResponse(SubmissionPdfResult result, String extension, MediaType mediaType) {
+        String filename = sanitizeFilename(result.filenameStem()) + "." + extension;
         String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
+                .contentType(mediaType)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"submission.pdf\"; filename*=UTF-8''" + encoded)
+                        "attachment; filename=\"download." + extension + "\"; filename*=UTF-8''" + encoded)
                 .body(result.bytes());
-    }
-
-    private PdfPaperSize parsePaperSize(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return PdfPaperSize.valueOf(value.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
-    private PdfOrientation parseOrientation(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return PdfOrientation.valueOf(value.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
     }
 
     private String sanitizeFilename(String stem) {

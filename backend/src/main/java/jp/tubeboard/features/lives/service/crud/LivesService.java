@@ -424,4 +424,22 @@ public class LivesService implements ILivesService {
                         throw new UncheckedIOException("PDF生成に失敗しました", ex);
                 }
         }
+
+        @Override
+        public SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds,
+                        PdfLayoutOptions options) {
+                Live live = helper.findOwnedLive(liveId);
+                LiveResponse liveResponse = helper.toResponse(live);
+                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
+                List<SettingSheetPdfService.SubmissionInputs> inputs = submissionIds.stream()
+                                .map(id -> new SettingSheetPdfService.SubmissionInputs(liveResponse, config,
+                                                getOwnedSettingSheetSubmission(liveId, id)))
+                                .toList();
+                try {
+                        byte[] bytes = settingSheetPdfService.generateZip(inputs, options);
+                        return new SubmissionPdfResult(bytes, live.getName() + "_セッティングシート");
+                } catch (IOException ex) {
+                        throw new UncheckedIOException("PDF Zip生成に失敗しました", ex);
+                }
+        }
 }

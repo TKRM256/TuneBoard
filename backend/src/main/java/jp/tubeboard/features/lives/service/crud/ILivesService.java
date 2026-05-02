@@ -85,6 +85,8 @@ public interface ILivesService {
 
         SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, PdfLayoutOptions options);
 
+        SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds, PdfLayoutOptions options);
+
         record SubmissionPdfResult(byte[] bytes, String filenameStem) {
         }
 }
