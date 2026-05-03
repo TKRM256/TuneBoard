@@ -20,7 +20,9 @@ public record PdfGenerateRequest(
         PdfDensity density,
         PdfHeaderOptions header,
         Set<String> hiddenBlockIds,
-        Map<String, String> blockLabelOverrides) {
+        Map<String, String> blockLabelOverrides,
+        /** When non-null, custom DSL takes precedence over the simple options above. */
+        String customLayoutYaml) {
 
     public PdfLayoutOptions toLayoutOptions() {
         return new PdfLayoutOptions(paperSize, orientation, baseFontSize, marginMm,

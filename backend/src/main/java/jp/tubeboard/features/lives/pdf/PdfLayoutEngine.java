@@ -17,14 +17,14 @@ import org.apache.pdfbox.pdmodel.font.PDType0Font;
  */
 public class PdfLayoutEngine implements AutoCloseable {
 
-    static final Color COLOR_TEXT = new Color(0x1f, 0x29, 0x37);
-    static final Color COLOR_TEXT_MUTED = new Color(0x6b, 0x72, 0x80);
-    static final Color COLOR_BORDER = new Color(0xd1, 0xd5, 0xdb);
-    static final Color COLOR_BORDER_STRONG = new Color(0x6b, 0x72, 0x80);
-    static final Color COLOR_BG_SUBTLE = new Color(0xf3, 0xf4, 0xf6);
-    static final Color COLOR_BG_HEADER = new Color(0xe5, 0xed, 0xf6);
-    static final Color COLOR_WHITE = Color.WHITE;
-    static final float MM_TO_PT = 2.834645f;
+    public static final Color COLOR_TEXT = new Color(0x1f, 0x29, 0x37);
+    public static final Color COLOR_TEXT_MUTED = new Color(0x6b, 0x72, 0x80);
+    public static final Color COLOR_BORDER = new Color(0xd1, 0xd5, 0xdb);
+    public static final Color COLOR_BORDER_STRONG = new Color(0x6b, 0x72, 0x80);
+    public static final Color COLOR_BG_SUBTLE = new Color(0xf3, 0xf4, 0xf6);
+    public static final Color COLOR_BG_HEADER = new Color(0xe5, 0xed, 0xf6);
+    public static final Color COLOR_WHITE = Color.WHITE;
+    public static final float MM_TO_PT = 2.834645f;
 
     private final PDDocument document;
     private final PDType0Font font;
@@ -207,10 +207,18 @@ public class PdfLayoutEngine implements AutoCloseable {
     }
 
     public void drawHorizontalLine(float x1, float x2, float y, Color color, float lineWidth) throws IOException {
+        drawLine(x1, y, x2, y, color, lineWidth);
+    }
+
+    public void drawVerticalLine(float x, float y1, float y2, Color color, float lineWidth) throws IOException {
+        drawLine(x, y1, x, y2, color, lineWidth);
+    }
+
+    public void drawLine(float x1, float y1, float x2, float y2, Color color, float lineWidth) throws IOException {
         stream.setStrokingColor(color);
         stream.setLineWidth(lineWidth);
-        stream.moveTo(x1, y);
-        stream.lineTo(x2, y);
+        stream.moveTo(x1, y1);
+        stream.lineTo(x2, y2);
         stream.stroke();
     }
 

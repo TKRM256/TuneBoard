@@ -83,9 +83,11 @@ public interface ILivesService {
         PublicSongDuplicateCheckResponse checkPublicSongDuplicate(String publicToken,
                         PublicSongDuplicateCheckRequest request, UUID excludeSubmissionId);
 
-        SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, PdfLayoutOptions options);
+        SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, PdfLayoutOptions options,
+                        String customLayoutYaml);
 
-        SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds, PdfLayoutOptions options);
+        SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds, PdfLayoutOptions options,
+                        String customLayoutYaml);
 
         record SubmissionPdfResult(byte[] bytes, String filenameStem) {
         }

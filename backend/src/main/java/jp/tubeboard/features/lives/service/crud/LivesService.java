@@ -411,14 +411,16 @@ public class LivesService implements ILivesService {
         }
 
         @Override
-        public SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, PdfLayoutOptions options) {
+        public SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, PdfLayoutOptions options,
+                        String customLayoutYaml) {
                 Live live = helper.findOwnedLive(liveId);
                 LiveResponse liveResponse = helper.toResponse(live);
                 SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
                 PublicSettingSheetSubmissionDetailResponse detail = getOwnedSettingSheetSubmission(liveId,
                                 submissionId);
                 try {
-                        byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail, options);
+                        byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail, options,
+                                        customLayoutYaml);
                         return new SubmissionPdfResult(bytes, detail.recordLabel());
                 } catch (IOException ex) {
                         throw new UncheckedIOException("PDF生成に失敗しました", ex);
@@ -427,7 +429,7 @@ public class LivesService implements ILivesService {
 
         @Override
         public SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds,
-                        PdfLayoutOptions options) {
+                        PdfLayoutOptions options, String customLayoutYaml) {
                 Live live = helper.findOwnedLive(liveId);
                 LiveResponse liveResponse = helper.toResponse(live);
                 SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
@@ -436,7 +438,7 @@ public class LivesService implements ILivesService {
                                                 getOwnedSettingSheetSubmission(liveId, id)))
                                 .toList();
                 try {
-                        byte[] bytes = settingSheetPdfService.generateZip(inputs, options);
+                        byte[] bytes = settingSheetPdfService.generateZip(inputs, options, customLayoutYaml);
                         return new SubmissionPdfResult(bytes, live.getName() + "_セッティングシート");
                 } catch (IOException ex) {
                         throw new UncheckedIOException("PDF Zip生成に失敗しました", ex);

@@ -1,8 +1,11 @@
 package jp.tubeboard.features.lives.pdf;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -17,19 +20,21 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormB
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 
 /**
- * Renders a single setting-sheet submission into a {@link PdfLayoutEngine} with
- * a clean hierarchical layout: thin header → sections with rules → group items
- * laid out as titled rows with two-column field grids.
+ * Renders a submission as a tight, table-driven setting sheet:
+ * - title (record label) at top
+ * - left: 2-column info table (label/value pairs)
+ * - right: first repeatable group as a table (or full-width if no info)
+ * - subsequent groups stacked full-width as tables
  */
 public class SubmissionPdfRenderer {
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy/M/d", Locale.JAPAN);
     private static final DateTimeFormatter DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyy/M/d HH:mm",
             Locale.JAPAN);
     private static final float COLUMN_GAP = 8f;
-    private static final float SECTION_INDENT = 4f;
-    private static final float ITEM_INDENT = 8f;
-    private static final float SECTION_RULE_OFFSET = 3f;
+    private static final float CELL_PAD_X = 4f;
+    private static final float CELL_PAD_Y = 3f;
+    private static final float SECTION_GAP = 8f;
+    private static final float HEADER_GAP = 6f;
 
     private final PdfLayoutEngine engine;
     private final PdfLayoutOptions options;
@@ -44,20 +49,37 @@ public class SubmissionPdfRenderer {
     public void render(LiveResponse live, SettingSheetConfigResponse config,
             PublicSettingSheetSubmissionDetailResponse submission) throws IOException {
         engine.newPage();
-        renderHeader(live, submission);
         Map<String, FieldAnswerResponse> answers = indexAnswers(submission.answers());
-        renderBlocks(config.blocks(), answers, engine.contentLeft(), engine.contentWidth());
+
+        renderHeader(live, submission);
+
+        // Categorize top-level blocks
+        List<InfoRow> infoRows = collectInfoRows(live, submission, config.blocks(), answers);
+        List<FormBlockResponse> groups = collectVisibleGroups(config.blocks());
+
+        boolean hasInfo = !infoRows.isEmpty();
+        boolean hasGroups = !groups.isEmpty();
+
+        if (hasInfo && hasGroups) {
+            renderInfoAndFirstGroupSideBySide(infoRows, groups.get(0), answers);
+            for (int i = 1; i < groups.size(); i++) {
+                engine.setCursorY(engine.cursorY() - spacing(SECTION_GAP));
+                renderGroupTable(groups.get(i), answers, engine.contentLeft(), engine.contentWidth());
+            }
+        } else if (hasInfo) {
+            renderInfoTable(infoRows, engine.contentLeft(), engine.contentWidth() * 0.6f);
+        } else if (hasGroups) {
+            for (int i = 0; i < groups.size(); i++) {
+                if (i > 0) engine.setCursorY(engine.cursorY() - spacing(SECTION_GAP));
+                renderGroupTable(groups.get(i), answers, engine.contentLeft(), engine.contentWidth());
+            }
+        }
+
         if (Boolean.TRUE.equals(options.includeItunesLinks()) && submission.itunesLinks() != null
                 && !submission.itunesLinks().isEmpty()) {
+            engine.setCursorY(engine.cursorY() - spacing(SECTION_GAP));
             renderItunesLinks(submission.itunesLinks());
         }
-    }
-
-    private Map<String, FieldAnswerResponse> indexAnswers(List<FieldAnswerResponse> answers) {
-        Map<String, FieldAnswerResponse> map = new HashMap<>();
-        if (answers == null) return map;
-        for (FieldAnswerResponse a : answers) map.put(a.fieldId(), a);
-        return map;
     }
 
     // ────────── Header ──────────
@@ -69,233 +91,401 @@ public class SubmissionPdfRenderer {
         float right = engine.contentRight();
         float topY = engine.cursorY();
 
-        if (Boolean.TRUE.equals(h.showTenantName()) && hasText(live.tenantName())) {
-            engine.drawText(live.tenantName(), left, topY - 9f, 9f, PdfLayoutEngine.COLOR_TEXT_MUTED);
-        }
-        String meta = buildLiveMeta(live, h);
-        if (!meta.isEmpty()) {
-            float w = engine.measureTextWidth(meta, 9f);
-            engine.drawText(meta, right - w, topY - 9f, 9f, PdfLayoutEngine.COLOR_TEXT_MUTED);
-        }
-
-        float titleY = topY - (Boolean.TRUE.equals(h.showTenantName()) ? 14f : 0f) - engine.titleFontSize();
-        if (Boolean.TRUE.equals(h.showLiveName()) && hasText(live.name())) {
-            engine.drawText(live.name(), left, titleY, engine.titleFontSize(), PdfLayoutEngine.COLOR_TEXT);
+        String title = Boolean.TRUE.equals(h.showRecordLabel()) && hasText(submission.recordLabel())
+                ? submission.recordLabel()
+                : (Boolean.TRUE.equals(h.showLiveName()) ? live.name() : "");
+        if (hasText(title)) {
+            float titleFs = engine.titleFontSize();
+            engine.drawText(title, left, topY - titleFs, titleFs, PdfLayoutEngine.COLOR_TEXT);
         }
 
-        float underlineY = titleY - 4f;
-        engine.drawHorizontalLine(left, right, underlineY, PdfLayoutEngine.COLOR_BORDER_STRONG, 0.8f);
-
-        float labelY = underlineY - 6f - engine.headingFontSize();
-        if (Boolean.TRUE.equals(h.showRecordLabel()) && hasText(submission.recordLabel())) {
-            engine.drawText(submission.recordLabel(), left, labelY, engine.headingFontSize(),
-                    PdfLayoutEngine.COLOR_TEXT);
-        }
-
-        String rightInfo = buildHeaderRightInfo(submission, h);
+        String rightInfo = buildHeaderRightInfo(live, h);
         if (!rightInfo.isEmpty()) {
-            float w = engine.measureTextWidth(rightInfo, 9f);
-            engine.drawText(rightInfo, right - w, labelY, 9f, PdfLayoutEngine.COLOR_TEXT_MUTED);
+            float fs = 9f;
+            float w = engine.measureTextWidth(rightInfo, fs);
+            engine.drawText(rightInfo, right - w, topY - fs - 2f, fs, PdfLayoutEngine.COLOR_TEXT_MUTED);
         }
 
-        engine.setCursorY(labelY - spacing(8f));
+        engine.setCursorY(topY - engine.titleFontSize() - spacing(HEADER_GAP));
     }
 
-    private String buildLiveMeta(LiveResponse live, PdfHeaderOptions h) {
-        StringBuilder sb = new StringBuilder();
+    private String buildHeaderRightInfo(LiveResponse live, PdfHeaderOptions h) {
+        List<String> parts = new ArrayList<>();
+        if (Boolean.TRUE.equals(h.showLiveName()) && hasText(live.name())) parts.add(live.name());
         if (Boolean.TRUE.equals(h.showLiveDate()) && live.date() != null) {
-            sb.append(DATE_FORMAT.format(live.date()));
+            parts.add(DateTimeFormatter.ofPattern("yyyy/M/d", Locale.JAPAN).format(live.date()));
         }
-        if (Boolean.TRUE.equals(h.showLiveLocation()) && hasText(live.location())) {
-            if (sb.length() > 0) sb.append(" / ");
-            sb.append(live.location());
-        }
-        return sb.toString();
+        if (Boolean.TRUE.equals(h.showLiveLocation()) && hasText(live.location())) parts.add(live.location());
+        if (Boolean.TRUE.equals(h.showTenantName()) && hasText(live.tenantName())) parts.add(live.tenantName());
+        return String.join("  /  ", parts);
     }
 
-    private String buildHeaderRightInfo(PublicSettingSheetSubmissionDetailResponse submission, PdfHeaderOptions h) {
-        StringBuilder sb = new StringBuilder();
-        if (Boolean.TRUE.equals(h.showSubmissionStatus()) && hasText(submission.submissionStatus())) {
-            sb.append(submission.submissionStatus());
-        }
+    // ────────── Info table ──────────
+
+    private record InfoRow(String label, String value) {
+    }
+
+    private List<InfoRow> collectInfoRows(LiveResponse live, PublicSettingSheetSubmissionDetailResponse submission,
+            List<FormBlockResponse> blocks, Map<String, FieldAnswerResponse> answers) {
+        List<InfoRow> rows = new ArrayList<>();
+        PdfHeaderOptions h = options.header();
         if (Boolean.TRUE.equals(h.showSubmittedAt()) && submission.submittedAt() != null) {
-            if (sb.length() > 0) sb.append("  ｜  ");
-            sb.append("提出: ").append(DATETIME_FORMAT.format(submission.submittedAt()));
+            rows.add(new InfoRow("最終更新日", DATETIME_FORMAT.format(submission.submittedAt())));
         }
-        return sb.toString();
+        if (Boolean.TRUE.equals(h.showSubmissionStatus()) && hasText(submission.submissionStatus())) {
+            rows.add(new InfoRow("状態", submission.submissionStatus()));
+        }
+        if (live != null) {
+            // Optional: live meta into info table if enabled
+        }
+        collectInfoRowsFromBlocks(blocks, answers, rows);
+        return rows;
     }
 
-    // ────────── Blocks ──────────
-
-    private void renderBlocks(List<FormBlockResponse> blocks, Map<String, FieldAnswerResponse> answers,
-            float left, float width) throws IOException {
+    private void collectInfoRowsFromBlocks(List<FormBlockResponse> blocks, Map<String, FieldAnswerResponse> answers,
+            List<InfoRow> rows) {
         if (blocks == null) return;
         for (FormBlockResponse block : blocks) {
             if (options.isHidden(block.id())) continue;
-            renderBlock(block, answers, left, width);
-            engine.setCursorY(engine.cursorY() - spacing(6f));
+            if ("REPEATABLE_GROUP".equals(block.type())) continue;
+            if ("SECTION".equals(block.type())) {
+                collectInfoRowsFromBlocks(block.fields(), answers, rows);
+                continue;
+            }
+            // Skip if this field is the title source (already shown as header)
+            // Heuristic: skip the first text-like field if it equals submission.recordLabel? Too brittle.
+            // Instead, skip empty values to keep table compact.
+            String label = options.labelFor(block.id(), block.label());
+            String value = formatValueWithBreaks(block, answers.get(block.id()));
+            if (!hasText(value) || "—".equals(value)) continue;
+            rows.add(new InfoRow(label, value));
         }
     }
 
-    private void renderBlock(FormBlockResponse block, Map<String, FieldAnswerResponse> answers,
+    private List<FormBlockResponse> collectVisibleGroups(List<FormBlockResponse> blocks) {
+        List<FormBlockResponse> result = new ArrayList<>();
+        if (blocks == null) return result;
+        for (FormBlockResponse block : blocks) {
+            if (options.isHidden(block.id())) continue;
+            if ("REPEATABLE_GROUP".equals(block.type())) {
+                result.add(block);
+            } else if ("SECTION".equals(block.type())) {
+                result.addAll(collectVisibleGroups(block.fields()));
+            }
+        }
+        return result;
+    }
+
+    private void renderInfoAndFirstGroupSideBySide(List<InfoRow> infoRows, FormBlockResponse firstGroup,
+            Map<String, FieldAnswerResponse> answers) throws IOException {
+        float totalWidth = engine.contentWidth();
+        float infoWidth = totalWidth * 0.38f;
+        float groupWidth = totalWidth - infoWidth - COLUMN_GAP;
+        float startY = engine.cursorY();
+
+        engine.setCursorY(startY);
+        renderInfoTable(infoRows, engine.contentLeft(), infoWidth);
+        float infoEndY = engine.cursorY();
+
+        engine.setCursorY(startY);
+        renderGroupTable(firstGroup, answers, engine.contentLeft() + infoWidth + COLUMN_GAP, groupWidth);
+        float groupEndY = engine.cursorY();
+
+        engine.setCursorY(Math.min(infoEndY, groupEndY));
+    }
+
+    private void renderInfoTable(List<InfoRow> rows, float left, float width) throws IOException {
+        if (rows.isEmpty()) return;
+        float labelWidth = Math.min(width * 0.35f, 90f);
+        float valueWidth = width - labelWidth;
+        float fs = engine.baseFontSize();
+        float lineHeight = engine.lineHeight(fs);
+
+        for (InfoRow row : rows) {
+            // Pre-measure value height for cell sizing
+            List<String> labelLines = engine.wrap(row.label(), labelWidth - CELL_PAD_X * 2, fs);
+            List<String> valueLines = engine.wrap(row.value(), valueWidth - CELL_PAD_X * 2, fs);
+            int maxLines = Math.max(Math.max(labelLines.size(), valueLines.size()), 1);
+            float rowHeight = maxLines * lineHeight + CELL_PAD_Y * 2;
+
+            engine.ensureSpace(rowHeight);
+            float topY = engine.cursorY();
+            // Header-style label cell with subtle background
+            engine.drawFilledRect(left, topY - rowHeight, labelWidth, rowHeight, PdfLayoutEngine.COLOR_BG_HEADER);
+            // Borders
+            engine.drawStrokedRect(left, topY - rowHeight, labelWidth, rowHeight, PdfLayoutEngine.COLOR_BORDER, 0.4f);
+            engine.drawStrokedRect(left + labelWidth, topY - rowHeight, valueWidth, rowHeight,
+                    PdfLayoutEngine.COLOR_BORDER, 0.4f);
+            // Text
+            float textStartY = topY - CELL_PAD_Y - fs;
+            renderLines(labelLines, left + CELL_PAD_X, textStartY, fs, PdfLayoutEngine.COLOR_TEXT);
+            renderLines(valueLines, left + labelWidth + CELL_PAD_X, textStartY, fs, PdfLayoutEngine.COLOR_TEXT);
+            engine.setCursorY(topY - rowHeight);
+        }
+    }
+
+    // ────────── Group table ──────────
+
+    private void renderGroupTable(FormBlockResponse group, Map<String, FieldAnswerResponse> answers,
             float left, float width) throws IOException {
-        FieldAnswerResponse answer = answers.get(block.id());
-        switch (block.type()) {
-            case "SECTION" -> renderSection(block, answers, left, width);
-            case "REPEATABLE_GROUP" -> renderGroup(block, answer, left, width);
-            default -> renderLeaf(block, answer, left, width, false);
-        }
-    }
-
-    private void renderSection(FormBlockResponse block, Map<String, FieldAnswerResponse> answers,
-            float left, float width) throws IOException {
-        engine.ensureSpace(engine.lineHeight(engine.headingFontSize()) + 30f);
-        float topY = engine.cursorY();
-        String label = options.labelFor(block.id(), block.label());
-        engine.drawText(label, left, topY - engine.headingFontSize(), engine.headingFontSize(),
-                PdfLayoutEngine.COLOR_TEXT);
-        float ruleY = topY - engine.headingFontSize() - SECTION_RULE_OFFSET;
-        engine.drawHorizontalLine(left, left + width, ruleY, PdfLayoutEngine.COLOR_BORDER, 0.6f);
-        engine.setCursorY(ruleY - spacing(4f));
-
-        if (hasText(block.description())) {
-            float descSize = engine.labelFontSize();
-            List<String> lines = engine.wrap(block.description(), width - SECTION_INDENT, descSize);
-            float endY = engine.drawLines(lines, left + SECTION_INDENT, engine.cursorY(), descSize,
-                    PdfLayoutEngine.COLOR_TEXT_MUTED);
-            engine.setCursorY(endY - spacing(2f));
-        }
-
-        if (block.fields() != null && !block.fields().isEmpty()) {
-            renderTwoColumnFields(block.fields(), answers, left + SECTION_INDENT,
-                    width - SECTION_INDENT * 2);
-        }
-    }
-
-    private void renderGroup(FormBlockResponse block, FieldAnswerResponse answer, float left, float width)
-            throws IOException {
+        FieldAnswerResponse answer = answers.get(group.id());
         List<GroupItemResponse> items = answer != null && answer.items() != null ? answer.items() : List.of();
 
-        engine.ensureSpace(engine.lineHeight(engine.headingFontSize()) + 20f);
-        float topY = engine.cursorY();
-        String label = options.labelFor(block.id(), block.label()) + "（" + items.size() + "件）";
-        engine.drawText(label, left, topY - engine.headingFontSize(), engine.headingFontSize(),
-                PdfLayoutEngine.COLOR_TEXT);
-        float ruleY = topY - engine.headingFontSize() - SECTION_RULE_OFFSET;
-        engine.drawHorizontalLine(left, left + width, ruleY, PdfLayoutEngine.COLOR_BORDER, 0.6f);
-        engine.setCursorY(ruleY - spacing(4f));
+        // Determine columns from variants/fields union
+        List<TableCol> columns = buildGroupColumns(group);
+        // Add "No" column at the front
+        List<TableCol> allColumns = new ArrayList<>();
+        allColumns.add(new TableCol("__no__", "No", 0.06f, "center"));
+        allColumns.addAll(columns);
 
-        if (items.isEmpty()) {
-            engine.drawText("未入力", left + ITEM_INDENT, engine.cursorY() - engine.labelFontSize(),
-                    engine.labelFontSize(), PdfLayoutEngine.COLOR_TEXT_MUTED);
-            engine.setCursorY(engine.cursorY() - engine.lineHeight(engine.labelFontSize()) - spacing(2f));
+        if (allColumns.size() <= 1) {
+            // Nothing meaningful to show — skip
             return;
         }
 
-        for (int i = 0; i < items.size(); i++) {
-            renderGroupItem(block, items.get(i), i, left, width);
-            if (i < items.size() - 1) {
-                engine.setCursorY(engine.cursorY() - spacing(2f));
-                engine.drawHorizontalLine(left + ITEM_INDENT, left + width, engine.cursorY(),
+        float fs = engine.baseFontSize();
+        float headerFs = Math.max(fs, engine.labelFontSize() * 1.05f);
+        float lineHeight = engine.lineHeight(fs);
+        float headerHeight = engine.lineHeight(headerFs) + CELL_PAD_Y * 2;
+        float[] colWidths = computeColumnWidths(allColumns, width);
+
+        engine.ensureSpace(headerHeight + lineHeight + 4f);
+        float topY = engine.cursorY();
+
+        // Header row with light gray background
+        engine.drawFilledRect(left, topY - headerHeight, width, headerHeight, PdfLayoutEngine.COLOR_BG_HEADER);
+        renderTableHeaderRow(allColumns, colWidths, left, topY - CELL_PAD_Y - headerFs, headerFs);
+
+        float currentY = topY - headerHeight;
+
+        if (items.isEmpty()) {
+            float emptyHeight = lineHeight + CELL_PAD_Y * 2;
+            engine.ensureSpace(emptyHeight);
+            engine.drawText("（未入力）", left + CELL_PAD_X, currentY - CELL_PAD_Y - fs, fs,
+                    PdfLayoutEngine.COLOR_TEXT_MUTED);
+            currentY -= emptyHeight;
+        } else {
+            for (int i = 0; i < items.size(); i++) {
+                GroupItemResponse item = items.get(i);
+                Map<String, FieldAnswerResponse> itemAnswers = indexAnswers(item.answers());
+                List<FormBlockResponse> itemFields = resolveItemFields(group, item.variantId());
+                Map<String, FormBlockResponse> itemFieldsById = indexBlocks(itemFields);
+
+                float rowHeight = computeRowHeight(allColumns, colWidths, itemFieldsById, itemAnswers, fs);
+                engine.ensureSpace(rowHeight);
+
+                renderTableDataRow(allColumns, colWidths, left, currentY - CELL_PAD_Y - fs, fs,
+                        itemFieldsById, itemAnswers, i);
+                drawHorizontalSeparator(left, left + width, currentY - rowHeight,
                         PdfLayoutEngine.COLOR_BORDER, 0.3f);
-                engine.setCursorY(engine.cursorY() - spacing(4f));
+
+                currentY -= rowHeight;
             }
         }
+
+        // Outer table border
+        engine.drawStrokedRect(left, currentY, width, topY - currentY, PdfLayoutEngine.COLOR_BORDER, 0.5f);
+        drawColumnSeparators(left, currentY, colWidths, topY - currentY,
+                PdfLayoutEngine.COLOR_BORDER, 0.4f);
+        // Header underline
+        engine.drawHorizontalLine(left, left + width, topY - headerHeight,
+                PdfLayoutEngine.COLOR_BORDER, 0.5f);
+
+        engine.setCursorY(currentY);
     }
 
-    private void renderGroupItem(FormBlockResponse block, GroupItemResponse item, int index, float left,
-            float width) throws IOException {
-        Map<String, FieldAnswerResponse> itemAnswers = indexAnswers(item.answers());
-        List<FormBlockResponse> fields = resolveItemFields(block, item.variantId());
-        String title = resolveItemTitle(block, itemAnswers, index);
-
-        engine.ensureSpace(engine.lineHeight(engine.labelFontSize()) + 20f);
-        float topY = engine.cursorY();
-        engine.drawText(title, left + ITEM_INDENT, topY - engine.labelFontSize(),
-                engine.labelFontSize(), PdfLayoutEngine.COLOR_TEXT);
-        engine.setCursorY(topY - engine.lineHeight(engine.labelFontSize()) - spacing(1f));
-
-        renderTwoColumnFields(fields, itemAnswers, left + ITEM_INDENT * 2,
-                width - ITEM_INDENT * 2 - SECTION_INDENT);
+    private void drawHorizontalSeparator(float x1, float x2, float y, Color color, float lineWidth) throws IOException {
+        engine.drawHorizontalLine(x1, x2, y, color, lineWidth);
     }
 
-    private void renderTwoColumnFields(List<FormBlockResponse> fields, Map<String, FieldAnswerResponse> answers,
-            float left, float width) throws IOException {
-        float halfWidth = (width - COLUMN_GAP) / 2f;
-        float startY = engine.cursorY();
-        float[] columnY = new float[] { startY, startY };
-        for (FormBlockResponse field : fields) {
-            if (options.isHidden(field.id())) continue;
-            FieldAnswerResponse a = answers.get(field.id());
-            if (isFullWidthBlock(field)) {
-                float syncY = Math.min(columnY[0], columnY[1]);
-                engine.setCursorY(syncY);
-                renderBlock(field, answers, left, width);
-                engine.setCursorY(engine.cursorY() - spacing(4f));
-                columnY[0] = engine.cursorY();
-                columnY[1] = engine.cursorY();
+    private record TableCol(String fieldId, String header, Float widthHint, String align) {
+    }
+
+    private List<TableCol> buildGroupColumns(FormBlockResponse group) {
+        // Union of all variant fields (or fields if no variants)
+        List<TableCol> cols = new ArrayList<>();
+        Map<String, Boolean> seen = new LinkedHashMap<>();
+        List<List<FormBlockResponse>> sources = new ArrayList<>();
+        if (group.variants() != null && !group.variants().isEmpty()) {
+            for (VariantResponse v : group.variants()) sources.add(v.fields());
+        } else if (group.fields() != null) {
+            sources.add(group.fields());
+        }
+        for (List<FormBlockResponse> fields : sources) {
+            for (FormBlockResponse f : fields) {
+                if (options.isHidden(f.id())) continue;
+                if ("SECTION".equals(f.type())) continue;
+                if (seen.containsKey(f.id())) continue;
+                seen.put(f.id(), true);
+                String header = options.labelFor(f.id(), f.label());
+                String align = "BOOLEAN".equals(f.type()) ? "center" : "left";
+                cols.add(new TableCol(f.id(), header, columnWidthHintFor(f), align));
+            }
+        }
+        return cols;
+    }
+
+    private Float columnWidthHintFor(FormBlockResponse field) {
+        return switch (field.type()) {
+            case "BOOLEAN" -> 0.08f;
+            case "SHORT_TEXT" -> 0.18f;
+            case "SINGLE_SELECT" -> 0.14f;
+            case "MULTI_SELECT", "CHECKBOX" -> 0.18f;
+            case "REPEATABLE_GROUP" -> 0.18f;
+            default -> null; // auto
+        };
+    }
+
+    private float[] computeColumnWidths(List<TableCol> cols, float totalWidth) {
+        float[] widths = new float[cols.size()];
+        float assigned = 0f;
+        int unset = 0;
+        for (int i = 0; i < cols.size(); i++) {
+            Float hint = cols.get(i).widthHint();
+            if (hint != null) {
+                widths[i] = totalWidth * hint;
+                assigned += widths[i];
             } else {
-                int col = columnY[0] >= columnY[1] ? 0 : 1;
-                float colLeft = left + (col == 0 ? 0 : halfWidth + COLUMN_GAP);
-                engine.setCursorY(columnY[col]);
-                renderLeaf(field, a, colLeft, halfWidth, true);
-                columnY[col] = engine.cursorY() - spacing(3f);
+                unset++;
             }
         }
-        engine.setCursorY(Math.min(columnY[0], columnY[1]));
+        if (unset > 0) {
+            float remaining = Math.max(0, totalWidth - assigned);
+            float each = remaining / unset;
+            for (int i = 0; i < widths.length; i++) {
+                if (widths[i] == 0f) widths[i] = each;
+            }
+        } else if (assigned > 0) {
+            float scale = totalWidth / assigned;
+            for (int i = 0; i < widths.length; i++) widths[i] *= scale;
+        }
+        return widths;
     }
 
-    private boolean isFullWidthBlock(FormBlockResponse block) {
-        if ("LONG_TEXT".equals(block.type()) || "SECTION".equals(block.type())
-                || "REPEATABLE_GROUP".equals(block.type())) {
-            return true;
+    private float computeRowHeight(List<TableCol> cols, float[] widths,
+            Map<String, FormBlockResponse> itemFieldsById, Map<String, FieldAnswerResponse> answers, float fs)
+            throws IOException {
+        float lineHeight = engine.lineHeight(fs);
+        int maxLines = 1;
+        for (int i = 0; i < cols.size(); i++) {
+            TableCol col = cols.get(i);
+            String text = "__no__".equals(col.fieldId())
+                    ? "1"
+                    : formatCellValue(itemFieldsById.get(col.fieldId()), answers.get(col.fieldId()));
+            List<String> lines = engine.wrap(text, widths[i] - CELL_PAD_X * 2, fs);
+            if (lines.size() > maxLines) maxLines = lines.size();
         }
-        return block.layout() != null && "full".equals(block.layout().width());
+        return maxLines * lineHeight + CELL_PAD_Y * 2;
     }
 
-    private void renderLeaf(FormBlockResponse block, FieldAnswerResponse answer, float left, float width,
-            boolean nested) throws IOException {
-        float labelFontSize = engine.labelFontSize();
-        float valueFontSize = engine.baseFontSize();
-        String value = formatValue(block, answer);
-        String label = options.labelFor(block.id(), block.label());
-
-        List<String> valueLines = engine.wrap(value, width, valueFontSize);
-        if (valueLines.isEmpty()) valueLines = List.of("");
-
-        float labelHeight = engine.lineHeight(labelFontSize);
-        float valueHeight = valueLines.size() * engine.lineHeight(valueFontSize);
-        float totalHeight = labelHeight + valueHeight + spacing(2f);
-
-        engine.ensureSpace(totalHeight);
-        float topY = engine.cursorY();
-        engine.drawText(label, left, topY - labelFontSize, labelFontSize, PdfLayoutEngine.COLOR_TEXT_MUTED);
-
-        float lineY = topY - labelHeight - valueFontSize;
-        for (String line : valueLines) {
-            engine.drawText(line, left, lineY, valueFontSize, PdfLayoutEngine.COLOR_TEXT);
-            lineY -= engine.lineHeight(valueFontSize);
-        }
-        engine.setCursorY(topY - totalHeight);
-
-        if (!nested) {
-            // Visual hint of grouping: thin separator below stand-alone leaves.
-            engine.drawHorizontalLine(left, left + width, engine.cursorY() + spacing(1.5f),
-                    PdfLayoutEngine.COLOR_BORDER, 0.2f);
+    private void renderTableHeaderRow(List<TableCol> cols, float[] widths, float left, float baselineY,
+            float fs) throws IOException {
+        float x = left;
+        for (int i = 0; i < cols.size(); i++) {
+            TableCol col = cols.get(i);
+            drawCellText(col.header(), x, baselineY, widths[i], fs, col.align(), PdfLayoutEngine.COLOR_TEXT);
+            x += widths[i];
         }
     }
 
-    private String formatValue(FormBlockResponse block, FieldAnswerResponse answer) {
+    private void renderTableDataRow(List<TableCol> cols, float[] widths, float left, float baselineY, float fs,
+            Map<String, FormBlockResponse> itemFieldsById, Map<String, FieldAnswerResponse> answers, int index)
+            throws IOException {
+        float x = left;
+        for (int i = 0; i < cols.size(); i++) {
+            TableCol col = cols.get(i);
+            String text;
+            if ("__no__".equals(col.fieldId())) {
+                text = String.valueOf(index + 1);
+            } else {
+                text = formatCellValue(itemFieldsById.get(col.fieldId()), answers.get(col.fieldId()));
+            }
+            drawCellText(text, x, baselineY, widths[i], fs, col.align(), PdfLayoutEngine.COLOR_TEXT);
+            x += widths[i];
+        }
+    }
+
+    private void drawCellText(String text, float x, float baselineY, float cellWidth, float fs, String align,
+            Color color) throws IOException {
+        if (text == null || text.isEmpty()) return;
+        List<String> lines = engine.wrap(text, cellWidth - CELL_PAD_X * 2, fs);
+        float lineY = baselineY;
+        for (String line : lines) {
+            float drawX;
+            if ("center".equalsIgnoreCase(align)) {
+                float tw = engine.measureTextWidth(line, fs);
+                drawX = x + (cellWidth - tw) / 2f;
+            } else if ("right".equalsIgnoreCase(align)) {
+                float tw = engine.measureTextWidth(line, fs);
+                drawX = x + cellWidth - tw - CELL_PAD_X;
+            } else {
+                drawX = x + CELL_PAD_X;
+            }
+            engine.drawText(line, drawX, lineY, fs, color);
+            lineY -= engine.lineHeight(fs);
+        }
+    }
+
+    private void drawColumnSeparators(float left, float bottom, float[] widths, float height, Color color,
+            float lineWidth) throws IOException {
+        float x = left;
+        for (int i = 0; i < widths.length - 1; i++) {
+            x += widths[i];
+            engine.drawVerticalLine(x, bottom, bottom + height, color, lineWidth);
+        }
+    }
+
+    // ────────── Cell formatting ──────────
+
+    private String formatCellValue(FormBlockResponse field, FieldAnswerResponse ans) {
+        if (field == null || ans == null || ans.values() == null || ans.values().isEmpty()) {
+            return "";
+        }
+        if ("BOOLEAN".equals(field.type())) {
+            String v = ans.values().get(0);
+            if ("true".equalsIgnoreCase(v)) return "○";
+            if ("false".equalsIgnoreCase(v)) return "";
+            return String.join("\n", ans.values());
+        }
+        return String.join("\n", ans.values());
+    }
+
+    /** Same as formatCellValue but allows displaying "—" for empty in info-table contexts. */
+    private String formatValueWithBreaks(FormBlockResponse block, FieldAnswerResponse answer) {
         if (answer == null || answer.values() == null || answer.values().isEmpty()) {
-            return "—";
+            return "";
         }
         if ("BOOLEAN".equals(block.type())) {
             String v = answer.values().get(0);
-            if ("true".equalsIgnoreCase(v)) return "✓ はい";
-            if ("false".equalsIgnoreCase(v)) return "いいえ";
-            return String.join(" / ", answer.values());
+            if ("true".equalsIgnoreCase(v)) return "○";
+            if ("false".equalsIgnoreCase(v)) return "—";
         }
-        return String.join(" / ", answer.values());
+        return String.join("\n", answer.values());
+    }
+
+    // ────────── Helpers ──────────
+
+    private void renderLines(List<String> lines, float x, float topY, float fontSize, Color color)
+            throws IOException {
+        float y = topY;
+        for (String line : lines) {
+            engine.drawText(line, x, y, fontSize, color);
+            y -= engine.lineHeight(fontSize);
+        }
+    }
+
+    private Map<String, FieldAnswerResponse> indexAnswers(List<FieldAnswerResponse> answers) {
+        Map<String, FieldAnswerResponse> map = new HashMap<>();
+        if (answers == null) return map;
+        for (FieldAnswerResponse a : answers) map.put(a.fieldId(), a);
+        return map;
+    }
+
+    private Map<String, FormBlockResponse> indexBlocks(List<FormBlockResponse> blocks) {
+        Map<String, FormBlockResponse> map = new HashMap<>();
+        if (blocks == null) return map;
+        for (FormBlockResponse b : blocks) map.put(b.id(), b);
+        return map;
     }
 
     private List<FormBlockResponse> resolveItemFields(FormBlockResponse block, String variantId) {
@@ -311,47 +501,28 @@ public class SubmissionPdfRenderer {
         return variants.get(0).fields();
     }
 
-    private String resolveItemTitle(FormBlockResponse block, Map<String, FieldAnswerResponse> answers, int index) {
-        String prefix = (block.entryTitle() != null && !block.entryTitle().isBlank()
-                ? block.entryTitle()
-                : block.label()) + " " + (index + 1);
-        if (block.titleSourceFieldId() == null || block.titleSourceFieldId().isBlank()) {
-            return prefix;
-        }
-        FieldAnswerResponse src = answers.get(block.titleSourceFieldId());
-        if (src == null || src.values() == null || src.values().isEmpty()) return prefix;
-        String first = src.values().get(0);
-        if (first == null || first.isBlank()) return prefix;
-        return prefix + " ｜ " + first.trim();
-    }
-
-    // ────────── iTunes ──────────
-
-    private void renderItunesLinks(List<ItunesLinkResponse> links) throws IOException {
-        engine.ensureSpace(engine.lineHeight(engine.headingFontSize()) + 20f);
-        float topY = engine.cursorY();
-        engine.drawText("曲情報 (iTunes)", engine.contentLeft(), topY - engine.headingFontSize(),
-                engine.headingFontSize(), PdfLayoutEngine.COLOR_TEXT);
-        float ruleY = topY - engine.headingFontSize() - SECTION_RULE_OFFSET;
-        engine.drawHorizontalLine(engine.contentLeft(), engine.contentRight(), ruleY,
-                PdfLayoutEngine.COLOR_BORDER, 0.6f);
-        engine.setCursorY(ruleY - spacing(4f));
-
-        float fs = engine.labelFontSize();
-        for (ItunesLinkResponse link : links) {
-            String line = "♪ " + link.songTitle() + " — " + link.songArtist();
-            engine.ensureSpace(engine.lineHeight(fs));
-            engine.drawText(line, engine.contentLeft() + ITEM_INDENT, engine.cursorY() - fs, fs,
-                    PdfLayoutEngine.COLOR_TEXT);
-            engine.setCursorY(engine.cursorY() - engine.lineHeight(fs));
-        }
-    }
-
     private boolean hasText(String s) {
         return s != null && !s.isBlank();
     }
 
     private float spacing(float base) {
         return base * density;
+    }
+
+    private void renderItunesLinks(List<ItunesLinkResponse> links) throws IOException {
+        engine.ensureSpace(engine.lineHeight(engine.headingFontSize()) + 20f);
+        float topY = engine.cursorY();
+        engine.drawText("曲情報 (iTunes)", engine.contentLeft(), topY - engine.headingFontSize(),
+                engine.headingFontSize(), PdfLayoutEngine.COLOR_TEXT);
+        engine.setCursorY(topY - engine.lineHeight(engine.headingFontSize()));
+
+        float fs = engine.labelFontSize();
+        for (ItunesLinkResponse link : links) {
+            String line = "♪ " + link.songTitle() + " — " + link.songArtist();
+            engine.ensureSpace(engine.lineHeight(fs));
+            engine.drawText(line, engine.contentLeft() + 8f, engine.cursorY() - fs, fs,
+                    PdfLayoutEngine.COLOR_TEXT);
+            engine.setCursorY(engine.cursorY() - engine.lineHeight(fs));
+        }
     }
 }

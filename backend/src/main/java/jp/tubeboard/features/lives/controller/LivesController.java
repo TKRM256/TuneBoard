@@ -180,7 +180,8 @@ public class LivesController {
             @PathVariable(name = "submissionId") UUID submissionId,
             @RequestBody(required = false) PdfGenerateRequest request) {
         PdfGenerateRequest body = request != null ? request : emptyRequest();
-        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId, body.toLayoutOptions());
+        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId,
+                body.toLayoutOptions(), body.customLayoutYaml());
         return pdfResponse(result, "pdf", MediaType.APPLICATION_PDF);
     }
 
@@ -188,13 +189,14 @@ public class LivesController {
     public ResponseEntity<byte[]> downloadSubmissionsZip(
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SubmissionsZipRequest request) {
+        String yaml = request.layout() != null ? request.layout().customLayoutYaml() : null;
         SubmissionPdfResult result = livesService.generateSubmissionsZip(id, request.submissionIds(),
-                request.toLayoutOptions());
+                request.toLayoutOptions(), yaml);
         return pdfResponse(result, "zip", MediaType.parseMediaType("application/zip"));
     }
 
     private PdfGenerateRequest emptyRequest() {
-        return new PdfGenerateRequest(null, null, null, null, null, null, null, null, null, null);
+        return new PdfGenerateRequest(null, null, null, null, null, null, null, null, null, null, null);
     }
 
     private ResponseEntity<byte[]> pdfResponse(SubmissionPdfResult result, String extension, MediaType mediaType) {
