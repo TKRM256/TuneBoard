@@ -1,6 +1,6 @@
 /** API helpers for fetching/downloading setting-sheet PDFs from the backend. */
 import { API_BASE_URL, getAccessToken } from '@/lib/api/client';
-import { ApiClientError } from '@/lib/api/type';
+import { ApiClientError, type ApiError } from '@/lib/api/type';
 import type { PdfLayoutOptions } from './pdf-options';
 
 export interface PdfFetchResult {
@@ -51,7 +51,13 @@ async function postForBlob(path: string, body: unknown, opts: FetchOptions): Pro
     signal: opts.signal,
   });
   if (!response.ok) {
-    throw new ApiClientError(response.status);
+    let apiError: ApiError | undefined;
+    try {
+      apiError = (await response.json()) as ApiError;
+    } catch {
+      // ignore parse failures
+    }
+    throw new ApiClientError(response.status, apiError);
   }
   const blob = await response.blob();
   const disposition = response.headers.get('Content-Disposition') ?? '';

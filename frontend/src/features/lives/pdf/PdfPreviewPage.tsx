@@ -1,10 +1,12 @@
-/** Full-page PDF preview with sidebar controls and live iframe preview. */
+/** Full-page PDF preview with sidebar controls (Simple/Custom tabs) and live iframe preview. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ApiClientError } from '@/lib/api/type';
 import { apiClient } from '@/lib/api/client';
 import {
   type LiveResponse,
@@ -12,10 +14,13 @@ import {
 } from '../types/live-types';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
 import { PdfControlPanel } from './PdfControlPanel';
+import { DslEditor, type DslError } from './DslEditor';
+import { buildStarterYaml } from './dsl-export';
 import { DEFAULT_PDF_OPTIONS, type PdfLayoutOptions } from './pdf-options';
 
 const DEBOUNCE_MS = 600;
 const STORAGE_KEY = 'tuneboard:pdf-options';
+type Mode = 'simple' | 'custom';
 
 export const PdfPreviewPage = () => {
   const { tenantId, liveId, submissionId } = useParams<{ tenantId: string; liveId: string; submissionId?: string }>();
@@ -31,9 +36,11 @@ export const PdfPreviewPage = () => {
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [options, setOptions] = useState<PdfLayoutOptions>(() => loadStoredOptions());
+  const [mode, setMode] = useState<Mode>(() => (loadStoredOptions().customLayoutYaml ? 'custom' : 'simple'));
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [dslError, setDslError] = useState<DslError | null>(null);
   const previewUrlRef = useRef<string>('');
 
   // Persist options across navigations.
@@ -45,7 +52,7 @@ export const PdfPreviewPage = () => {
     }
   }, [options]);
 
-  // Initial load: live + config + (first submission for preview header validation)
+  // Initial load
   useEffect(() => {
     if (!liveId) return;
     let cancelled = false;
@@ -72,8 +79,13 @@ export const PdfPreviewPage = () => {
     };
   }, [liveId]);
 
-  // Optional: preload first submission to confirm it exists (also serves as preview source).
   const previewSubmissionId = submissionIds[0];
+
+  // The "effective" options sent to backend depending on mode.
+  const effectiveOptions = useMemo(() => {
+    if (mode === 'custom') return options;
+    return { ...options, customLayoutYaml: '' };
+  }, [mode, options]);
 
   // Debounced preview fetch
   useEffect(() => {
@@ -82,16 +94,27 @@ export const PdfPreviewPage = () => {
     const timeout = setTimeout(async () => {
       setIsPreviewing(true);
       try {
-        const { blob } = await fetchSubmissionPdf(liveId, previewSubmissionId, options, {
+        const { blob } = await fetchSubmissionPdf(liveId, previewSubmissionId, effectiveOptions, {
           signal: controller.signal,
         });
         const url = URL.createObjectURL(blob);
         if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
         previewUrlRef.current = url;
         setPreviewUrl(url);
+        setDslError(null);
       } catch (error) {
         if ((error as Error).name === 'AbortError') return;
-        console.error('preview fetch failed', error);
+        if (error instanceof ApiClientError && error.status === 400) {
+          const apiError = error.apiError;
+          setDslError({
+            message: apiError?.message ?? 'レイアウトの解釈に失敗しました',
+            line: parseInt(apiError?.fieldErrors?.line ?? '', 10) || undefined,
+            column: parseInt(apiError?.fieldErrors?.column ?? '', 10) || undefined,
+            path: apiError?.fieldErrors?.path,
+          });
+        } else {
+          console.error('preview fetch failed', error);
+        }
       } finally {
         setIsPreviewing(false);
       }
@@ -101,7 +124,7 @@ export const PdfPreviewPage = () => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [liveId, previewSubmissionId, options]);
+  }, [liveId, previewSubmissionId, effectiveOptions]);
 
   // Cleanup on unmount
   useEffect(() => () => {
@@ -114,10 +137,10 @@ export const PdfPreviewPage = () => {
     const toastId = toast.loading('PDFを生成中...', { position: 'top-center' });
     try {
       if (submissionIds.length === 1) {
-        const { blob, filename } = await fetchSubmissionPdf(liveId, submissionIds[0], options);
+        const { blob, filename } = await fetchSubmissionPdf(liveId, submissionIds[0], effectiveOptions);
         downloadBlob(blob, filename);
       } else {
-        const { blob, filename } = await fetchSubmissionsZip(liveId, submissionIds, options);
+        const { blob, filename } = await fetchSubmissionsZip(liveId, submissionIds, effectiveOptions);
         downloadBlob(blob, filename);
       }
       toast.success('ダウンロードしました', { id: toastId, position: 'top-center' });
@@ -127,11 +150,29 @@ export const PdfPreviewPage = () => {
     } finally {
       setIsDownloading(false);
     }
-  }, [liveId, submissionIds, options]);
+  }, [liveId, submissionIds, effectiveOptions]);
 
   const handleReset = useCallback(() => {
-    setOptions(structuredClone(DEFAULT_PDF_OPTIONS));
+    setOptions((prev) => ({ ...structuredClone(DEFAULT_PDF_OPTIONS), customLayoutYaml: prev.customLayoutYaml }));
   }, []);
+
+  const handleYamlChange = useCallback((yaml: string) => {
+    setOptions((prev) => ({ ...prev, customLayoutYaml: yaml }));
+  }, []);
+
+  const handleExportFromSimple = useCallback(() => {
+    const yaml = buildStarterYaml(options, config);
+    setOptions((prev) => ({ ...prev, customLayoutYaml: yaml }));
+    toast.success('Simple設定からYAMLを生成しました', { position: 'top-center' });
+  }, [options, config]);
+
+  const handleModeChange = useCallback((next: Mode) => {
+    setMode(next);
+    if (next === 'custom' && !options.customLayoutYaml.trim()) {
+      const yaml = buildStarterYaml(options, config);
+      setOptions((prev) => ({ ...prev, customLayoutYaml: yaml }));
+    }
+  }, [options, config]);
 
   if (!tenantId || !liveId || submissionIds.length === 0) {
     return <Navigate to="/tenants" replace />;
@@ -175,13 +216,30 @@ export const PdfPreviewPage = () => {
         </Button>
       </header>
 
-      <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[320px_1fr]">
-        <PdfControlPanel
-          config={config}
-          options={options}
-          onChange={setOptions}
-          onReset={handleReset}
-        />
+      <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(320px,40%)_1fr]">
+        <Tabs value={mode} onValueChange={(v) => handleModeChange(v as Mode)} className="flex h-full min-h-0 flex-col border-r">
+          <TabsList className="m-3">
+            <TabsTrigger value="simple" className="flex-1">Simple</TabsTrigger>
+            <TabsTrigger value="custom" className="flex-1">Custom (YAML)</TabsTrigger>
+          </TabsList>
+          <TabsContent value="simple" className="m-0 min-h-0 flex-1 overflow-hidden">
+            <PdfControlPanel
+              config={config}
+              options={options}
+              onChange={setOptions}
+              onReset={handleReset}
+            />
+          </TabsContent>
+          <TabsContent value="custom" className="m-0 min-h-0 flex-1 overflow-hidden">
+            <DslEditor
+              config={config}
+              yaml={options.customLayoutYaml}
+              onChange={handleYamlChange}
+              error={dslError}
+              onExportFromSimple={handleExportFromSimple}
+            />
+          </TabsContent>
+        </Tabs>
         <PreviewFrame previewUrl={previewUrl} isPreviewing={isPreviewing} hasSource={Boolean(previewSubmissionId)} />
       </div>
     </div>
@@ -245,6 +303,7 @@ function loadStoredOptions(): PdfLayoutOptions {
       header: { ...DEFAULT_PDF_OPTIONS.header, ...(parsed.header ?? {}) },
       hiddenBlockIds: Array.isArray(parsed.hiddenBlockIds) ? parsed.hiddenBlockIds : [],
       blockLabelOverrides: parsed.blockLabelOverrides ?? {},
+      customLayoutYaml: typeof parsed.customLayoutYaml === 'string' ? parsed.customLayoutYaml : '',
     };
   } catch {
     return structuredClone(DEFAULT_PDF_OPTIONS);

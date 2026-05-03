@@ -25,6 +25,8 @@ export interface PdfLayoutOptions {
   header: PdfHeaderOptions;
   hiddenBlockIds: string[];
   blockLabelOverrides: Record<string, string>;
+  /** When non-empty, custom YAML DSL is used instead of the simple options. */
+  customLayoutYaml: string;
 }
 
 export const DEFAULT_PDF_OPTIONS: PdfLayoutOptions = {
@@ -46,6 +48,7 @@ export const DEFAULT_PDF_OPTIONS: PdfLayoutOptions = {
   },
   hiddenBlockIds: [],
   blockLabelOverrides: {},
+  customLayoutYaml: '',
 };
 
 export const PDF_PAPER_SIZE_OPTIONS: Array<{ value: PdfPaperSize; label: string; description: string }> = [
