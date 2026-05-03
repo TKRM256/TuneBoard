@@ -17,6 +17,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
+import jp.tubeboard.features.lives.pdf.dsl.DslException;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
 
 @RestControllerAdvice
@@ -70,6 +71,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ TenantsNotFoundException.class, LivesNotFoundException.class })
     public ResponseEntity<ApiErrorResponse> handleDomainNotFound(RuntimeException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DslException.class)
+    public ResponseEntity<ApiErrorResponse> handleDsl(DslException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+        if (ex.line() != null) details.put("line", String.valueOf(ex.line()));
+        if (ex.column() != null) details.put("column", String.valueOf(ex.column()));
+        if (ex.path() != null) details.put("path", ex.path());
+        log.warn("DSL レイアウトエラー: {} {}", ex.getMessage(), details);
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), details.isEmpty() ? null : details);
     }
 
     @ExceptionHandler(Exception.class)
