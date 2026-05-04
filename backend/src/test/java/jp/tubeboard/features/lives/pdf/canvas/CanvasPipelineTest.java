@@ -31,6 +31,55 @@ class CanvasPipelineTest {
     private final ExpressionEvaluator evaluator = new ExpressionEvaluator();
 
     @Test
+    void joinFieldHelperConcatenatesAcrossItems() {
+        Map<String, Object> ns = CanvasContext.build(sampleLive(), sampleConfig(), sampleSubmission());
+        String out = evaluator.interpolate(
+                "${joinField(groups['members'], 'member-name', ' / ')}", ns);
+        assertEquals("田中 / 佐藤", out);
+    }
+
+    @Test
+    void filterEqualsHelperReturnsMatchingItems() {
+        Map<String, Object> ns = CanvasContext.build(sampleLive(), sampleConfig(), sampleSubmission());
+        String out = evaluator.interpolate(
+                "${count(filterEquals(groups['members'], 'member-parts', 'Vo / Gt'))}", ns);
+        assertEquals("1", out);
+    }
+
+    @Test
+    void nestedGroupsAreReachable() {
+        // members[0] has a nested 'mics' group; verify items[0].group('mics').count works.
+        FormBlockResponse memberName = leaf("member-name", "SHORT_TEXT", "氏名");
+        FormBlockResponse micName = leaf("mic-name", "SHORT_TEXT", "マイク名");
+        FormBlockResponse mics = group("mics", "マイク", List.of(micName));
+        FormBlockResponse members = group("members", "出演者", List.of(memberName, mics));
+        SettingSheetConfigResponse cfg = new SettingSheetConfigResponse("t", "", "送信", true, List.of(members));
+
+        FieldAnswerResponse answer = new FieldAnswerResponse("members", List.of(), List.of(
+                new GroupItemResponse(null, List.of(
+                        new FieldAnswerResponse("member-name", List.of("田中"), List.of()),
+                        new FieldAnswerResponse("mics", List.of(), List.of(
+                                new GroupItemResponse(null, List.of(
+                                        new FieldAnswerResponse("mic-name", List.of("SM58"), List.of()))),
+                                new GroupItemResponse(null, List.of(
+                                        new FieldAnswerResponse("mic-name", List.of("e835"), List.of())))))))));
+        PublicSettingSheetSubmissionDetailResponse sub = new PublicSettingSheetSubmissionDetailResponse(
+                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0),
+                List.of(answer), List.of());
+
+        Map<String, Object> ns = CanvasContext.build(sampleLive(), cfg, sub);
+        String name = evaluator.interpolate(
+                "${groups['members'].items[0].field('member-name').value}", ns);
+        assertEquals("田中", name);
+        String micCount = evaluator.interpolate(
+                "${count(groups['members'].items[0].group('mics'))}", ns);
+        assertEquals("2", micCount);
+        String micJoin = evaluator.interpolate(
+                "${joinField(groups['members'].items[0].group('mics'), 'mic-name', ', ')}", ns);
+        assertEquals("SM58, e835", micJoin);
+    }
+
+    @Test
     void interpolatesPlainTemplate() {
         Map<String, Object> ns = new HashMap<>();
         ns.put("name", "World");

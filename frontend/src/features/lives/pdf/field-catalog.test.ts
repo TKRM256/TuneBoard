@@ -96,7 +96,7 @@ describe('buildFieldCatalog', () => {
     expect(catalog.groups[0].fields.map((f) => f.label)).toEqual(['氏名', 'パート']);
   });
 
-  it('uses variant fields when defined (variant 0 wins)', () => {
+  it('unions fields across variants and exposes per-variant lists', () => {
     const songVariant = { id: 'song', label: '曲', fields: [leaf('song-title', 'SHORT_TEXT', '曲名')] };
     const mcVariant = { id: 'mc', label: 'MC', fields: [leaf('mc-content', 'LONG_TEXT', '内容')] };
     const setlist: SettingSheetBlock = {
@@ -105,7 +105,25 @@ describe('buildFieldCatalog', () => {
     };
     const catalog = buildFieldCatalog(configOf([setlist]));
     const setlistGroup = catalog.groups.find((g) => g.id === 'setlist');
-    expect(setlistGroup?.fields.map((f) => f.label)).toEqual(['曲名']);
+    expect(setlistGroup?.fields.map((f) => f.label).sort()).toEqual(['内容', '曲名']);
+    expect(setlistGroup?.variants.map((v) => v.label)).toEqual(['曲', 'MC']);
+    expect(setlistGroup?.variants[0].fields.map((f) => f.id)).toEqual(['song-title']);
+    expect(setlistGroup?.variants[1].fields.map((f) => f.id)).toEqual(['mc-content']);
+    // Fields keep track of which variant(s) they appeared in.
+    const songTitle = setlistGroup?.fields.find((f) => f.id === 'song-title');
+    expect(songTitle?.variantIds).toEqual(['song']);
+  });
+
+  it('captures nested repeatable groups under their parent', () => {
+    const innerLeaf = leaf('mic-name', 'SHORT_TEXT', 'マイク');
+    const innerGroup = group('mics', 'マイク', [innerLeaf]);
+    const outer = group('members', '出演者', [leaf('member-name', 'SHORT_TEXT', '氏名'), innerGroup]);
+    const catalog = buildFieldCatalog(configOf([outer]));
+    const members = catalog.groups.find((g) => g.id === 'members');
+    expect(members?.childGroups).toHaveLength(1);
+    expect(members?.childGroups[0]).toMatchObject({ id: 'mics', label: 'マイク' });
+    expect(members?.childGroups[0].fields.map((f) => f.id)).toEqual(['mic-name']);
+    expect(catalog.labelById.get('mic-name')?.path).toBe('出演者 > マイク > マイク');
   });
 
   it('builds labelById map covering both top-level fields and group children', () => {

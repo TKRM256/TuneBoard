@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, Hash, Heading1, Music, Plus, Square, Table2,
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { FieldCatalog } from '../field-catalog';
+import type { CatalogGroup, FieldCatalog } from '../field-catalog';
 
 export type PaletteInsert =
   | { kind: 'text'; content: string; title: string }
@@ -50,7 +50,7 @@ export function ElementPalette({ catalog, onInsert }: Props) {
                 <PaletteButton
                   key={f.id}
                   label={f.label}
-                  hint={f.typeLabel}
+                  hint={`${f.typeLabel}${f.pathLabel.includes(' > ') ? ' / ' + f.pathLabel : ''}`}
                   onClick={() => onInsert({ kind: 'field', fieldId: f.id, fallbackLabel: f.label })}
                 />
               ))}
@@ -58,20 +58,61 @@ export function ElementPalette({ catalog, onInsert }: Props) {
           )}
 
           {catalog.groups.length > 0 && (
-            <Section title="繰り返しグループ → 表" icon={<Table2 className="size-3.5" />} defaultOpen>
+            <Section title="繰り返しグループ" icon={<Table2 className="size-3.5" />} defaultOpen>
               {catalog.groups.map((g) => (
-                <PaletteButton
-                  key={g.id}
-                  label={g.label}
-                  hint={`${g.fields.length} 列のテーブル`}
-                  onClick={() => onInsert({ kind: 'table-group', groupId: g.id, fallbackLabel: g.label })}
-                />
+                <GroupSection key={g.id} group={g} onInsert={onInsert} />
               ))}
             </Section>
           )}
         </div>
       </ScrollArea>
     </aside>
+  );
+}
+
+function GroupSection({ group, onInsert }: { group: CatalogGroup; onInsert: (insert: PaletteInsert) => void }) {
+  return (
+    <div className="space-y-0.5 rounded border bg-muted/20 p-1.5">
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs font-semibold">{group.label}</span>
+        <span className="text-[10px] text-muted-foreground">
+          {group.fields.length}項目{group.variants.length > 0 ? ` / ${group.variants.length}種` : ''}
+        </span>
+      </div>
+      <PaletteButton
+        label="表として挿入"
+        hint={`${group.fields.length} 列のテーブル`}
+        onClick={() => onInsert({ kind: 'table-group', groupId: group.id, fallbackLabel: group.label })}
+      />
+      <PaletteButton
+        label="全件 join のテキスト"
+        hint={group.fields[0] ? `${group.fields[0].label} を ' / ' で連結` : '式を編集してください'}
+        onClick={() =>
+          onInsert({
+            kind: 'text',
+            content: group.fields[0]
+              ? `\${joinField(groups['${group.id}'], '${group.fields[0].id}', ' / ')}`
+              : `\${count(groups['${group.id}'])} 件`,
+            title: `${group.label} まとめ`,
+          })
+        }
+      />
+      <PaletteButton
+        label="件数テキスト"
+        hint={`${group.label}.count`}
+        onClick={() =>
+          onInsert({ kind: 'text', content: `\${count(groups['${group.id}'])}`, title: `${group.label} 件数` })
+        }
+      />
+      {group.childGroups.length > 0 && (
+        <div className="ml-2 mt-1 space-y-0.5 border-l pl-2">
+          <div className="px-1 text-[10px] uppercase tracking-wide text-muted-foreground">ネスト</div>
+          {group.childGroups.map((child) => (
+            <GroupSection key={child.id} group={child} onInsert={onInsert} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -1,6 +1,8 @@
 /** Builds a flat, label-first catalog of the available variables that can be
  *  inserted into the PDF canvas. UUIDs are kept for the wire format but never
- *  shown to the user — labels are the primary key for browsing. */
+ *  shown to the user — labels are the primary key for browsing. Repeatable
+ *  groups, variants, and nested groups are all surfaced so users can pick any
+ *  field by name even if it lives several levels deep. */
 import type { SettingSheetBlock, SettingSheetConfigResponse } from '../types/live-types';
 
 export interface CatalogEntry {
@@ -11,63 +13,130 @@ export interface CatalogEntry {
   typeLabel: string;
   /** Hierarchy display path (e.g. "出演者 > 氏名"). */
   pathLabel: string;
+  /** Variant ids in which this field appears (only set for fields inside a
+   *  REPEATABLE_GROUP that defines variants). */
+  variantIds?: string[];
+}
+
+export interface CatalogVariant {
+  id: string;
+  label: string;
+  fields: CatalogEntry[];
 }
 
 export interface CatalogGroup {
   id: string;
   label: string;
+  /** Group id used for `groups['id']` lookup. */
   fieldId: string;
+  /** Hierarchy path including parent group(s). */
+  pathLabel: string;
+  /** Direct leaf fields (union across variants when applicable). */
   fields: CatalogEntry[];
+  /** If the group uses variants, each variant's fields. */
+  variants: CatalogVariant[];
+  /** Nested repeatable groups inside this group. */
+  childGroups: CatalogGroup[];
 }
 
 export interface FieldCatalog {
   /** Top-level scalar fields (excluding fields nested inside repeatable groups). */
   fields: CatalogEntry[];
-  /** Each repeatable group, with the leaf fields it contains. */
+  /** Each top-level repeatable group, with its leaf fields & nested groups. */
   groups: CatalogGroup[];
-  /** Lookup by field id → label/path (used by canvas elements to display readable names). */
+  /** Lookup by field/group id → label/path (used by canvas elements to display
+   *  readable names and hover info). */
   labelById: Map<string, { label: string; path: string }>;
 }
 
 export function buildFieldCatalog(config: SettingSheetConfigResponse | null | undefined): FieldCatalog {
-  const fields: CatalogEntry[] = [];
-  const groups: CatalogGroup[] = [];
   const labelById = new Map<string, { label: string; path: string }>();
-  if (!config) return { fields, groups, labelById };
 
-  const visit = (blocks: SettingSheetBlock[], path: string[]) => {
-    for (const block of blocks) {
+  const visit = (blocks: SettingSheetBlock[], pathPrefix: string[]): { fields: CatalogEntry[]; groups: CatalogGroup[] } => {
+    const fields: CatalogEntry[] = [];
+    const groups: CatalogGroup[] = [];
+    for (const block of blocks ?? []) {
       if (block.type === 'SECTION') {
-        visit(block.fields ?? [], [...path, block.label]);
+        const nested = visit(block.fields ?? [], [...pathPrefix, block.label]);
+        fields.push(...nested.fields);
+        groups.push(...nested.groups);
       } else if (block.type === 'REPEATABLE_GROUP') {
-        const groupPath = [...path, block.label];
-        const variantFields = block.variants && block.variants.length > 0
-          ? block.variants[0].fields ?? []
-          : block.fields ?? [];
-        const groupEntries: CatalogEntry[] = [];
-        for (const f of variantFields) {
-          if (f.type === 'SECTION' || f.type === 'REPEATABLE_GROUP') continue;
-          const entry = makeEntry(f, [...groupPath, f.label]);
-          groupEntries.push(entry);
-          labelById.set(f.id, { label: f.label, path: entry.pathLabel });
-        }
-        groups.push({
-          id: block.id,
-          label: block.label,
-          fieldId: block.id,
-          fields: groupEntries,
-        });
+        const groupPath = [...pathPrefix, block.label];
+        const group = collectGroup(block, groupPath, labelById);
+        groups.push(group);
         labelById.set(block.id, { label: block.label, path: groupPath.join(' > ') });
       } else {
-        const entry = makeEntry(block, [...path, block.label]);
+        const entry = makeEntry(block, [...pathPrefix, block.label]);
         fields.push(entry);
         labelById.set(block.id, { label: block.label, path: entry.pathLabel });
       }
     }
+    return { fields, groups };
   };
 
-  visit(config.blocks, []);
+  if (!config) return { fields: [], groups: [], labelById };
+  const { fields, groups } = visit(config.blocks, []);
   return { fields, groups, labelById };
+}
+
+function collectGroup(
+  block: SettingSheetBlock,
+  pathPrefix: string[],
+  labelById: Map<string, { label: string; path: string }>,
+): CatalogGroup {
+  const variants: CatalogVariant[] = [];
+  const fieldUnion = new Map<string, CatalogEntry>();
+  const childGroupUnion = new Map<string, CatalogGroup>();
+
+  const variantSources = block.variants && block.variants.length > 0
+    ? block.variants.map((v) => ({ id: v.id, label: v.label, fields: v.fields ?? [] }))
+    : [{ id: '', label: '', fields: block.fields ?? [] }];
+
+  for (const variant of variantSources) {
+    const variantFields: CatalogEntry[] = [];
+    const flattened = flattenSections(variant.fields);
+    for (const child of flattened) {
+      if (child.type === 'REPEATABLE_GROUP') {
+        const nestedPath = [...pathPrefix, child.label];
+        const nested = collectGroup(child, nestedPath, labelById);
+        if (!childGroupUnion.has(nested.id)) childGroupUnion.set(nested.id, nested);
+        labelById.set(child.id, { label: child.label, path: nestedPath.join(' > ') });
+        continue;
+      }
+      const entry = makeEntry(child, [...pathPrefix, child.label]);
+      if (variant.id) entry.variantIds = (entry.variantIds ?? []).concat(variant.id);
+      variantFields.push(entry);
+      const existing = fieldUnion.get(entry.id);
+      if (existing) {
+        if (variant.id) existing.variantIds = Array.from(new Set([...(existing.variantIds ?? []), variant.id]));
+      } else {
+        fieldUnion.set(entry.id, { ...entry });
+      }
+      labelById.set(child.id, { label: child.label, path: entry.pathLabel });
+    }
+    if (block.variants && block.variants.length > 0) {
+      variants.push({ id: variant.id, label: variant.label, fields: variantFields });
+    }
+  }
+
+  return {
+    id: block.id,
+    label: block.label,
+    fieldId: block.id,
+    pathLabel: pathPrefix.join(' > '),
+    fields: Array.from(fieldUnion.values()),
+    variants,
+    childGroups: Array.from(childGroupUnion.values()),
+  };
+}
+
+function flattenSections(blocks: SettingSheetBlock[]): SettingSheetBlock[] {
+  const out: SettingSheetBlock[] = [];
+  for (const b of blocks) {
+    if (b.type === 'SECTION') out.push(...flattenSections(b.fields ?? []));
+    else out.push(b);
+  }
+  return out;
 }
 
 function makeEntry(block: SettingSheetBlock, path: string[]): CatalogEntry {

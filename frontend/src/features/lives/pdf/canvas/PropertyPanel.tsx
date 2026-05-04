@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type {
   CanvasElement,
@@ -26,6 +25,7 @@ import type {
   TextElement,
 } from '../canvas-schema';
 import type { FieldCatalog } from '../field-catalog';
+import { ExpressionInput, ExpressionTextarea } from './ExpressionInputs';
 
 interface Props {
   element: CanvasElement | null;
@@ -54,7 +54,7 @@ export function PropertyPanel({ element, catalog, onUpdate, onUpdateColumn, onAd
         <div className="space-y-4 p-3">
           <PositionFields element={element} onUpdate={onUpdate} />
           <Separator />
-          {element.kind === 'text' && <TextProperties element={element} onUpdate={onUpdate as (p: Partial<TextElement>) => void} />}
+          {element.kind === 'text' && <TextProperties element={element} catalog={catalog} onUpdate={onUpdate as (p: Partial<TextElement>) => void} />}
           {element.kind === 'field' && (
             <FieldProperties
               element={element}
@@ -96,18 +96,18 @@ function PositionFields({ element, onUpdate }: { element: CanvasElement; onUpdat
   );
 }
 
-function TextProperties({ element, onUpdate }: { element: TextElement; onUpdate: (p: Partial<TextElement>) => void }) {
+function TextProperties({ element, catalog, onUpdate }: { element: TextElement; catalog: FieldCatalog; onUpdate: (p: Partial<TextElement>) => void }) {
   return (
     <div className="space-y-3">
       <FieldGroup label="テキスト内容">
-        <Textarea
-          rows={3}
+        <ExpressionTextarea
+          catalog={catalog}
           value={element.content}
-          onChange={(e) => onUpdate({ content: e.target.value })}
-          className="font-mono text-xs"
+          onChange={(content) => onUpdate({ content })}
+          rows={3}
         />
         <p className="text-[10px] text-muted-foreground">
-          {`\${...} で式を埋め込めます (例: \${live.name}, \${formatDate(submission.submittedAt, 'M月d日 HH:mm')})`}
+          {`\${...} で式が使えます。右下の「式を挿入」から変数や join などのヘルパーを呼び出せます。`}
         </p>
       </FieldGroup>
       <TypographyGroup
@@ -340,11 +340,11 @@ function TableProperties({
                 <ToggleGroupItem value="center" className="flex-1 text-[10px]">中</ToggleGroupItem>
                 <ToggleGroupItem value="right" className="flex-1 text-[10px]">右</ToggleGroupItem>
               </ToggleGroup>
-              <Input
+              <ExpressionInput
+                catalog={catalog}
                 value={c.format ?? ''}
                 placeholder="フォーマット (例: ${value} 名)"
-                onChange={(e) => onUpdateColumn(c.id, { format: e.target.value })}
-                className="h-7 font-mono text-[10px]"
+                onChange={(format) => onUpdateColumn(c.id, { format })}
               />
             </div>
           ))}

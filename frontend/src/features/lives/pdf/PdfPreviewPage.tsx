@@ -1,44 +1,39 @@
-/** Top-level page that hosts the PowerPoint-style canvas editor and a
- *  compile-on-demand PDF preview. */
+/** PDF designer page. Hosts a 4-pane resizable layout (palette, canvas,
+ *  properties, preview) where every side panel is collapsible from the header.
+ *  Compile button explicitly regenerates the PDF preview on demand. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Download, Loader2, RefreshCw, RotateCcw } from 'lucide-react';
+import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ApiClientError } from '@/lib/api/type';
 import { apiClient } from '@/lib/api/client';
 import {
   type LiveResponse,
   type SettingSheetConfigResponse,
 } from '../types/live-types';
-import {
-  ORIENTATION_OPTIONS,
-  PAPER_SIZE_OPTIONS,
-  type CanvasDocument,
-  type Orientation,
-  type PaperSize,
-} from './canvas-schema';
 import { buildDefaultCanvas } from './default-canvas';
 import { buildFieldCatalog } from './field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
+import {
+  loadPanelVisibility,
+  loadStoredCanvas,
+  persistCanvas,
+  persistPanelVisibility,
+} from './canvas-storage';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
 import { AlignmentToolbar } from './canvas/AlignmentToolbar';
+import { PageSettings } from './canvas/PageSettings';
+import { PreviewPane } from './canvas/PreviewPane';
+import { PanelVisibilityToggles, type PanelKey } from './canvas/PanelVisibilityToggles';
 import { useCanvasEditor } from './canvas/useCanvasEditor';
+import { useCanvasKeyboardShortcuts } from './canvas/useCanvasKeyboardShortcuts';
 
-const STORAGE_KEY = 'tuneboard:pdf-canvas-v2';
 const ZOOM_LEVELS = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0];
 
 export const PdfPreviewPage = () => {
@@ -59,12 +54,17 @@ export const PdfPreviewPage = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [pxPerMm, setPxPerMm] = useState(2.5);
   const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
+  const [panelVisible, setPanelVisible] = useState<Record<PanelKey, boolean>>(() => loadPanelVisibility());
   const previewUrlRef = useRef<string>('');
+
+  const palettePanelRef = useRef<PanelImperativeHandle | null>(null);
+  const propertiesPanelRef = useRef<PanelImperativeHandle | null>(null);
+  const previewPanelRef = useRef<PanelImperativeHandle | null>(null);
 
   const editor = useCanvasEditor(loadStoredCanvas() ?? buildDefaultCanvas(null));
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
+  useCanvasKeyboardShortcuts(editor);
 
-  // Initial load
   useEffect(() => {
     if (!liveId) return;
     let cancelled = false;
@@ -92,61 +92,16 @@ export const PdfPreviewPage = () => {
     return () => {
       cancelled = true;
     };
-    // editor is stable enough; we only want to load once per liveId
+    // editor is stable; load only depends on liveId
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveId]);
 
-  // Persist canvas
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(editor.doc));
-    } catch {
-      // ignore quota / privacy errors
-    }
-  }, [editor.doc]);
+  useEffect(() => persistCanvas(editor.doc), [editor.doc]);
+  useEffect(() => persistPanelVisibility(panelVisible), [panelVisible]);
 
-  // Cleanup blob URL
   useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
   }, []);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-        return;
-      }
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (editor.selectedIds.size > 0) {
-          e.preventDefault();
-          editor.remove();
-        }
-      } else if (e.key === 'Escape') {
-        editor.select(null, false);
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        editor.duplicate();
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        editor.selectAll();
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        editor.nudge(0, e.shiftKey ? -5 : -1);
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        editor.nudge(0, e.shiftKey ? 5 : 1);
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        editor.nudge(e.shiftKey ? -5 : -1, 0);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        editor.nudge(e.shiftKey ? 5 : 1, 0);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [editor]);
 
   const previewSubmissionId = submissionIds[0];
 
@@ -160,6 +115,8 @@ export const PdfPreviewPage = () => {
       previewUrlRef.current = url;
       setPreviewUrl(url);
       setHasCompiledOnce(true);
+      // Make sure the user can see the result they just compiled.
+      if (!panelVisible.preview) togglePanel('preview');
     } catch (error) {
       if (error instanceof ApiClientError && error.apiError) {
         toast.error(`コンパイルに失敗しました: ${error.apiError.message}`, { position: 'top-center' });
@@ -170,7 +127,9 @@ export const PdfPreviewPage = () => {
     } finally {
       setIsCompiling(false);
     }
-  }, [liveId, previewSubmissionId, editor.doc]);
+    // togglePanel referenced via closure but defined below — depends on panelVisible.preview
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveId, previewSubmissionId, editor.doc, panelVisible.preview]);
 
   const handleDownload = useCallback(async () => {
     if (!liveId || submissionIds.length === 0) return;
@@ -200,17 +159,25 @@ export const PdfPreviewPage = () => {
   }, [editor, config]);
 
   const handleZoomIn = useCallback(() => {
-    setPxPerMm((prev) => {
-      const next = ZOOM_LEVELS.find((z) => z > prev);
-      return next ?? prev;
-    });
+    setPxPerMm((prev) => ZOOM_LEVELS.find((z) => z > prev) ?? prev);
   }, []);
   const handleZoomOut = useCallback(() => {
-    setPxPerMm((prev) => {
-      const reversed = [...ZOOM_LEVELS].reverse();
-      const next = reversed.find((z) => z < prev);
-      return next ?? prev;
-    });
+    setPxPerMm((prev) => [...ZOOM_LEVELS].reverse().find((z) => z < prev) ?? prev);
+  }, []);
+
+  const syncVisibility = useCallback((key: PanelKey, visible: boolean) => {
+    setPanelVisible((prev) => (prev[key] === visible ? prev : { ...prev, [key]: visible }));
+  }, []);
+
+  const togglePanel = useCallback((key: PanelKey) => {
+    const ref = key === 'palette' ? palettePanelRef
+      : key === 'properties' ? propertiesPanelRef
+      : previewPanelRef;
+    const panel = ref.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+    setPanelVisible((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   if (!tenantId || !liveId || submissionIds.length === 0) {
@@ -231,7 +198,7 @@ export const PdfPreviewPage = () => {
 
   const isBulk = submissionIds.length > 1;
   const headerSubtitle = isBulk
-    ? `${submissionIds.length}件をまとめてZipダウンロード（プレビューは1件目）`
+    ? `${submissionIds.length}件をZipダウンロード（プレビューは1件目）`
     : '1件をPDFダウンロード';
 
   return (
@@ -250,6 +217,7 @@ export const PdfPreviewPage = () => {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <PanelVisibilityToggles visible={panelVisible} onToggle={togglePanel} />
           <PageSettings
             size={editor.doc.page.size}
             orientation={editor.doc.page.orientation}
@@ -261,7 +229,7 @@ export const PdfPreviewPage = () => {
           </Button>
           <Button variant="default" size="sm" onClick={compile} disabled={isCompiling} className="gap-1">
             {isCompiling ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-            コンパイル & プレビュー
+            コンパイル
           </Button>
           <Button onClick={handleDownload} disabled={isDownloading} size="sm" className="gap-1">
             {isDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
@@ -271,7 +239,7 @@ export const PdfPreviewPage = () => {
       </header>
 
       <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
-        <ResizablePanel defaultSize={62} minSize={35}>
+        <ResizablePanel defaultSize={70} minSize={30}>
           <div className="flex h-full min-h-0 flex-col">
             <AlignmentToolbar
               selectionCount={editor.selectedIds.size}
@@ -284,24 +252,44 @@ export const PdfPreviewPage = () => {
               onDuplicate={() => editor.duplicate()}
               onDelete={() => editor.remove()}
             />
-            <div className="flex flex-1 overflow-hidden">
-              <div className="w-[220px] shrink-0">
+            <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
+              <ResizablePanel
+                panelRef={palettePanelRef}
+                defaultSize={panelVisible.palette ? 18 : 0}
+                minSize={12}
+                maxSize={30}
+                collapsible
+                collapsedSize={0}
+                onResize={(size) => syncVisibility('palette', size.asPercentage > 0)}
+              >
                 <ElementPalette catalog={catalog} onInsert={(ins) => editor.insert(ins)} />
-              </div>
-              <div className="flex-1 overflow-auto bg-muted/20 p-6">
-                <div className="flex justify-center">
-                  <CanvasFrame
-                    doc={editor.doc}
-                    catalog={catalog}
-                    pxPerMm={pxPerMm}
-                    selectedIds={editor.selectedIds}
-                    onSelect={editor.select}
-                    onUpdate={editor.updateElement}
-                    snapMm={1}
-                  />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={60} minSize={25}>
+                <div className="h-full overflow-auto bg-muted/20 p-6">
+                  <div className="flex justify-center">
+                    <CanvasFrame
+                      doc={editor.doc}
+                      catalog={catalog}
+                      pxPerMm={pxPerMm}
+                      selectedIds={editor.selectedIds}
+                      onSelect={editor.select}
+                      onUpdate={editor.updateElement}
+                      snapMm={1}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="w-[280px] shrink-0">
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel
+                panelRef={propertiesPanelRef}
+                defaultSize={panelVisible.properties ? 22 : 0}
+                minSize={16}
+                maxSize={40}
+                collapsible
+                collapsedSize={0}
+                onResize={(size) => syncVisibility('properties', size.asPercentage > 0)}
+              >
                 <PropertyPanel
                   element={editor.selectedElement}
                   catalog={catalog}
@@ -310,12 +298,20 @@ export const PdfPreviewPage = () => {
                   onAddColumn={() => editor.selectedElement && editor.addColumn(editor.selectedElement.id)}
                   onRemoveColumn={(columnId) => editor.selectedElement && editor.removeColumn(editor.selectedElement.id, columnId)}
                 />
-              </div>
-            </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={38} minSize={25}>
+        <ResizablePanel
+          panelRef={previewPanelRef}
+          defaultSize={panelVisible.preview ? 30 : 0}
+          minSize={20}
+          maxSize={60}
+          collapsible
+          collapsedSize={0}
+          onResize={(size) => syncVisibility('preview', size.asPercentage > 0)}
+        >
           <PreviewPane
             previewUrl={previewUrl}
             isCompiling={isCompiling}
@@ -327,91 +323,3 @@ export const PdfPreviewPage = () => {
     </div>
   );
 };
-
-interface PreviewPaneProps {
-  previewUrl: string;
-  isCompiling: boolean;
-  hasCompiledOnce: boolean;
-  onCompile: () => void;
-}
-
-function PreviewPane({ previewUrl, isCompiling, hasCompiledOnce, onCompile }: PreviewPaneProps) {
-  return (
-    <div className="flex h-full flex-col bg-muted/30">
-      <div className="flex items-center justify-between border-b bg-background/60 px-3 py-2 text-xs">
-        <span className="font-medium">プレビュー</span>
-        <Button variant="ghost" size="sm" onClick={onCompile} disabled={isCompiling} className="gap-1 text-xs">
-          {isCompiling ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
-          再コンパイル
-        </Button>
-      </div>
-      <div className="relative flex-1 overflow-hidden">
-        {!hasCompiledOnce && !isCompiling ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-sm text-muted-foreground">
-            <p>「コンパイル & プレビュー」ボタンを押すと PDF が生成されます。</p>
-            <Button onClick={onCompile} size="sm" className="gap-1">
-              <RefreshCw className="size-4" />
-              いますぐコンパイル
-            </Button>
-          </div>
-        ) : !previewUrl ? (
-          <div className="flex h-full items-center justify-center p-8 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-          </div>
-        ) : (
-          <iframe
-            key={previewUrl}
-            src={previewUrl}
-            title="PDFプレビュー"
-            className="h-full w-full border-0 bg-white"
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PageSettings({ size, orientation, onChange }: { size: PaperSize; orientation: Orientation; onChange: (patch: { size?: PaperSize; orientation?: Orientation }) => void }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Label className="text-xs text-muted-foreground">用紙</Label>
-      <Select value={size} onValueChange={(v) => onChange({ size: v as PaperSize })}>
-        <SelectTrigger className="h-8 w-[110px] text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {PAPER_SIZE_OPTIONS.map((p) => (
-            <SelectItem key={p.value} value={p.value}>
-              {p.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <ToggleGroup
-        type="single"
-        size="sm"
-        variant="outline"
-        value={orientation}
-        onValueChange={(v) => v && onChange({ orientation: v as Orientation })}
-      >
-        {ORIENTATION_OPTIONS.map((o) => (
-          <ToggleGroupItem key={o.value} value={o.value} className="text-xs">
-            {o.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-    </div>
-  );
-}
-
-function loadStoredCanvas(): CanvasDocument | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as CanvasDocument;
-    if (!parsed.page || !Array.isArray(parsed.elements)) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
