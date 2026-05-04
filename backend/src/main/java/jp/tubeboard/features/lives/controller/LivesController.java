@@ -30,6 +30,7 @@ import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDeta
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
 import jp.tubeboard.features.lives.service.crud.ILivesService.SubmissionPdfResult;
 import lombok.AllArgsConstructor;
@@ -179,9 +180,8 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @PathVariable(name = "submissionId") UUID submissionId,
             @RequestBody(required = false) PdfGenerateRequest request) {
-        PdfGenerateRequest body = request != null ? request : emptyRequest();
-        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId,
-                body.toLayoutOptions(), body.customLayoutYaml());
+        CanvasDocument canvas = request != null ? request.canvas() : null;
+        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId, canvas);
         return pdfResponse(result, "pdf", MediaType.APPLICATION_PDF);
     }
 
@@ -189,14 +189,9 @@ public class LivesController {
     public ResponseEntity<byte[]> downloadSubmissionsZip(
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SubmissionsZipRequest request) {
-        String yaml = request.layout() != null ? request.layout().customLayoutYaml() : null;
         SubmissionPdfResult result = livesService.generateSubmissionsZip(id, request.submissionIds(),
-                request.toLayoutOptions(), yaml);
+                request.canvas());
         return pdfResponse(result, "zip", MediaType.parseMediaType("application/zip"));
-    }
-
-    private PdfGenerateRequest emptyRequest() {
-        return new PdfGenerateRequest(null, null, null, null, null, null, null, null, null, null, null);
     }
 
     private ResponseEntity<byte[]> pdfResponse(SubmissionPdfResult result, String extension, MediaType mediaType) {

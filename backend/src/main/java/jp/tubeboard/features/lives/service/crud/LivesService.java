@@ -24,8 +24,8 @@ import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
-import jp.tubeboard.features.lives.pdf.PdfLayoutOptions;
 import jp.tubeboard.features.lives.pdf.SettingSheetPdfService;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
@@ -411,16 +411,14 @@ public class LivesService implements ILivesService {
         }
 
         @Override
-        public SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, PdfLayoutOptions options,
-                        String customLayoutYaml) {
+        public SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, CanvasDocument canvas) {
                 Live live = helper.findOwnedLive(liveId);
                 LiveResponse liveResponse = helper.toResponse(live);
                 SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
                 PublicSettingSheetSubmissionDetailResponse detail = getOwnedSettingSheetSubmission(liveId,
                                 submissionId);
                 try {
-                        byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail, options,
-                                        customLayoutYaml);
+                        byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail, canvas);
                         return new SubmissionPdfResult(bytes, detail.recordLabel());
                 } catch (IOException ex) {
                         throw new UncheckedIOException("PDF生成に失敗しました", ex);
@@ -428,8 +426,7 @@ public class LivesService implements ILivesService {
         }
 
         @Override
-        public SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds,
-                        PdfLayoutOptions options, String customLayoutYaml) {
+        public SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds, CanvasDocument canvas) {
                 Live live = helper.findOwnedLive(liveId);
                 LiveResponse liveResponse = helper.toResponse(live);
                 SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
@@ -438,7 +435,7 @@ public class LivesService implements ILivesService {
                                                 getOwnedSettingSheetSubmission(liveId, id)))
                                 .toList();
                 try {
-                        byte[] bytes = settingSheetPdfService.generateZip(inputs, options, customLayoutYaml);
+                        byte[] bytes = settingSheetPdfService.generateZip(inputs, canvas);
                         return new SubmissionPdfResult(bytes, live.getName() + "_セッティングシート");
                 } catch (IOException ex) {
                         throw new UncheckedIOException("PDF Zip生成に失敗しました", ex);

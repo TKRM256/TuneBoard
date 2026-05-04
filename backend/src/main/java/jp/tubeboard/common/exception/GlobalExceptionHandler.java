@@ -17,7 +17,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
-import jp.tubeboard.features.lives.pdf.dsl.DslException;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasException;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
 
 @RestControllerAdvice
@@ -73,13 +73,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler(DslException.class)
-    public ResponseEntity<ApiErrorResponse> handleDsl(DslException ex) {
+    @ExceptionHandler(CanvasException.class)
+    public ResponseEntity<ApiErrorResponse> handleCanvas(CanvasException ex) {
         Map<String, String> details = new LinkedHashMap<>();
-        if (ex.line() != null) details.put("line", String.valueOf(ex.line()));
-        if (ex.column() != null) details.put("column", String.valueOf(ex.column()));
-        if (ex.path() != null) details.put("path", ex.path());
-        log.warn("DSL レイアウトエラー: {} {}", ex.getMessage(), details);
+        if (ex.elementId() != null) details.put("elementId", ex.elementId());
+        log.warn("キャンバスレイアウトエラー: {} {}", ex.getMessage(), details);
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), details.isEmpty() ? null : details);
     }
 

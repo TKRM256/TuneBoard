@@ -1,4 +1,4 @@
-package jp.tubeboard.features.lives.pdf.dsl;
+package jp.tubeboard.features.lives.pdf.canvas;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,11 +18,11 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormB
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 
 /**
- * Builds the variable namespace exposed to expressions evaluated by JEXL.
- * Uses plain classes with JavaBean getters (rather than records) for reliable
- * JEXL property access regardless of permissions/sandbox configuration.
+ * Builds the JEXL evaluation namespace exposed to expressions inside text
+ * elements. The shape is deliberately minimal so that any user-defined form can
+ * be referenced uniformly via {@code fields[id]} and {@code groups[id].items}.
  */
-public final class DslContext {
+public final class CanvasContext {
 
     public static final class FieldRef {
         private final String value;
@@ -117,22 +117,16 @@ public final class DslContext {
     }
 
     public static final class SubmissionRef {
-        private final String label;
         private final LocalDateTime submittedAt;
-        private final String status;
 
-        public SubmissionRef(String label, LocalDateTime submittedAt, String status) {
-            this.label = label;
+        public SubmissionRef(LocalDateTime submittedAt) {
             this.submittedAt = submittedAt;
-            this.status = status;
         }
 
-        public String getLabel() { return label; }
         public LocalDateTime getSubmittedAt() { return submittedAt; }
-        public String getStatus() { return status; }
     }
 
-    private DslContext() {
+    private CanvasContext() {
     }
 
     /** Build a fresh evaluation namespace. Mutable map so callers can inject loop vars. */
@@ -165,8 +159,7 @@ public final class DslContext {
         root.put("live", new LiveRef(
                 live.name(), live.date(), live.location(), live.tenantName(),
                 live.deadlineAt(), live.status() != null ? live.status().name() : null));
-        root.put("submission", new SubmissionRef(
-                submission.recordLabel(), submission.submittedAt(), submission.submissionStatus()));
+        root.put("submission", new SubmissionRef(submission.submittedAt()));
         root.put("fields", fieldRefs);
         root.put("groups", groupRefs);
         return root;

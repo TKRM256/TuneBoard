@@ -1,7 +1,7 @@
 /** API helpers for fetching/downloading setting-sheet PDFs from the backend. */
 import { API_BASE_URL, getAccessToken } from '@/lib/api/client';
 import { ApiClientError, type ApiError } from '@/lib/api/type';
-import type { PdfLayoutOptions } from './pdf-options';
+import type { CanvasDocument } from './canvas-schema';
 
 export interface PdfFetchResult {
   blob: Blob;
@@ -15,12 +15,12 @@ interface FetchOptions {
 export async function fetchSubmissionPdf(
   liveId: string,
   submissionId: string,
-  options: PdfLayoutOptions,
+  canvas: CanvasDocument,
   fetchOptions: FetchOptions = {},
 ): Promise<PdfFetchResult> {
   return postForBlob(
     `/lives/${liveId}/setting-sheet/submissions/${submissionId}/pdf`,
-    options,
+    { canvas },
     fetchOptions,
   );
 }
@@ -28,12 +28,12 @@ export async function fetchSubmissionPdf(
 export async function fetchSubmissionsZip(
   liveId: string,
   submissionIds: string[],
-  options: PdfLayoutOptions,
+  canvas: CanvasDocument,
   fetchOptions: FetchOptions = {},
 ): Promise<PdfFetchResult> {
   return postForBlob(
     `/lives/${liveId}/setting-sheet/submissions/pdf-zip`,
-    { submissionIds, layout: options },
+    { submissionIds, canvas },
     fetchOptions,
   );
 }

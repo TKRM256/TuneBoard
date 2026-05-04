@@ -1,6 +1,7 @@
-package jp.tubeboard.features.lives.pdf.dsl;
+package jp.tubeboard.features.lives.pdf.canvas;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,114 +23,60 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormB
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.LayoutResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 import jp.tubeboard.features.lives.model.LiveStatus;
-import jp.tubeboard.features.lives.pdf.dsl.DslSchema.DslDocument;
 
-class DslPipelineTest {
+class CanvasPipelineTest {
 
     private static final LayoutResponse LAYOUT_HALF = new LayoutResponse("half", 1, false);
 
-    private final DslParser parser = new DslParser();
-    private final DslEvaluator evaluator = new DslEvaluator();
+    private final ExpressionEvaluator evaluator = new ExpressionEvaluator();
 
     @Test
-    void parsesMinimalYaml() {
-        DslDocument doc = parser.parse("page:\n  size: A4\nrows: []\n");
-        assertNotNull(doc);
-        assertNotNull(doc.page());
-        assertEquals(0, doc.rows().size());
-    }
-
-    @Test
-    void parsesIfWithThenElse() {
-        String yaml = """
-                rows:
-                  - type: if
-                    cond: "${1 == 1}"
-                    then:
-                      - type: text
-                        text: "yes"
-                    else:
-                      - type: text
-                        text: "no"
-                """;
-        DslDocument doc = parser.parse(yaml);
-        assertEquals(1, doc.rows().size());
-        DslSchema.DslNode.If node = (DslSchema.DslNode.If) doc.rows().get(0);
-        assertEquals("${1 == 1}", node.cond());
-        assertNotNull(node.thenBranch());
-        assertEquals(1, node.thenBranch().nodes().size());
-        assertNotNull(node.elseBranch());
-    }
-
-    @Test
-    void parsesNestedRowAndColumns() {
-        String yaml = """
-                rows:
-                  - type: row
-                    columns:
-                      - width: 0.5
-                        render:
-                          - type: text
-                            text: "L"
-                      - width: 0.5
-                        render:
-                          - type: text
-                            text: "R"
-                """;
-        DslDocument doc = parser.parse(yaml);
-        DslSchema.DslNode.Row row = (DslSchema.DslNode.Row) doc.rows().get(0);
-        assertEquals(2, row.columns().size());
-    }
-
-    @Test
-    void evaluateInterpolation() {
+    void interpolatesPlainTemplate() {
         Map<String, Object> ns = new HashMap<>();
         ns.put("name", "World");
         assertEquals("Hello World!", evaluator.interpolate("Hello ${name}!", ns));
     }
 
     @Test
-    void evaluateTernary() {
-        Map<String, Object> ns = new HashMap<>();
-        ns.put("isMember", true);
-        assertEquals("○", evaluator.interpolate("${isMember ? '○' : '×'}", ns));
-    }
-
-    @Test
-    void evaluateHelperFunctionInDefaultNamespace() {
+    void helpersResolveInDefaultNamespace() {
         Map<String, Object> ns = new HashMap<>();
         ns.put("flag", "true");
-        // Helpers are registered in the default namespace; boolMark(...) should resolve.
-        String out = evaluator.interpolate("${boolMark(flag)}", ns);
-        assertTrue(out.equals("○"), "expected ○ but got: " + out);
+        assertEquals("○", evaluator.interpolate("${boolMark(flag)}", ns));
+        ns.put("parts", List.of("Vo", "Gt"));
+        assertEquals("Vo / Gt", evaluator.interpolate("${join(parts, ' / ')}", ns));
     }
 
     @Test
-    void evaluateAccessRecordAccessors() {
-        Map<String, Object> ns = new HashMap<>();
-        DslContext.FieldRef ref = new DslContext.FieldRef("Vo", List.of("Vo", "Gt"), false);
-        ns.put("f", ref);
-        assertEquals("Vo", evaluator.interpolate("${f.value}", ns));
-        assertEquals("Vo / Gt", evaluator.interpolate("${join(f.values, ' / ')}", ns));
-    }
-
-    @Test
-    void contextBuildsFromRealDtos() {
+    void contextExposesFieldsAndGroups() {
         LiveResponse live = sampleLive();
         SettingSheetConfigResponse config = sampleConfig();
         PublicSettingSheetSubmissionDetailResponse submission = sampleSubmission();
 
-        Map<String, Object> ns = DslContext.build(live, config, submission);
+        Map<String, Object> ns = CanvasContext.build(live, config, submission);
         assertNotNull(ns.get("live"));
         assertNotNull(ns.get("submission"));
+
         @SuppressWarnings("unchecked")
-        Map<String, DslContext.FieldRef> fields = (Map<String, DslContext.FieldRef>) ns.get("fields");
+        Map<String, CanvasContext.FieldRef> fields = (Map<String, CanvasContext.FieldRef>) ns.get("fields");
         assertEquals("KingGnu", fields.get("band-name").getValue());
+
         @SuppressWarnings("unchecked")
-        Map<String, DslContext.GroupRef> groups = (Map<String, DslContext.GroupRef>) ns.get("groups");
+        Map<String, CanvasContext.GroupRef> groups = (Map<String, CanvasContext.GroupRef>) ns.get("groups");
         assertEquals(2, groups.get("members").getItems().size());
         assertEquals("田中",
                 evaluator.interpolate("${groups['members'].items[0].field('member-name').value}", ns));
+    }
+
+    @Test
+    void defaultCanvasFromConfigIncludesGroupTable() {
+        DefaultCanvasFactory factory = new DefaultCanvasFactory();
+        CanvasSchema.CanvasDocument doc = factory.build(sampleConfig());
+        assertNotNull(doc);
+        assertNotNull(doc.page());
+        assertFalse(doc.elements().isEmpty());
+        boolean hasTable = doc.elements().stream()
+                .anyMatch(e -> e instanceof CanvasSchema.CanvasElement.TableElement);
+        assertTrue(hasTable, "default canvas should include at least one table element");
     }
 
     private LiveResponse sampleLive() {
