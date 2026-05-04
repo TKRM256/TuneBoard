@@ -51,7 +51,7 @@ public class SubmissionPdfRenderer {
         engine.newPage();
         Map<String, FieldAnswerResponse> answers = indexAnswers(submission.answers());
 
-        renderHeader(live, submission);
+        renderHeader(live, submission, answers);
 
         // Categorize top-level blocks
         List<InfoRow> infoRows = collectInfoRows(live, submission, config.blocks(), answers);
@@ -84,29 +84,56 @@ public class SubmissionPdfRenderer {
 
     // ────────── Header ──────────
 
-    private void renderHeader(LiveResponse live, PublicSettingSheetSubmissionDetailResponse submission)
-            throws IOException {
+    private void renderHeader(LiveResponse live, PublicSettingSheetSubmissionDetailResponse submission,
+            Map<String, FieldAnswerResponse> answers) throws IOException {
         PdfHeaderOptions h = options.header();
         float left = engine.contentLeft();
         float right = engine.contentRight();
         float topY = engine.cursorY();
-
-        String title = Boolean.TRUE.equals(h.showRecordLabel()) && hasText(submission.recordLabel())
-                ? submission.recordLabel()
-                : (Boolean.TRUE.equals(h.showLiveName()) ? live.name() : "");
-        if (hasText(title)) {
-            float titleFs = engine.titleFontSize();
-            engine.drawText(title, left, topY - titleFs, titleFs, PdfLayoutEngine.COLOR_TEXT);
-        }
+        float titleFs = engine.titleFontSize();
+        float metaFs = 9f;
 
         String rightInfo = buildHeaderRightInfo(live, h);
-        if (!rightInfo.isEmpty()) {
-            float fs = 9f;
-            float w = engine.measureTextWidth(rightInfo, fs);
-            engine.drawText(rightInfo, right - w, topY - fs - 2f, fs, PdfLayoutEngine.COLOR_TEXT_MUTED);
-        }
+        float rightInfoWidth = rightInfo.isEmpty() ? 0f : engine.measureTextWidth(rightInfo, metaFs) + 8f;
+        float titleAvailable = right - left - rightInfoWidth;
 
-        engine.setCursorY(topY - engine.titleFontSize() - spacing(HEADER_GAP));
+        String title = resolveTitle(live, submission, answers);
+
+        float endY = topY;
+        if (hasText(title)) {
+            List<String> lines = engine.wrap(title, Math.max(80f, titleAvailable), titleFs);
+            float y = topY - titleFs;
+            for (String line : lines) {
+                engine.drawText(line, left, y, titleFs, PdfLayoutEngine.COLOR_TEXT);
+                y -= engine.lineHeight(titleFs);
+            }
+            endY = y + engine.lineHeight(titleFs) - titleFs;
+        }
+        if (!rightInfo.isEmpty()) {
+            engine.drawText(rightInfo, right - (rightInfoWidth - 8f), topY - metaFs - 2f, metaFs,
+                    PdfLayoutEngine.COLOR_TEXT_MUTED);
+        }
+        engine.setCursorY(endY - spacing(HEADER_GAP));
+    }
+
+    private String resolveTitle(LiveResponse live, PublicSettingSheetSubmissionDetailResponse submission,
+            Map<String, FieldAnswerResponse> answers) {
+        PdfHeaderOptions h = options.header();
+        String titleSourceFieldId = options.titleSourceFieldId();
+        if (hasText(titleSourceFieldId)) {
+            FieldAnswerResponse ans = answers.get(titleSourceFieldId);
+            if (ans != null && ans.values() != null && !ans.values().isEmpty()) {
+                String first = ans.values().get(0);
+                if (hasText(first)) return first;
+            }
+        }
+        if (Boolean.TRUE.equals(h.showRecordLabel()) && hasText(submission.recordLabel())) {
+            return submission.recordLabel();
+        }
+        if (Boolean.TRUE.equals(h.showLiveName())) {
+            return live.name() != null ? live.name() : "";
+        }
+        return "";
     }
 
     private String buildHeaderRightInfo(LiveResponse live, PdfHeaderOptions h) {
@@ -145,6 +172,7 @@ public class SubmissionPdfRenderer {
     private void collectInfoRowsFromBlocks(List<FormBlockResponse> blocks, Map<String, FieldAnswerResponse> answers,
             List<InfoRow> rows) {
         if (blocks == null) return;
+        String titleSourceFieldId = options.titleSourceFieldId();
         for (FormBlockResponse block : blocks) {
             if (options.isHidden(block.id())) continue;
             if ("REPEATABLE_GROUP".equals(block.type())) continue;
@@ -153,8 +181,7 @@ public class SubmissionPdfRenderer {
                 continue;
             }
             // Skip if this field is the title source (already shown as header)
-            // Heuristic: skip the first text-like field if it equals submission.recordLabel? Too brittle.
-            // Instead, skip empty values to keep table compact.
+            if (hasText(titleSourceFieldId) && titleSourceFieldId.equals(block.id())) continue;
             String label = options.labelFor(block.id(), block.label());
             String value = formatValueWithBreaks(block, answers.get(block.id()));
             if (!hasText(value) || "—".equals(value)) continue;

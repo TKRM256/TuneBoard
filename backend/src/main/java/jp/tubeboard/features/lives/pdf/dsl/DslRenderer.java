@@ -227,23 +227,30 @@ public class DslRenderer {
                     ? (col.header() != null ? col.header() : "")
                     : evaluator.interpolate(col.value(), rowNamespace);
             String align = col.align() != null ? col.align() : "left";
-            float padX = computeCellX(text, widths[i], align, fs, x);
-            engine.drawText(text, padX, baselineY, fs,
-                    isHeader ? PdfLayoutEngine.COLOR_TEXT : PdfLayoutEngine.COLOR_TEXT);
+            drawCellLines(text, x, baselineY, widths[i], fs, align, PdfLayoutEngine.COLOR_TEXT);
             x += widths[i];
         }
     }
 
-    private float computeCellX(String text, float colWidth, String align, float fs, float x) throws IOException {
-        if ("center".equalsIgnoreCase(align)) {
-            float tw = engine.measureTextWidth(text, fs);
-            return x + (colWidth - tw) / 2f;
+    private void drawCellLines(String text, float x, float topBaseline, float colWidth, float fs, String align,
+            java.awt.Color color) throws IOException {
+        if (text == null || text.isEmpty()) return;
+        List<String> lines = engine.wrap(text, colWidth - 8f, fs);
+        float lineY = topBaseline;
+        for (String line : lines) {
+            float drawX;
+            if ("center".equalsIgnoreCase(align)) {
+                float tw = engine.measureTextWidth(line, fs);
+                drawX = x + (colWidth - tw) / 2f;
+            } else if ("right".equalsIgnoreCase(align)) {
+                float tw = engine.measureTextWidth(line, fs);
+                drawX = x + colWidth - tw - 4f;
+            } else {
+                drawX = x + 4f;
+            }
+            engine.drawText(line, drawX, lineY, fs, color);
+            lineY -= engine.lineHeight(fs);
         }
-        if ("right".equalsIgnoreCase(align)) {
-            float tw = engine.measureTextWidth(text, fs);
-            return x + colWidth - tw - 4f;
-        }
-        return x + 4f;
     }
 
     private float[] computeColumnWidths(List<TableColumn> columns, float totalWidth) {
