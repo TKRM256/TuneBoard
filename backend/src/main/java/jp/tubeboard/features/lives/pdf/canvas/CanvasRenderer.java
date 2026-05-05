@@ -52,7 +52,8 @@ public class CanvasRenderer {
         CanvasPage page = document.page();
         PdfPaperSize size = page != null && page.size() != null ? page.size() : PdfPaperSize.A4;
         PdfOrientation orientation = page != null && page.orientation() != null
-                ? page.orientation() : PdfOrientation.LANDSCAPE;
+                ? page.orientation()
+                : PdfOrientation.LANDSCAPE;
         PDRectangle pageBox = size.rectangle(orientation);
 
         PDPage pdPage = new PDPage(pageBox);
@@ -60,7 +61,8 @@ public class CanvasRenderer {
         try (PDPageContentStream stream = new PDPageContentStream(pdf, pdPage)) {
             float pageHeightPt = pageBox.getHeight();
             List<CanvasElement> elements = document.elements();
-            if (elements == null) return;
+            if (elements == null)
+                return;
             for (CanvasElement element : elements) {
                 renderElement(element, stream, font, pageHeightPt);
             }
@@ -114,11 +116,13 @@ public class CanvasRenderer {
     }
 
     private String lookupFieldValue(String fieldId) {
-        if (isBlank(fieldId)) return "";
+        if (isBlank(fieldId))
+            return "";
         Object fields = namespace.get("fields");
         if (fields instanceof Map<?, ?> map) {
             Object ref = map.get(fieldId);
-            if (ref instanceof CanvasContext.FieldRef fr) return fr.getValue();
+            if (ref instanceof CanvasContext.FieldRef fr)
+                return fr.getValue();
         }
         return "";
     }
@@ -148,7 +152,8 @@ public class CanvasRenderer {
         float fs = nonNullOr(table.fontSizePt(), DEFAULT_TABLE_FONT_SIZE);
 
         List<TableColumn> columns = table.columns() != null ? table.columns() : List.of();
-        if (columns.isEmpty()) return;
+        if (columns.isEmpty())
+            return;
 
         float[] widths = computeColumnWidths(columns, box.widthPt);
         boolean showHeader = !Boolean.FALSE.equals(table.showHeader());
@@ -163,7 +168,8 @@ public class CanvasRenderer {
             float x = box.leftX;
             for (int i = 0; i < columns.size(); i++) {
                 TableColumn c = columns.get(i);
-                drawCellText(stream, font, nullToEmpty(c.header()), x, baselineY, widths[i], fs, c.align(), Color.BLACK);
+                drawCellText(stream, font, nullToEmpty(c.header()), x, baselineY, widths[i], fs, c.align(),
+                        Color.BLACK);
                 x += widths[i];
             }
         }
@@ -171,13 +177,11 @@ public class CanvasRenderer {
         // Rows
         List<RowData> rows = collectRows(table);
         float rowFs = fs;
-        float rowLh = lineHeight(rowFs);
         float currentY = box.topY - headerHeight;
         boolean zebra = Boolean.TRUE.equals(table.zebra());
         for (int r = 0; r < rows.size(); r++) {
             RowData row = rows.get(r);
             float rowHeight = computeRowHeight(font, columns, widths, row, rowFs);
-            if (currentY - rowHeight < box.bottomY) break; // clip overflow rows
             if (zebra && r % 2 == 1) {
                 fillRect(stream, box.leftX, currentY - rowHeight, box.widthPt, rowHeight,
                         new Color(0xf9, 0xfa, 0xfb));
@@ -243,7 +247,8 @@ public class CanvasRenderer {
             TableColumn c = columns.get(i);
             String text = row.cellText(c, evaluator, namespace);
             int lineCount = Math.max(1, wrapLines(font, text, widths[i] - CELL_PAD_X * 2, fs).size());
-            if (lineCount > maxLines) maxLines = lineCount;
+            if (lineCount > maxLines)
+                maxLines = lineCount;
         }
         return maxLines * lineHeight(fs) + CELL_PAD_Y * 2;
     }
@@ -265,11 +270,13 @@ public class CanvasRenderer {
             float remaining = Math.max(0, totalWidth - assigned);
             float each = remaining / unset;
             for (int i = 0; i < widths.length; i++) {
-                if (widths[i] == 0f) widths[i] = each;
+                if (widths[i] == 0f)
+                    widths[i] = each;
             }
         } else if (assigned > 0 && Math.abs(assigned - totalWidth) > 0.01f) {
             float scale = totalWidth / assigned;
-            for (int i = 0; i < widths.length; i++) widths[i] *= scale;
+            for (int i = 0; i < widths.length; i++)
+                widths[i] *= scale;
         }
         return widths;
     }
@@ -325,7 +332,8 @@ public class CanvasRenderer {
 
     private void drawTextBox(PDPageContentStream stream, PDType0Font font, String text, Box box,
             float fs, String align, String verticalAlign, Color color, boolean bold) throws IOException {
-        if (text == null || text.isEmpty()) return;
+        if (text == null || text.isEmpty())
+            return;
         List<String> lines = wrapLines(font, text, box.widthPt - 2f, fs);
         float lh = lineHeight(fs);
         float totalHeight = lines.size() * lh;
@@ -369,7 +377,8 @@ public class CanvasRenderer {
 
     private void drawCellText(PDPageContentStream stream, PDType0Font font, String text, float cellX,
             float baselineY, float cellWidth, float fs, String align, Color color) throws IOException {
-        if (text == null || text.isEmpty()) return;
+        if (text == null || text.isEmpty())
+            return;
         List<String> lines = wrapLines(font, text, cellWidth - CELL_PAD_X * 2, fs);
         float lh = lineHeight(fs);
         float y = baselineY;
@@ -397,22 +406,26 @@ public class CanvasRenderer {
             Float borderThickness) throws IOException {
         if (!isBlank(bgHex)) {
             Color bg = parseColor(bgHex, null);
-            if (bg != null) fillRect(stream, box.leftX, box.bottomY, box.widthPt, box.heightPt, bg);
+            if (bg != null)
+                fillRect(stream, box.leftX, box.bottomY, box.widthPt, box.heightPt, bg);
         }
         if (!isBlank(borderHex) && (borderThickness == null || borderThickness > 0)) {
             Color bc = parseColor(borderHex, null);
-            if (bc != null) strokeRect(stream, box.leftX, box.bottomY, box.widthPt, box.heightPt, bc,
-                    nonNullOr(borderThickness, 0.5f));
+            if (bc != null)
+                strokeRect(stream, box.leftX, box.bottomY, box.widthPt, box.heightPt, bc,
+                        nonNullOr(borderThickness, 0.5f));
         }
     }
 
-    private void fillRect(PDPageContentStream stream, float x, float y, float w, float h, Color color) throws IOException {
+    private void fillRect(PDPageContentStream stream, float x, float y, float w, float h, Color color)
+            throws IOException {
         stream.setNonStrokingColor(color);
         stream.addRect(x, y, w, h);
         stream.fill();
     }
 
-    private void strokeRect(PDPageContentStream stream, float x, float y, float w, float h, Color color, float lineWidth)
+    private void strokeRect(PDPageContentStream stream, float x, float y, float w, float h, Color color,
+            float lineWidth)
             throws IOException {
         stream.setStrokingColor(color);
         stream.setLineWidth(lineWidth);
@@ -424,7 +437,8 @@ public class CanvasRenderer {
 
     private List<String> wrapLines(PDType0Font font, String text, float maxWidth, float fs) throws IOException {
         java.util.List<String> result = new java.util.ArrayList<>();
-        if (text == null || text.isEmpty()) return result;
+        if (text == null || text.isEmpty())
+            return result;
         for (String paragraph : text.split("\\R", -1)) {
             wrapParagraph(font, paragraph, maxWidth, fs, result);
         }
@@ -460,7 +474,8 @@ public class CanvasRenderer {
     }
 
     private float measureWidth(PDType0Font font, String text, float fs) throws IOException {
-        if (text == null || text.isEmpty()) return 0f;
+        if (text == null || text.isEmpty())
+            return 0f;
         return font.getStringWidth(text) / 1000f * fs;
     }
 
@@ -500,7 +515,8 @@ public class CanvasRenderer {
     }
 
     private Color parseColor(String hex, Color fallback) {
-        if (hex == null || hex.isBlank()) return fallback;
+        if (hex == null || hex.isBlank())
+            return fallback;
         String s = hex.startsWith("#") ? hex.substring(1) : hex;
         try {
             if (s.length() == 6) {
