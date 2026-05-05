@@ -1,14 +1,14 @@
-/** PDF designer page. Hosts a 4-pane resizable layout (palette, canvas,
- *  properties, preview) where every side panel is collapsible from the header.
- *  Compile button explicitly regenerates the PDF preview on demand. */
+/** PDF designer page. Canvas area in the center with palette/properties as
+ *  non-modal slide-in drawers (overlaying the canvas), and preview pinned to
+ *  the right as the only resizable panel. Compile regenerates PDF on demand. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Download, Loader2, RefreshCw, RotateCcw } from 'lucide-react';
-import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { cn } from '@/lib/utils';
 import { ApiClientError } from '@/lib/api/type';
 import { apiClient } from '@/lib/api/client';
 import {
@@ -28,6 +28,7 @@ import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
 import { AlignmentToolbar } from './canvas/AlignmentToolbar';
+import { ExpressionPreviewProvider } from './canvas/ExpressionPreviewContext';
 import { PageSettings } from './canvas/PageSettings';
 import { PreviewPane } from './canvas/PreviewPane';
 import { PanelVisibilityToggles, type PanelKey } from './canvas/PanelVisibilityToggles';
@@ -35,6 +36,8 @@ import { useCanvasEditor } from './canvas/useCanvasEditor';
 import { useCanvasKeyboardShortcuts } from './canvas/useCanvasKeyboardShortcuts';
 
 const ZOOM_LEVELS = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0];
+
+const PREVIEW_DEFAULT_SIZE = 32;
 
 export const PdfPreviewPage = () => {
   const { tenantId, liveId, submissionId } = useParams<{ tenantId: string; liveId: string; submissionId?: string }>();
@@ -56,10 +59,6 @@ export const PdfPreviewPage = () => {
   const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
   const [panelVisible, setPanelVisible] = useState<Record<PanelKey, boolean>>(() => loadPanelVisibility());
   const previewUrlRef = useRef<string>('');
-
-  const palettePanelRef = useRef<PanelImperativeHandle | null>(null);
-  const propertiesPanelRef = useRef<PanelImperativeHandle | null>(null);
-  const previewPanelRef = useRef<PanelImperativeHandle | null>(null);
 
   const editor = useCanvasEditor(loadStoredCanvas() ?? buildDefaultCanvas(null));
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
@@ -116,7 +115,7 @@ export const PdfPreviewPage = () => {
       setPreviewUrl(url);
       setHasCompiledOnce(true);
       // Make sure the user can see the result they just compiled.
-      if (!panelVisible.preview) togglePanel('preview');
+      setPanelVisible((prev) => (prev.preview ? prev : { ...prev, preview: true }));
     } catch (error) {
       if (error instanceof ApiClientError && error.apiError) {
         toast.error(`コンパイルに失敗しました: ${error.apiError.message}`, { position: 'top-center' });
@@ -127,9 +126,7 @@ export const PdfPreviewPage = () => {
     } finally {
       setIsCompiling(false);
     }
-    // togglePanel referenced via closure but defined below — depends on panelVisible.preview
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveId, previewSubmissionId, editor.doc, panelVisible.preview]);
+  }, [liveId, previewSubmissionId, editor.doc]);
 
   const handleDownload = useCallback(async () => {
     if (!liveId || submissionIds.length === 0) return;
@@ -165,18 +162,7 @@ export const PdfPreviewPage = () => {
     setPxPerMm((prev) => [...ZOOM_LEVELS].reverse().find((z) => z < prev) ?? prev);
   }, []);
 
-  const syncVisibility = useCallback((key: PanelKey, visible: boolean) => {
-    setPanelVisible((prev) => (prev[key] === visible ? prev : { ...prev, [key]: visible }));
-  }, []);
-
   const togglePanel = useCallback((key: PanelKey) => {
-    const ref = key === 'palette' ? palettePanelRef
-      : key === 'properties' ? propertiesPanelRef
-      : previewPanelRef;
-    const panel = ref.current;
-    if (!panel) return;
-    if (panel.isCollapsed()) panel.expand();
-    else panel.collapse();
     setPanelVisible((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
@@ -202,7 +188,7 @@ export const PdfPreviewPage = () => {
     : '1件をPDFダウンロード';
 
   return (
-    <div className="-mx-4 -mt-4 flex h-[calc(100dvh-64px)] flex-col sm:-mx-6">
+    <div className="relative left-[calc(50%-50vw)] -mt-3 flex h-[calc(100dvh-64px)] w-full flex-col sm:-mt-4">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-background px-4 py-2 sm:px-6">
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost" size="sm">
@@ -238,8 +224,9 @@ export const PdfPreviewPage = () => {
         </div>
       </header>
 
+      <ExpressionPreviewProvider liveId={liveId} submissionId={previewSubmissionId}>
       <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
-        <ResizablePanel defaultSize={70} minSize={30}>
+        <ResizablePanel>
           <div className="flex h-full min-h-0 flex-col">
             <AlignmentToolbar
               selectionCount={editor.selectedIds.size}
@@ -252,44 +239,24 @@ export const PdfPreviewPage = () => {
               onDuplicate={() => editor.duplicate()}
               onDelete={() => editor.remove()}
             />
-            <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
-              <ResizablePanel
-                panelRef={palettePanelRef}
-                defaultSize={panelVisible.palette ? 18 : 0}
-                minSize={12}
-                maxSize={30}
-                collapsible
-                collapsedSize={0}
-                onResize={(size) => syncVisibility('palette', size.asPercentage > 0)}
-              >
-                <ElementPalette catalog={catalog} onInsert={(ins) => editor.insert(ins)} />
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={60} minSize={25}>
-                <div className="h-full overflow-auto bg-muted/20 p-6">
-                  <div className="flex justify-center">
-                    <CanvasFrame
-                      doc={editor.doc}
-                      catalog={catalog}
-                      pxPerMm={pxPerMm}
-                      selectedIds={editor.selectedIds}
-                      onSelect={editor.select}
-                      onUpdate={editor.updateElement}
-                      snapMm={1}
-                    />
-                  </div>
+            <div className="relative flex-1 overflow-hidden">
+              <div className="h-full overflow-auto bg-muted/20 p-6">
+                <div className="flex justify-center">
+                  <CanvasFrame
+                    doc={editor.doc}
+                    catalog={catalog}
+                    pxPerMm={pxPerMm}
+                    selectedIds={editor.selectedIds}
+                    onSelect={editor.select}
+                    onUpdate={editor.updateElement}
+                    snapMm={1}
+                  />
                 </div>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel
-                panelRef={propertiesPanelRef}
-                defaultSize={panelVisible.properties ? 22 : 0}
-                minSize={16}
-                maxSize={40}
-                collapsible
-                collapsedSize={0}
-                onResize={(size) => syncVisibility('properties', size.asPercentage > 0)}
-              >
+              </div>
+              <SideDrawer side="left" open={panelVisible.palette}>
+                <ElementPalette catalog={catalog} onInsert={(ins) => editor.insert(ins)} />
+              </SideDrawer>
+              <SideDrawer side="right" open={panelVisible.properties}>
                 <PropertyPanel
                   element={editor.selectedElement}
                   catalog={catalog}
@@ -298,28 +265,55 @@ export const PdfPreviewPage = () => {
                   onAddColumn={() => editor.selectedElement && editor.addColumn(editor.selectedElement.id)}
                   onRemoveColumn={(columnId) => editor.selectedElement && editor.removeColumn(editor.selectedElement.id, columnId)}
                 />
-              </ResizablePanel>
-            </ResizablePanelGroup>
+              </SideDrawer>
+            </div>
           </div>
         </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel
-          panelRef={previewPanelRef}
-          defaultSize={panelVisible.preview ? 30 : 0}
-          minSize={20}
-          maxSize={60}
-          collapsible
-          collapsedSize={0}
-          onResize={(size) => syncVisibility('preview', size.asPercentage > 0)}
-        >
-          <PreviewPane
-            previewUrl={previewUrl}
-            isCompiling={isCompiling}
-            hasCompiledOnce={hasCompiledOnce}
-            onCompile={compile}
-          />
-        </ResizablePanel>
+        {panelVisible.preview && (
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={PREVIEW_DEFAULT_SIZE}>
+              <PreviewPane
+                previewUrl={previewUrl}
+                isCompiling={isCompiling}
+                hasCompiledOnce={hasCompiledOnce}
+                onCompile={compile}
+              />
+            </ResizablePanel>
+          </>
+        )}
       </ResizablePanelGroup>
+      </ExpressionPreviewProvider>
     </div>
   );
 };
+
+/** Non-modal slide-in drawer that overlays the canvas. Lets the user keep
+ *  editing on the canvas behind it (unlike shadcn Sheet which is modal). */
+function SideDrawer({
+  side,
+  open,
+  children,
+}: {
+  side: 'left' | 'right';
+  open: boolean;
+  children: React.ReactNode;
+}) {
+  const widthClass = side === 'left' ? 'w-72' : 'w-80';
+  const borderClass = side === 'left' ? 'border-r left-0' : 'border-l right-0';
+  const hiddenTransform = side === 'left' ? '-translate-x-full' : 'translate-x-full';
+  return (
+    <aside
+      aria-hidden={!open}
+      className={cn(
+        'absolute inset-y-0 z-20 flex flex-col bg-background shadow-xl transition-transform duration-200 ease-out',
+        widthClass,
+        borderClass,
+        open ? 'translate-x-0' : hiddenTransform,
+        !open && 'pointer-events-none',
+      )}
+    >
+      {children}
+    </aside>
+  );
+}
