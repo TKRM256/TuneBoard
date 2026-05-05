@@ -50,7 +50,7 @@ export const FullWidthLayout = () => {
     const name = authMe?.name || authMe?.email || 'User';
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="h-screen flex flex-col border-4 bg-background overflow-hidden">
             <header className="border-b bg-card">
                 <div className="mx-auto flex max-w-screen flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
@@ -77,7 +77,7 @@ export const FullWidthLayout = () => {
                     </div>
                 </div>
             </header>
-            <main className="mx-auto max-w-screen p-3 sm:p-4">
+            <main className="mx-auto flex-1 w-full">
                 <Outlet />
             </main>
         </div>

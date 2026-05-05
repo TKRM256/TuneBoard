@@ -188,7 +188,7 @@ export const PdfPreviewPage = () => {
     : '1件をPDFダウンロード';
 
   return (
-    <div className="relative left-[calc(50%-50vw)] -mt-3 flex h-[calc(100dvh-64px)] w-full flex-col sm:-mt-4">
+    <div className="flex w-full h-full flex-col">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-background px-4 py-2 sm:px-6">
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost" size="sm">

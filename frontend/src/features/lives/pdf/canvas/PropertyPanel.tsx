@@ -48,7 +48,7 @@ export function PropertyPanel({ element, catalog, onUpdate, onUpdateColumn, onAd
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-l bg-background overflow-scroll">
+    <aside className="flex h-full w-full flex-col border-l bg-background overflow-y-scroll">
       <div className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         プロパティ — {kindLabel(element.kind)}
       </div>
@@ -160,7 +160,7 @@ function FieldProperties({ element, catalog, onUpdate }: { element: FieldElement
             )}
             {allFields.map((f) => (
               <SelectItem key={f.id} value={f.id}>
-                <div className="flex flex-col items-start">
+                <div className="flex min-w-0 flex-col items-start">
                   <span>{f.label}</span>
                   <span className="text-[10px] text-muted-foreground">{f.path}</span>
                 </div>
@@ -329,10 +329,10 @@ function TableProperties({
                     }
                   }}
                 >
-                  <SelectTrigger className="h-7 text-xs">
+                  <SelectTrigger className="h-7 text-xs w-full">
                     <SelectValue placeholder="フィールド" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="min-w-0">
                     {element.source.kind === 'group' && (
                       <>
                         <SelectItem value="__index__">行番号 (No)</SelectItem>
@@ -343,7 +343,7 @@ function TableProperties({
                         ))}
                         {childGroupOptions.length > 0 && (
                           <SelectGroup>
-                            <SelectLabel>繰り返しグループ (集約)</SelectLabel>
+                            <SelectLabel>繰り返しグループ</SelectLabel>
                             {childGroupOptions.map((g) => (
                               <SelectItem key={g.id} value={`__group:${g.id}__`}>
                                 {g.label}（{g.fields.length}項目を結合）
@@ -362,8 +362,9 @@ function TableProperties({
                   </SelectContent>
                 </Select>
                 <NumberField
-                  label="幅 %"
+                  label="幅"
                   inline
+                  unit="%"
                   value={Math.round((c.widthRatio ?? 0) * 100)}
                   onChange={(v) => onUpdateColumn(c.id, { widthRatio: Math.max(0.01, v / 100) })}
                 />
@@ -601,7 +602,7 @@ function FieldGroup({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-function NumberField({ label, value, step = 1, inline = false, onChange }: { label: string; value: number; step?: number; inline?: boolean; onChange: (v: number) => void }) {
+function NumberField({ label, value, step = 1, inline = false,unit, onChange }: { label: string; value: number; step?: number; inline?: boolean; unit?: string; onChange: (v: number) => void }) {
   if (inline) {
     return (
       <div className="flex items-center gap-1">
@@ -617,6 +618,7 @@ function NumberField({ label, value, step = 1, inline = false, onChange }: { lab
           }}
           className="h-7 text-xs"
         />
+        <p>{unit}</p>
       </div>
     );
   }

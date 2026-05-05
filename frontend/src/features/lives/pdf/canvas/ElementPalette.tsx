@@ -22,7 +22,7 @@ interface Props {
 
 export function ElementPalette({ catalog, onInsert }: Props) {
   return (
-    <aside className="flex h-full w-full flex-col border-r bg-background overflow-scroll">
+    <aside className="flex h-full w-full flex-col border-r bg-background overflow-y-scroll">
       <div className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         部品を挿入
       </div>
