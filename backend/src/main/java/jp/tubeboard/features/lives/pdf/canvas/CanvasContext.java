@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.commons.jexl3.JexlScript;
+import org.apache.commons.jexl3.MapContext;
+
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse.FieldAnswerResponse;
@@ -337,6 +340,48 @@ public final class CanvasContext {
             if (collection instanceof List<?> list) return list.contains(needle == null ? null : needle.toString());
             if (collection == null) return false;
             return collection.toString().contains(needle == null ? "" : needle.toString());
+        }
+
+        /** Map each item in a group/list through a JEXL lambda and return the results.
+         *  Usage: {@code map(groups['members'].items, (m) -> m.field('name').value)} */
+        public List<Object> map(Object groupOrItems, JexlScript fn) {
+            List<ItemRef> items = asItems(groupOrItems);
+            List<Object> out = new ArrayList<>(items.size());
+            for (ItemRef item : items) out.add(fn.execute(new MapContext(), item));
+            return out;
+        }
+
+        /** Map then join with a separator. Equivalent to map(…).join(sep).
+         *  Usage: {@code mapJoin(groups['members'].items, (m) -> m.field('name').value, ' / ')} */
+        public String mapJoin(Object groupOrItems, JexlScript fn, String sep) {
+            String separator = sep == null ? "" : sep;
+            List<Object> mapped = map(groupOrItems, fn);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < mapped.size(); i++) {
+                if (i > 0) sb.append(separator);
+                Object v = mapped.get(i);
+                sb.append(v == null ? "" : v.toString());
+            }
+            return sb.toString();
+        }
+
+        /** Filter items where a JEXL lambda predicate returns true.
+         *  Usage: {@code filter(groups['members'].items, (m) -> m.field('role').value == 'leader')} */
+        public List<ItemRef> filter(Object groupOrItems, JexlScript predicate) {
+            List<ItemRef> items = asItems(groupOrItems);
+            List<ItemRef> out = new ArrayList<>();
+            for (ItemRef item : items) {
+                Object r = predicate.execute(new MapContext(), item);
+                if (r instanceof Boolean b && b) out.add(item);
+                else if (r != null && "true".equalsIgnoreCase(r.toString())) out.add(item);
+            }
+            return out;
+        }
+
+        /** Return the first item matching a JEXL lambda predicate, or null. */
+        public ItemRef find(Object groupOrItems, JexlScript predicate) {
+            for (ItemRef item : filter(groupOrItems, predicate)) return item;
+            return null;
         }
 
         @SuppressWarnings("unchecked")
