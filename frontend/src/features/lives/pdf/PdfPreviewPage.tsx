@@ -37,7 +37,7 @@ import { useCanvasKeyboardShortcuts } from './canvas/useCanvasKeyboardShortcuts'
 
 const ZOOM_LEVELS = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0];
 
-const PREVIEW_DEFAULT_SIZE = 32;
+const PREVIEW_DEFAULT_SIZE = 320;
 
 export const PdfPreviewPage = () => {
   const { tenantId, liveId, submissionId } = useParams<{ tenantId: string; liveId: string; submissionId?: string }>();
@@ -277,7 +277,6 @@ export const PdfPreviewPage = () => {
                 previewUrl={previewUrl}
                 isCompiling={isCompiling}
                 hasCompiledOnce={hasCompiledOnce}
-                onCompile={compile}
               />
             </ResizablePanel>
           </>
