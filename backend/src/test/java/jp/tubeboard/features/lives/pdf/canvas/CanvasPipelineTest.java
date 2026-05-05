@@ -128,6 +128,66 @@ class CanvasPipelineTest {
         assertTrue(hasTable, "default canvas should include at least one table element");
     }
 
+    @Test
+    void mapJoinComposesFieldsWithConditional() {
+        Map<String, Object> ns = CanvasContext.build(sampleLive(), sampleConfig(), sampleSubmission());
+        String out = evaluator.interpolate(
+                "${mapJoin(groups['members'].items, (m) -> m.field('member-name').value + ' ' + (m.field('member-parts').value == 'Vo / Gt' ? '〇' : '×'), ' / ')}", ns);
+        assertEquals("田中 〇 / 佐藤 ×", out);
+    }
+
+    @Test
+    void filterPredicateRetainsMatchingItems() {
+        Map<String, Object> ns = CanvasContext.build(sampleLive(), sampleConfig(), sampleSubmission());
+        String out = evaluator.interpolate(
+                "${count(filter(groups['members'].items, (m) -> m.field('member-parts').value == 'Vo / Gt'))}", ns);
+        assertEquals("1", out);
+    }
+
+    @Test
+    void findReturnsFirstMatchingItem() {
+        Map<String, Object> ns = CanvasContext.build(sampleLive(), sampleConfig(), sampleSubmission());
+        String out = evaluator.interpolate(
+                "${find(groups['members'].items, (m) -> m.field('member-name').value == '田中').field('member-name').value}", ns);
+        assertEquals("田中", out);
+    }
+
+    @Test
+    void mapJoinTraversesNestedGroups() {
+        FormBlockResponse micName = leaf("mic-name", "SHORT_TEXT", "マイク名");
+        FormBlockResponse mics = group("mics", "マイク", List.of(micName));
+        FormBlockResponse memberName = leaf("member-name", "SHORT_TEXT", "氏名");
+        FormBlockResponse members = group("members", "出演者", List.of(memberName, mics));
+        SettingSheetConfigResponse cfg = new SettingSheetConfigResponse("t", "", "送信", true, List.of(members));
+
+        FieldAnswerResponse answer = new FieldAnswerResponse("members", List.of(), List.of(
+                new GroupItemResponse(null, List.of(
+                        new FieldAnswerResponse("member-name", List.of("田中"), List.of()),
+                        new FieldAnswerResponse("mics", List.of(), List.of(
+                                new GroupItemResponse(null, List.of(
+                                        new FieldAnswerResponse("mic-name", List.of("SM58"), List.of()))),
+                                new GroupItemResponse(null, List.of(
+                                        new FieldAnswerResponse("mic-name", List.of("e835"), List.of())))))))));
+        PublicSettingSheetSubmissionDetailResponse sub = new PublicSettingSheetSubmissionDetailResponse(
+                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0),
+                List.of(answer), List.of());
+
+        Map<String, Object> ns = CanvasContext.build(sampleLive(), cfg, sub);
+        String out = evaluator.interpolate(
+                "${mapJoin(groups['members'].items, (m) -> mapJoin(m.group('mics').items, (x) -> x.field('mic-name').value, '+'), ' / ')}", ns);
+        assertEquals("SM58+e835", out);
+    }
+
+    @Test
+    void mapJoinWithNewlineSeparatorProducesMultilineOutput() {
+        Map<String, Object> ns = CanvasContext.build(sampleLive(), sampleConfig(), sampleSubmission());
+        // Use '\\n' in Java so JEXL receives the two-char escape sequence '\n',
+        // which JEXL's lexer interprets as a real newline character.
+        String out = evaluator.interpolate(
+                "${mapJoin(groups['members'].items, (m) -> m.field('member-name').value, '\\n')}", ns);
+        assertEquals("田中\n佐藤", out);
+    }
+
     private LiveResponse sampleLive() {
         return new LiveResponse(UUID.randomUUID(), UUID.randomUUID(), "テストテナント", "tok",
                 "サマーライブ", LocalDate.of(2026, 7, 1), "渋谷ホール",
