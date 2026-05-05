@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import java.util.Map;
+
 import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
 import jp.tubeboard.features.lives.dto.request.LivePurgeRequest;
@@ -30,7 +32,9 @@ import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDeta
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasContext;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
+import jp.tubeboard.features.lives.pdf.canvas.ExpressionEvaluator;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
 import jp.tubeboard.features.lives.service.crud.ILivesService.SubmissionPdfResult;
 import lombok.AllArgsConstructor;
@@ -41,6 +45,7 @@ import lombok.AllArgsConstructor;
 public class LivesController {
 
     private final ILivesService livesService;
+    private final ExpressionEvaluator expressionEvaluator;
 
     @PostMapping("/create")
     public ResponseEntity<LiveResponse> create(@RequestBody @Valid LiveCreateRequest request) {
@@ -173,6 +178,24 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SongDuplicateDismissRequest request) {
         return ResponseEntity.ok(livesService.toggleDismissSongDuplicate(id, request.normalizedTitle()));
+    }
+
+    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/preview-expression")
+    public ResponseEntity<Map<String, String>> previewExpression(
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "submissionId") UUID submissionId,
+            @RequestBody Map<String, String> body) {
+        try {
+            String expression = body.getOrDefault("expression", "");
+            LiveResponse live = livesService.get(id);
+            SettingSheetConfigResponse config = livesService.getSettingSheetConfig(id);
+            PublicSettingSheetSubmissionDetailResponse submission = livesService.getOwnedSettingSheetSubmission(id, submissionId);
+            Map<String, Object> ns = CanvasContext.build(live, config, submission);
+            String result = expressionEvaluator.interpolate(expression, ns);
+            return ResponseEntity.ok(Map.of("result", result));
+        } catch (Exception ex) {
+            return ResponseEntity.ok(Map.of("result", "[評価エラー: " + ex.getMessage() + "]", "error", "true"));
+        }
     }
 
     @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/pdf")
