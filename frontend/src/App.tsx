@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/features/auth/AuthProvider';
-import { Layout } from '@/features/layout/Layout';
+import { FullWidthLayout, Layout } from '@/features/layout/Layout';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 
 const Login = lazy(() => import('@/features/auth/pages/Login').then((module) => ({ default: module.Login })));
@@ -47,9 +47,18 @@ function App() {
             <Route path="tenants/:tenantId/lives/:liveId" element={<Suspense fallback={routeFallback}><LiveManagementPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/form" element={<Suspense fallback={routeFallback}><LiveFormEditorPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/submissions" element={<Suspense fallback={routeFallback}><LiveSubmissionsPage /></Suspense>} />
+            <Route path="tenants/:tenantId/lives/:liveId/settings" element={<Suspense fallback={routeFallback}><LiveVisibilitySettingsPage /></Suspense>} />
+          </Route>
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <FullWidthLayout />
+              </RequireAuth>
+            }
+          >
             <Route path="tenants/:tenantId/lives/:liveId/submissions/pdf-preview" element={<Suspense fallback={routeFallback}><PdfPreviewPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview" element={<Suspense fallback={routeFallback}><PdfPreviewPage /></Suspense>} />
-            <Route path="tenants/:tenantId/lives/:liveId/settings" element={<Suspense fallback={routeFallback}><LiveVisibilitySettingsPage /></Suspense>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

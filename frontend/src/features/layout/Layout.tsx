@@ -43,3 +43,43 @@ export const Layout = () => {
         </div>
     );
 }
+
+export const FullWidthLayout = () => {
+    const { authMe, logout, isAuthLoading } = useAuthContext();
+
+    const name = authMe?.name || authMe?.email || 'User';
+
+    return (
+        <div className="min-h-screen bg-background">
+            <header className="border-b bg-card">
+                <div className="mx-auto flex max-w-screen flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                        <Link to="/" className="text-xl font-bold" aria-label="TuneBoard">
+                            TuneBoard
+                        </Link>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-sm sm:justify-end">
+                        <ThemeToggle className="w-full sm:w-auto" />
+                        {isAuthLoading ? (
+                            <span className="text-muted-foreground">認証確認中...</span>
+                        ) : authMe?.authenticated ? (
+                            <>
+                                {authMe.picture ? (
+                                    <img src={authMe.picture} alt="Avatar" aria-label="Avatar" className="size-8 rounded-full" />
+                                ) : <span className="size-8 rounded-full bg-muted flex items-center justify-center text-xs text-white">{name.charAt(0)}</span>}
+                                <span className="truncate text-muted-foreground sm:max-w-48">{name}</span>
+                                <Button className="w-full sm:w-auto" onClick={logout} variant="outline" size="sm">                                    
+                                    <LogOut/>
+                                    <span className="sm:inline">Logout</span>
+                                </Button>
+                            </>
+                        ) : null }
+                    </div>
+                </div>
+            </header>
+            <main className="mx-auto max-w-screen p-3 sm:p-4">
+                <Outlet />
+            </main>
+        </div>
+    );
+}
