@@ -107,9 +107,6 @@ export function ExpressionSnippetPicker({ catalog, onInsert, buttonLabel = '式�
             ))}
           </div>
         </ScrollArea>
-        <div className="border-t bg-muted/30 px-3 py-1.5 text-[10px] text-muted-foreground">
-          ヒント: 列のフォーマットでは <code>{'${value}'}</code> や <code>{'${item.field(\'...\').value}'}</code> が使えます。
-        </div>
       </PopoverContent>
     </Popover>
   );

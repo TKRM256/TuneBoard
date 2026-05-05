@@ -11,7 +11,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -24,7 +26,7 @@ import type {
   TableElement,
   TextElement,
 } from '../canvas-schema';
-import type { FieldCatalog } from '../field-catalog';
+import type { CatalogGroup, FieldCatalog } from '../field-catalog';
 import { ExpressionInput, ExpressionTextarea } from './ExpressionInputs';
 
 interface Props {
@@ -46,7 +48,7 @@ export function PropertyPanel({ element, catalog, onUpdate, onUpdateColumn, onAd
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-l bg-background">
+    <aside className="flex h-full w-full flex-col border-l bg-background overflow-scroll">
       <div className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         プロパティ — {kindLabel(element.kind)}
       </div>
@@ -238,6 +240,13 @@ function TableProperties({
     return group.fields.map((f) => ({ id: f.id, label: f.label }));
   }, [element.source, catalog]);
 
+  const childGroupOptions = useMemo(() => {
+    const source = element.source;
+    if (source.kind !== 'group') return [];
+    const group = catalog.groups.find((g) => g.id === source.groupId);
+    return group?.childGroups ?? [];
+  }, [element.source, catalog]);
+
   return (
     <div className="space-y-3">
       <FieldGroup label="データソース">
@@ -298,7 +307,28 @@ function TableProperties({
                 </Button>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
-                <Select value={c.fieldId || '__none__'} onValueChange={(v) => onUpdateColumn(c.id, { fieldId: v === '__none__' ? '' : v })}>
+                <Select
+                  value={
+                    c.fieldId === ''
+                      ? element.source.kind === 'fields'
+                        ? '__value__'
+                        : '__none__'
+                      : c.fieldId
+                  }
+                  onValueChange={(v) => {
+                    if (v.startsWith('__group:')) {
+                      const groupId = v.slice('__group:'.length, -2);
+                      const childGroup = findChildGroup(catalog, groupId);
+                      const firstField = childGroup?.fields[0];
+                      const defaultFormat = firstField
+                        ? `\${mapJoin(item.group('${groupId}').items, (m) -> m.field('${firstField.id}').value, ' / ')}`
+                        : `\${count(item.group('${groupId}').items)}`;
+                      onUpdateColumn(c.id, { fieldId: v, format: defaultFormat, header: c.header || childGroup?.label || '' });
+                    } else {
+                      onUpdateColumn(c.id, { fieldId: v === '__value__' || v === '__none__' ? '' : v });
+                    }
+                  }}
+                >
                   <SelectTrigger className="h-7 text-xs">
                     <SelectValue placeholder="フィールド" />
                   </SelectTrigger>
@@ -311,12 +341,22 @@ function TableProperties({
                             {f.label}
                           </SelectItem>
                         ))}
+                        {childGroupOptions.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>繰り返しグループ (集約)</SelectLabel>
+                            {childGroupOptions.map((g) => (
+                              <SelectItem key={g.id} value={`__group:${g.id}__`}>
+                                {g.label}（{g.fields.length}項目を結合）
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        )}
                       </>
                     )}
                     {element.source.kind === 'fields' && (
                       <>
                         <SelectItem value="__label__">フィールド名</SelectItem>
-                        <SelectItem value="">フィールド値 (自動)</SelectItem>
+                        <SelectItem value="__value__">フィールド値 (自動)</SelectItem>
                       </>
                     )}
                   </SelectContent>
@@ -644,4 +684,16 @@ function kindLabel(kind: CanvasElement['kind']): string {
     case 'spacer': return 'スペーサー';
     case 'table': return '表';
   }
+}
+
+function findChildGroup(catalog: FieldCatalog, groupId: string): CatalogGroup | undefined {
+  const search = (groups: CatalogGroup[]): CatalogGroup | undefined => {
+    for (const g of groups) {
+      if (g.id === groupId) return g;
+      const found = search(g.childGroups);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  return search(catalog.groups);
 }

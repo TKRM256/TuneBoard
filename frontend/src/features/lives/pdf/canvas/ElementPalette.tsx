@@ -22,7 +22,7 @@ interface Props {
 
 export function ElementPalette({ catalog, onInsert }: Props) {
   return (
-    <aside className="flex h-full w-full flex-col border-r bg-background">
+    <aside className="flex h-full w-full flex-col border-r bg-background overflow-scroll">
       <div className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         部品を挿入
       </div>
@@ -70,7 +70,11 @@ export function ElementPalette({ catalog, onInsert }: Props) {
   );
 }
 
-function GroupSection({ group, onInsert }: { group: CatalogGroup; onInsert: (insert: PaletteInsert) => void }) {
+function GroupSection({ group, onInsert, parentGroupId }: { group: CatalogGroup; onInsert: (insert: PaletteInsert) => void; parentGroupId?: string }) {
+  const groupExpr = parentGroupId
+    ? `groups['${parentGroupId}'].items[0].group('${group.id}')`
+    : `groups['${group.id}']`;
+
   return (
     <div className="space-y-0.5 rounded border bg-muted/20 p-1.5">
       <div className="flex items-center justify-between px-1">
@@ -85,14 +89,14 @@ function GroupSection({ group, onInsert }: { group: CatalogGroup; onInsert: (ins
         onClick={() => onInsert({ kind: 'table-group', groupId: group.id, fallbackLabel: group.label })}
       />
       <PaletteButton
-        label="全件 join のテキスト"
-        hint={group.fields[0] ? `${group.fields[0].label} を ' / ' で連結` : '式を編集してください'}
+        label="全件 mapJoin のテキスト"
+        hint={group.fields[0] ? `${group.fields[0].label} を ' / ' で結合` : '式を編集してください'}
         onClick={() =>
           onInsert({
             kind: 'text',
             content: group.fields[0]
-              ? `\${joinField(groups['${group.id}'], '${group.fields[0].id}', ' / ')}`
-              : `\${count(groups['${group.id}'])} 件`,
+              ? `\${mapJoin(${groupExpr}.items, (m) -> m.field('${group.fields[0].id}').value, ' / ')}`
+              : `\${count(${groupExpr})} 件`,
             title: `${group.label} まとめ`,
           })
         }
@@ -101,14 +105,15 @@ function GroupSection({ group, onInsert }: { group: CatalogGroup; onInsert: (ins
         label="件数テキスト"
         hint={`${group.label}.count`}
         onClick={() =>
-          onInsert({ kind: 'text', content: `\${count(groups['${group.id}'])}`, title: `${group.label} 件数` })
+          onInsert({ kind: 'text', content: `\${count(${groupExpr})}`, title: `${group.label} 件数` })
         }
       />
+      
       {group.childGroups.length > 0 && (
         <div className="ml-2 mt-1 space-y-0.5 border-l pl-2">
           <div className="px-1 text-[10px] uppercase tracking-wide text-muted-foreground">ネスト</div>
           {group.childGroups.map((child) => (
-            <GroupSection key={child.id} group={child} onInsert={onInsert} />
+            <GroupSection key={child.id} group={child} onInsert={onInsert} parentGroupId={group.id} />
           ))}
         </div>
       )}

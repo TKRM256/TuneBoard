@@ -53,6 +53,10 @@ export function buildSnippetGroups(catalog: FieldCatalog): SnippetGroup[] {
   groups.push({
     title: 'ヘルパー関数',
     entries: [
+      { label: 'mapJoin(items, fn, 区切り)', expression: "mapJoin(groups['ID'].items, (m) -> m.field('field-id').value, ' / ')", hint: "ラムダで変換しながら全件結合 (推奨)。区切りに '\\n' で改行も可" },
+      { label: 'map(items, fn)', expression: "map(groups['ID'].items, (m) -> m.field('field-id').value)", hint: '各アイテムをラムダで変換してリストに' },
+      { label: 'filter(items, predicate)', expression: "filter(groups['ID'].items, (m) -> m.field('field-id').value == 'x')", hint: '条件に合うアイテムだけ抽出' },
+      { label: 'find(items, predicate)', expression: "find(groups['ID'].items, (m) -> m.field('field-id').value == 'x')", hint: '最初のマッチを返す' },
       { label: 'join(配列, 区切り)', expression: "join(values, ' / ')", hint: '配列・グループを区切り結合' },
       { label: 'joinField(グループ, fieldId, 区切り)', expression: "joinField(groups['ID'], 'field-id', ' / ')", hint: '繰り返し項目から1フィールドを連結' },
       { label: 'pluck(グループ, fieldId)', expression: "pluck(groups['ID'], 'field-id')", hint: '繰り返し項目から1フィールドの配列を取得' },
@@ -75,30 +79,23 @@ function pushGroupSnippets(group: CatalogGroup, target: SnippetGroup[], parentId
     : `groups['${group.fieldId}']`;
   const entries: SnippetEntry[] = [];
 
-  entries.push({
-    label: '件数',
-    expression: `count(${groupRef})`,
-    hint: `${group.label}.count`,
-    keywords: 'count 件数 ' + group.label,
-  });
-
   for (const f of group.fields) {
-    entries.push({
-      label: `${f.label} を全件 join`,
-      expression: `joinField(${groupRef}, '${f.id}', ', ')`,
+  entries.push({
+      label: `${f.label} のid`,
+      expression: `'${f.id}'`,
       hint: `${group.pathLabel} > ${f.label}`,
-      keywords: f.label + ' join ' + group.label,
+      keywords: f.label + f.id,
     });
   }
 
   if (group.fields.length > 0) {
     const first = group.fields[0];
     entries.push({
-      label: '先頭項目の値',
+      label: 'groupのフィールド値',
       expression: parentIds.length > 0
-        ? `${groupRef}.items[0].field('${first.id}').value`
-        : `groups['${group.fieldId}'].items[0].field('${first.id}').value`,
-      hint: `${first.label} (1番目の項目)`,
+        ? `${groupRef}`
+        : `groups['${group.fieldId}']`,
+      hint: `${first.label}`,
     });
   }
 
