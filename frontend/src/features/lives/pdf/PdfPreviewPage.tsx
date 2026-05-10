@@ -52,13 +52,14 @@ export const PdfPreviewPage = () => {
   const [live, setLive] = useState<LiveResponse | null>(null);
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [pxPerMm, setPxPerMm] = useState(2.5);
   const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
   const [panelVisible, setPanelVisible] = useState<Record<PanelKey, boolean>>(() => loadPanelVisibility());
-  const previewUrlRef = useRef<string>('');
+  const previewUrlsRef = useRef<string[]>([]);
 
   const editor = useCanvasEditor(loadStoredCanvas() ?? buildDefaultCanvas(null));
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
@@ -99,22 +100,25 @@ export const PdfPreviewPage = () => {
   useEffect(() => persistPanelVisibility(panelVisible), [panelVisible]);
 
   useEffect(() => () => {
-    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    for (const url of previewUrlsRef.current) URL.revokeObjectURL(url);
   }, []);
 
-  const previewSubmissionId = submissionIds[0];
+  const previewUrl = previewUrls[previewIndex] ?? '';
 
   const compile = useCallback(async () => {
-    if (!liveId || !previewSubmissionId) return;
+    if (!liveId || submissionIds.length === 0) return;
     setIsCompiling(true);
     try {
-      const { blob } = await fetchSubmissionPdf(liveId, previewSubmissionId, editor.doc);
-      const url = URL.createObjectURL(blob);
-      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
-      previewUrlRef.current = url;
-      setPreviewUrl(url);
+      // Compile all submissions in parallel and show paginated preview.
+      const results = await Promise.all(
+        submissionIds.map((id) => fetchSubmissionPdf(liveId, id, editor.doc)),
+      );
+      const newUrls = results.map((r) => URL.createObjectURL(r.blob));
+      for (const url of previewUrlsRef.current) URL.revokeObjectURL(url);
+      previewUrlsRef.current = newUrls;
+      setPreviewUrls(newUrls);
+      setPreviewIndex(0);
       setHasCompiledOnce(true);
-      // Make sure the user can see the result they just compiled.
       setPanelVisible((prev) => (prev.preview ? prev : { ...prev, preview: true }));
     } catch (error) {
       if (error instanceof ApiClientError && error.apiError) {
@@ -126,7 +130,7 @@ export const PdfPreviewPage = () => {
     } finally {
       setIsCompiling(false);
     }
-  }, [liveId, previewSubmissionId, editor.doc]);
+  }, [liveId, submissionIds, editor.doc]);
 
   const handleDownload = useCallback(async () => {
     if (!liveId || submissionIds.length === 0) return;
@@ -184,7 +188,7 @@ export const PdfPreviewPage = () => {
 
   const isBulk = submissionIds.length > 1;
   const headerSubtitle = isBulk
-    ? `${submissionIds.length}件をZipダウンロード（プレビューは1件目）`
+    ? `${submissionIds.length}件をZipダウンロード`
     : '1件をPDFダウンロード';
 
   return (
@@ -224,13 +228,17 @@ export const PdfPreviewPage = () => {
         </div>
       </header>
 
-      <ExpressionPreviewProvider liveId={liveId} submissionId={previewSubmissionId}>
+      <ExpressionPreviewProvider liveId={liveId} submissionId={submissionIds[previewIndex] ?? submissionIds[0]}>
       <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
         <ResizablePanel>
           <div className="flex h-full min-h-0 flex-col">
             <AlignmentToolbar
               selectionCount={editor.selectedIds.size}
               pxPerMm={pxPerMm}
+              canUndo={editor.canUndo}
+              canRedo={editor.canRedo}
+              onUndo={editor.undo}
+              onRedo={editor.redo}
               onZoomIn={handleZoomIn}
               onZoomOut={handleZoomOut}
               onAlign={(mode) => editor.align(mode)}
@@ -249,6 +257,7 @@ export const PdfPreviewPage = () => {
                     selectedIds={editor.selectedIds}
                     onSelect={editor.select}
                     onUpdate={editor.updateElement}
+                    onMoveSelection={editor.moveSelection}
                     snapMm={1}
                   />
                 </div>
@@ -277,6 +286,9 @@ export const PdfPreviewPage = () => {
                 previewUrl={previewUrl}
                 isCompiling={isCompiling}
                 hasCompiledOnce={hasCompiledOnce}
+                totalCount={previewUrls.length}
+                currentIndex={previewIndex}
+                onChangeIndex={setPreviewIndex}
               />
             </ResizablePanel>
           </>

@@ -118,6 +118,14 @@ export const apiClient = {
     });
   },
 
+  patch<T>(path: string, body?: unknown, options: RequestInit = {}): Promise<T|void> {
+    return request<T|void>(path, {
+      ...options,
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  },
+
   delete<T>(path: string, options: RequestInit = {}): Promise<T|void> {
     return request<T|void>(path, { ...options, method: 'DELETE' });
   },

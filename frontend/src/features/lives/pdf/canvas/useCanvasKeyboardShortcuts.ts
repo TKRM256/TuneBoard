@@ -18,6 +18,15 @@ export function useCanvasKeyboardShortcuts(editor: CanvasEditor): void {
         }
       } else if (e.key === 'Escape') {
         editor.select(null, false);
+      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        editor.redo();
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        editor.undo();
+      } else if (e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        editor.redo();
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         editor.duplicate();

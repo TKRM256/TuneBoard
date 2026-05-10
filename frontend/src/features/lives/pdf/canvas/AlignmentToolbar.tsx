@@ -12,7 +12,9 @@ import {
   ArrowDownToLine,
   ArrowUpToLine,
   Copy,
+  Redo2,
   Trash2,
+  Undo2,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -28,6 +30,10 @@ import {
 interface Props {
   selectionCount: number;
   pxPerMm: number;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onAlign: (mode: AlignMode) => void;
@@ -48,6 +54,10 @@ export type AlignMode =
 export function AlignmentToolbar({
   selectionCount,
   pxPerMm,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   onZoomIn,
   onZoomOut,
   onAlign,
@@ -61,6 +71,15 @@ export function AlignmentToolbar({
   return (
     <TooltipProvider delayDuration={150}>
       <div className="flex flex-wrap items-center gap-1 border-b bg-background/95 px-3 py-1.5">
+        <Group label="履歴">
+          <IconButton tooltip="元に戻す (Ctrl+Z)" disabled={!canUndo} onClick={onUndo}>
+            <Undo2 className="size-4" />
+          </IconButton>
+          <IconButton tooltip="やり直し (Ctrl+Shift+Z)" disabled={!canRedo} onClick={onRedo}>
+            <Redo2 className="size-4" />
+          </IconButton>
+        </Group>
+        <Divider />
         <Group label="水平">
           <IconButton tooltip="左揃え" disabled={!hasMulti} onClick={() => onAlign('left')}>
             <AlignStartVertical className="size-4" />

@@ -49,8 +49,10 @@ export function PropertyPanel({ element, catalog, onUpdate, onUpdateColumn, onAd
 
   return (
     <aside className="flex h-full w-full flex-col border-l bg-background overflow-y-scroll">
-      <div className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        プロパティ — {kindLabel(element.kind)}
+      <div className="border-b px-3 py-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          プロパティ — {kindLabel(element.kind)}
+        </span>
       </div>
       <ScrollArea className="flex-1">
         <div className="space-y-4 p-3">

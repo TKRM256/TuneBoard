@@ -108,7 +108,7 @@ function GroupSection({ group, onInsert, parentGroupId }: { group: CatalogGroup;
           onInsert({ kind: 'text', content: `\${count(${groupExpr})}`, title: `${group.label} 件数` })
         }
       />
-      
+
       {group.childGroups.length > 0 && (
         <div className="ml-2 mt-1 space-y-0.5 border-l pl-2">
           <div className="px-1 text-[10px] uppercase tracking-wide text-muted-foreground">ネスト</div>
@@ -146,13 +146,13 @@ function Section({ title, icon, children, defaultOpen = true }: SectionProps) {
   );
 }
 
-function PaletteButton({ icon, label, hint, onClick }: { icon?: React.ReactNode; label: string; hint?: string; onClick: () => void }) {
+function PaletteButton({ icon, label, hint, onClick, className }: { icon?: React.ReactNode; label: string; hint?: string; onClick: () => void; className?: string }) {
   return (
     <Button
       variant="ghost"
       size="sm"
       onClick={onClick}
-      className="h-auto w-full justify-start gap-1.5 px-2 py-1.5 text-left"
+      className={`h-auto w-full justify-start gap-1.5 px-2 py-1.5 text-left ${className ?? ''}`}
     >
       {icon && <span className="text-muted-foreground">{icon}</span>}
       <span className="flex flex-col items-start gap-0">

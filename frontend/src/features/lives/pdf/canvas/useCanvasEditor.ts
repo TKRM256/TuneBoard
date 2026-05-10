@@ -1,6 +1,6 @@
 /** State + actions for the PDF canvas editor. Keeps a single CanvasDocument
- *  and exposes mutations for selection, drag/drop, alignment, etc. */
-import { useCallback, useMemo, useState } from 'react';
+ *  and exposes mutations for selection, drag/drop, alignment, undo/redo, etc. */
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import type {
   CanvasDocument,
@@ -10,14 +10,18 @@ import type {
   Orientation,
   PaperSize,
 } from '../canvas-schema';
+import { getPaperDimensions } from '../canvas-schema';
 import { newId } from '../default-canvas';
 import type { PaletteInsert } from './ElementPalette';
 import type { AlignMode } from './AlignmentToolbar';
+
+const HISTORY_LIMIT = 100;
 
 export interface CanvasEditor {
   doc: CanvasDocument;
   selectedIds: Set<string>;
   selectedElement: CanvasElement | null;
+  /** Replace the entire doc (for resets/init). Clears undo history. */
   setDoc: (doc: CanvasDocument) => void;
   setPage: (patch: { size?: PaperSize; orientation?: Orientation; marginMm?: number; baseFontSizePt?: number }) => void;
   select: (id: string | null, additive: boolean) => void;
@@ -33,21 +37,106 @@ export interface CanvasEditor {
   distribute: (axis: 'horizontal' | 'vertical') => void;
   layer: (mode: 'front' | 'back') => void;
   nudge: (dx: number, dy: number) => void;
+  /** Move all selected elements by the given mm delta (used for multi-drag). */
+  moveSelection: (dxMm: number, dyMm: number) => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  /** Clear undo/redo stacks without changing the document. */
+  resetHistory: () => void;
 }
 
 export function useCanvasEditor(initial: CanvasDocument): CanvasEditor {
-  const [doc, setDoc] = useState(initial);
+  const [docState, setDocState] = useState(initial);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [past, setPast] = useState<CanvasDocument[]>([]);
+  const [future, setFuture] = useState<CanvasDocument[]>([]);
+
+  // Always-current doc reference — avoids stale closures in callbacks.
+  const docRef = useRef(initial);
+  // Debounce timer for nudge coalescing.
+  const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ----- history helpers -----
+
+  /** Apply a new document and push the previous state onto the undo stack. */
+  const commit = useCallback((next: CanvasDocument) => {
+    const snapshot = docRef.current;
+    docRef.current = next;
+    setPast((p) => [...p.slice(-(HISTORY_LIMIT - 1)), snapshot]);
+    setFuture([]);
+    setDocState(next);
+  }, []);
+
+  // ----- public API -----
+
+  /** Replace doc without recording history (resets, canvas init). */
+  const setDoc = useCallback((newDoc: CanvasDocument) => {
+    docRef.current = newDoc;
+    setPast([]);
+    setFuture([]);
+    setDocState(newDoc);
+  }, []);
+
+  const resetHistory = useCallback(() => {
+    setPast([]);
+    setFuture([]);
+  }, []);
+
+  const undo = useCallback(() => {
+    if (past.length === 0) return;
+    const prev = past[past.length - 1];
+    const current = docRef.current;
+    docRef.current = prev;
+    setPast((p) => p.slice(0, -1));
+    setFuture((f) => [...f, current]);
+    setDocState(prev);
+  }, [past]);
+
+  const redo = useCallback(() => {
+    if (future.length === 0) return;
+    const next = future[future.length - 1];
+    const current = docRef.current;
+    docRef.current = next;
+    setFuture((f) => f.slice(0, -1));
+    setPast((p) => [...p, current]);
+    setDocState(next);
+  }, [future]);
+
+  // ----- derived -----
 
   const selectedElement = useMemo(() => {
     if (selectedIds.size !== 1) return null;
     const id = Array.from(selectedIds)[0];
-    return doc.elements.find((e) => e.id === id) ?? null;
-  }, [doc, selectedIds]);
+    return docState.elements.find((e) => e.id === id) ?? null;
+  }, [docState, selectedIds]);
+
+  // ----- mutations -----
 
   const setPage = useCallback((patch: Parameters<CanvasEditor['setPage']>[0]) => {
-    setDoc((prev) => ({ ...prev, page: { ...prev.page, ...patch } }));
-  }, []);
+    const shouldScale = patch.size !== undefined || patch.orientation !== undefined;
+    let elements = docRef.current.elements;
+
+    if (shouldScale) {
+      const oldDims = getPaperDimensions(docRef.current.page.size, docRef.current.page.orientation);
+      const newPage = { ...docRef.current.page, ...patch };
+      const newDims = getPaperDimensions(newPage.size, newPage.orientation);
+
+      const scaleX = newDims.widthMm / oldDims.widthMm;
+      const scaleY = newDims.heightMm / oldDims.heightMm;
+
+      elements = elements.map((el) => ({
+        ...el,
+        xMm: el.xMm * scaleX,
+        yMm: el.yMm * scaleY,
+        wMm: el.wMm * scaleX,
+        hMm: el.hMm * scaleY,
+      }));
+    }
+
+    commit({ ...docRef.current, page: { ...docRef.current.page, ...patch }, elements });
+  }, [commit]);
 
   const select = useCallback((id: string | null, additive: boolean) => {
     setSelectedIds((prev) => {
@@ -61,8 +150,8 @@ export function useCanvasEditor(initial: CanvasDocument): CanvasEditor {
   }, []);
 
   const selectAll = useCallback(() => {
-    setSelectedIds(new Set(doc.elements.map((e) => e.id)));
-  }, [doc.elements]);
+    setSelectedIds(new Set(docState.elements.map((e) => e.id)));
+  }, [docState.elements]);
 
   const insert = useCallback((ins: PaletteInsert, dropMm?: { xMm: number; yMm: number }) => {
     const baseX = dropMm?.xMm ?? 12;
@@ -167,130 +256,162 @@ export function useCanvasEditor(initial: CanvasDocument): CanvasEditor {
         break;
       }
     }
-    setDoc((prev) => ({ ...prev, elements: [...prev.elements, element] }));
+    const next = { ...docRef.current, elements: [...docRef.current.elements, element] };
+    commit(next);
     setSelectedIds(new Set([element.id]));
-  }, []);
+  }, [commit]);
 
   const updateElement = useCallback((id: string, patch: Partial<CanvasElement>) => {
-    setDoc((prev) => ({
-      ...prev,
-      elements: prev.elements.map((e) => (e.id === id ? mergeElement(e, patch) : e)),
-    }));
-  }, []);
+    commit({
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) => (e.id === id ? mergeElement(e, patch) : e)),
+    });
+  }, [commit]);
 
   const updateColumn = useCallback((elementId: string, columnId: string, patch: Partial<TableColumn>) => {
-    setDoc((prev) => ({
-      ...prev,
-      elements: prev.elements.map((e) => {
+    commit({
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) => {
         if (e.id !== elementId || e.kind !== 'table') return e;
-        return {
-          ...e,
-          columns: e.columns.map((c) => (c.id === columnId ? { ...c, ...patch } : c)),
-        };
+        return { ...e, columns: e.columns.map((c) => (c.id === columnId ? { ...c, ...patch } : c)) };
       }),
-    }));
-  }, []);
+    });
+  }, [commit]);
 
   const addColumn = useCallback((elementId: string) => {
-    setDoc((prev) => ({
-      ...prev,
-      elements: prev.elements.map((e) => {
+    commit({
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) => {
         if (e.id !== elementId || e.kind !== 'table') return e;
         const next: TableColumn = { id: newId(), header: '新しい列', fieldId: '', widthRatio: 0.2, align: 'left' };
         return { ...e, columns: [...e.columns, next] };
       }),
-    }));
-  }, []);
+    });
+  }, [commit]);
 
   const removeColumn = useCallback((elementId: string, columnId: string) => {
-    setDoc((prev) => ({
-      ...prev,
-      elements: prev.elements.map((e) => {
+    commit({
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) => {
         if (e.id !== elementId || e.kind !== 'table') return e;
         return { ...e, columns: e.columns.filter((c) => c.id !== columnId) };
       }),
-    }));
-  }, []);
+    });
+  }, [commit]);
 
   const remove = useCallback((ids?: string[]) => {
     const removeSet = new Set(ids ?? Array.from(selectedIds));
     if (removeSet.size === 0) return;
-    setDoc((prev) => ({ ...prev, elements: prev.elements.filter((e) => !removeSet.has(e.id)) }));
+    commit({ ...docRef.current, elements: docRef.current.elements.filter((e) => !removeSet.has(e.id)) });
     setSelectedIds(new Set());
-  }, [selectedIds]);
+  }, [selectedIds, commit]);
 
   const duplicate = useCallback(() => {
     if (selectedIds.size === 0) return;
     const newSelected = new Set<string>();
-    setDoc((prev) => {
-      const additions: CanvasElement[] = [];
-      for (const e of prev.elements) {
-        if (selectedIds.has(e.id)) {
-          const clone = { ...e, id: newId(), xMm: e.xMm + 4, yMm: e.yMm + 4 } as CanvasElement;
-          if (clone.kind === 'table') {
-            (clone as TableElement).columns = (clone as TableElement).columns.map((c) => ({ ...c, id: newId() }));
-          }
-          additions.push(clone);
-          newSelected.add(clone.id);
+    const additions: CanvasElement[] = [];
+    for (const e of docRef.current.elements) {
+      if (selectedIds.has(e.id)) {
+        const clone = { ...e, id: newId(), xMm: e.xMm + 4, yMm: e.yMm + 4 } as CanvasElement;
+        if (clone.kind === 'table') {
+          (clone as TableElement).columns = (clone as TableElement).columns.map((c) => ({ ...c, id: newId() }));
         }
+        additions.push(clone);
+        newSelected.add(clone.id);
       }
-      return { ...prev, elements: [...prev.elements, ...additions] };
-    });
+    }
+    commit({ ...docRef.current, elements: [...docRef.current.elements, ...additions] });
     setSelectedIds(newSelected);
-  }, [selectedIds]);
+  }, [selectedIds, commit]);
 
   const align = useCallback((mode: AlignMode) => {
     if (selectedIds.size < 2) return;
-    setDoc((prev) => {
-      const sel = prev.elements.filter((e) => selectedIds.has(e.id));
-      const updates = computeAlignment(sel, mode);
-      return {
-        ...prev,
-        elements: prev.elements.map((e) => updates.get(e.id)
-          ? { ...e, ...updates.get(e.id)! } as CanvasElement
-          : e),
-      };
+    const sel = docRef.current.elements.filter((e) => selectedIds.has(e.id));
+    const updates = computeAlignment(sel, mode);
+    commit({
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) =>
+        updates.get(e.id) ? { ...e, ...updates.get(e.id)! } as CanvasElement : e
+      ),
     });
-  }, [selectedIds]);
+  }, [selectedIds, commit]);
 
   const distribute = useCallback((axis: 'horizontal' | 'vertical') => {
     if (selectedIds.size < 3) return;
-    setDoc((prev) => {
-      const sel = prev.elements.filter((e) => selectedIds.has(e.id));
-      const updates = computeDistribution(sel, axis);
-      return {
-        ...prev,
-        elements: prev.elements.map((e) => updates.get(e.id)
-          ? { ...e, ...updates.get(e.id)! } as CanvasElement
-          : e),
-      };
+    const sel = docRef.current.elements.filter((e) => selectedIds.has(e.id));
+    const updates = computeDistribution(sel, axis);
+    commit({
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) =>
+        updates.get(e.id) ? { ...e, ...updates.get(e.id)! } as CanvasElement : e
+      ),
     });
-  }, [selectedIds]);
+  }, [selectedIds, commit]);
 
   const layer = useCallback((mode: 'front' | 'back') => {
     if (selectedIds.size === 0) return;
-    setDoc((prev) => {
-      const selected = prev.elements.filter((e) => selectedIds.has(e.id));
-      const others = prev.elements.filter((e) => !selectedIds.has(e.id));
-      return {
-        ...prev,
-        elements: mode === 'front' ? [...others, ...selected] : [...selected, ...others],
-      };
+    const selected = docRef.current.elements.filter((e) => selectedIds.has(e.id));
+    const others = docRef.current.elements.filter((e) => !selectedIds.has(e.id));
+    commit({
+      ...docRef.current,
+      elements: mode === 'front' ? [...others, ...selected] : [...selected, ...others],
     });
-  }, [selectedIds]);
+  }, [selectedIds, commit]);
 
   const nudge = useCallback((dx: number, dy: number) => {
     if (selectedIds.size === 0) return;
-    setDoc((prev) => ({
-      ...prev,
-      elements: prev.elements.map((e) => selectedIds.has(e.id)
-        ? { ...e, xMm: round1(e.xMm + dx), yMm: round1(e.yMm + dy) } as CanvasElement
-        : e),
-    }));
+
+    // Coalesce rapid nudges: only push a new history snapshot when the
+    // debounce window has expired (i.e. first key-press in a sequence).
+    if (!nudgeTimerRef.current) {
+      setPast((p) => [...p.slice(-(HISTORY_LIMIT - 1)), docRef.current]);
+      setFuture([]);
+    }
+    if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
+    nudgeTimerRef.current = setTimeout(() => { nudgeTimerRef.current = null; }, 500);
+
+    const next: CanvasDocument = {
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) =>
+        selectedIds.has(e.id)
+          ? { ...e, xMm: round1(e.xMm + dx), yMm: round1(e.yMm + dy) } as CanvasElement
+          : e
+      ),
+    };
+    docRef.current = next;
+    setDocState(next);
   }, [selectedIds]);
 
+  const moveSelection = useCallback((dxMm: number, dyMm: number) => {
+    if (selectedIds.size === 0) return;
+    const { widthMm, heightMm } = getPaperDimensions(
+      docRef.current.page.size,
+      docRef.current.page.orientation,
+    );
+
+    // Clamp delta so no selected element leaves the canvas.
+    let cdx = dxMm;
+    let cdy = dyMm;
+    for (const e of docRef.current.elements) {
+      if (!selectedIds.has(e.id)) continue;
+      if (e.xMm + cdx < 0) cdx = -e.xMm;
+      if (e.yMm + cdy < 0) cdy = -e.yMm;
+      if (e.xMm + e.wMm + cdx > widthMm) cdx = widthMm - e.xMm - e.wMm;
+      if (e.yMm + e.hMm + cdy > heightMm) cdy = heightMm - e.yMm - e.hMm;
+    }
+
+    commit({
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) =>
+        selectedIds.has(e.id)
+          ? { ...e, xMm: round1(e.xMm + cdx), yMm: round1(e.yMm + cdy) } as CanvasElement
+          : e
+      ),
+    });
+  }, [selectedIds, commit]);
+
   return {
-    doc,
+    doc: docState,
     selectedIds,
     selectedElement,
     setDoc,
@@ -308,12 +429,16 @@ export function useCanvasEditor(initial: CanvasDocument): CanvasEditor {
     distribute,
     layer,
     nudge,
+    moveSelection,
+    undo,
+    redo,
+    canUndo: past.length > 0,
+    canRedo: future.length > 0,
+    resetHistory,
   };
 }
 
 function mergeElement(element: CanvasElement, patch: Partial<CanvasElement>): CanvasElement {
-  // Patches drop `kind` so the discriminant is preserved. Callers only pass
-  // properties that exist on the same-kind variant.
   const rest = { ...(patch as unknown as Record<string, unknown>) };
   delete rest.kind;
   const merged: Record<string, unknown> = { ...(element as unknown as Record<string, unknown>), ...rest };
