@@ -2,8 +2,8 @@
  *  non-modal slide-in drawers (overlaying the canvas), and preview pinned to
  *  the right as the only resizable panel. Compile regenerates PDF on demand. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Download, Loader2, RefreshCw, RotateCcw } from 'lucide-react';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Download, Loader2, RefreshCw, RotateCcw, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ export const PdfPreviewPage = () => {
   const { tenantId, liveId, submissionId } = useParams<{ tenantId: string; liveId: string; submissionId?: string }>();
   const [searchParams] = useSearchParams();
   const idsParam = searchParams.get('ids');
+  const navigate = useNavigate();
 
   const submissionIds = useMemo(() => {
     if (submissionId) return [submissionId];
@@ -171,6 +172,15 @@ export const PdfPreviewPage = () => {
     setPanelVisible((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  const handleSwitchToMobile = useCallback(() => {
+    if (!tenantId || !liveId) return;
+    if (submissionIds.length === 1) {
+      navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/${submissionIds[0]}/pdf-preview-mobile`);
+    } else {
+      navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/pdf-preview-mobile?ids=${submissionIds.join(',')}`);
+    }
+  }, [tenantId, liveId, submissionIds, navigate]);
+
   if (!tenantId || !liveId || submissionIds.length === 0) {
     return <Navigate to="/tenants" replace />;
   }
@@ -217,6 +227,16 @@ export const PdfPreviewPage = () => {
           <Button variant="ghost" size="sm" onClick={handleResetLayout} className="gap-1">
             <RotateCcw className="size-4" />
             初期化
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSwitchToMobile}
+            className="gap-1"
+            title="スマホ版を開く"
+          >
+            <Smartphone className="size-4" />
+            スマホ版
           </Button>
           <Button variant="default" size="sm" onClick={compile} disabled={isCompiling} className="gap-1">
             {isCompiling ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
