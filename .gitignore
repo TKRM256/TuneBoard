@@ -179,4 +179,5 @@ application-*.yaml
 
 AGENT.md
 **/workspace
-**/.claude
+# Claude Code per-user settings
+.claude/

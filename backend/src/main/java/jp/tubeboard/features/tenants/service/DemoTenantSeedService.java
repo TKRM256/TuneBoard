@@ -108,6 +108,28 @@ public class DemoTenantSeedService {
             List.of("Vo", "Gt", "Gt", "Ba", "Dr"),
             List.of("Vo", "Gt", "Ba", "Dr", "Cho"));
 
+    private static final List<String> PA_NOTES = List.of(
+            "イントロのリバーブ多めでお願いします",
+            "ボーカルにディレイを軽くかけてください",
+            "Aメロは音量控えめ、サビでドンと上げてください",
+            "ベースのローを少し抑えめにお願いします",
+            "ドラムはキックを前に出してください",
+            "アコギは1本目のマイクを使います");
+
+    private static final List<String> LIGHT_NOTES = List.of(
+            "サビは赤系で爆発的に",
+            "イントロは青と白のスポット中心で",
+            "Bメロから徐々に明るく",
+            "ラスサビは虹色で派手に",
+            "落ちサビは暗めで青ピンスポ");
+
+    private static final List<String> SONG_NOTES = List.of(
+            "間奏でメンバーチェンジあり",
+            "曲途中でMC挟みます",
+            "イヤモニ使用",
+            "アンコール対応あり",
+            "");
+
     private final TenantsRepository tenantsRepository;
     private final UserTenantRepository userTenantRepository;
     private final LiveRepository liveRepository;
@@ -181,11 +203,20 @@ public class DemoTenantSeedService {
         return "%s %s %02d".formatted(prefix, suffix, submissionIndex + 1);
     }
 
+    private static final List<String> BAND_NOTES = List.of(
+            "リハ希望: 早めにお願いします",
+            "セッティング転換時にメンバー入れ替えあり",
+            "BGM入退場あり (担当者と要相談)",
+            "アンコールあり",
+            "");
+
     private String toPayloadJson(int tenantIndex, int liveIndex, int submissionIndex, int songOffset,
             String bandName) {
+        String detail = BAND_NOTES.get((tenantIndex + liveIndex + submissionIndex) % BAND_NOTES.size());
         PublicSettingSheetSubmissionRequest payload = new PublicSettingSheetSubmissionRequest(List.of(
                 new FieldAnswerRequest("band-name", List.of(bandName), List.of()),
                 new FieldAnswerRequest("submission-status", List.of("完成"), List.of()),
+                new FieldAnswerRequest("detail", detail.isEmpty() ? List.of() : List.of(detail), List.of()),
                 new FieldAnswerRequest("members", List.of(),
                         createMembers(tenantIndex, liveIndex, submissionIndex)),
                 new FieldAnswerRequest("setlist", List.of(),
@@ -223,10 +254,16 @@ public class DemoTenantSeedService {
             SongSeed song = SONG_POOL.get(resolveSongIndex(songOffset, submissionIndex, songIndex));
             List<String> parts = SONG_PART_PATTERNS
                     .get((submissionIndex + songIndex) % SONG_PART_PATTERNS.size());
+            String paNote = PA_NOTES.get((submissionIndex * 2 + songIndex) % PA_NOTES.size());
+            String lightNote = LIGHT_NOTES.get((submissionIndex + songIndex * 2) % LIGHT_NOTES.size());
+            String otherNote = SONG_NOTES.get((submissionIndex + songIndex) % SONG_NOTES.size());
             setlist.add(new GroupItemRequest("song-entry", List.of(
-                    new FieldAnswerRequest("song", List.of(song.title(), song.artist()),
-                            List.of()),
-                    new FieldAnswerRequest("song-parts", parts, List.of()))));
+                    new FieldAnswerRequest("song", List.of(song.title(), song.artist()), List.of()),
+                    new FieldAnswerRequest("song-parts", parts, List.of()),
+                    new FieldAnswerRequest("song-note-pa", List.of(paNote), List.of()),
+                    new FieldAnswerRequest("song-note-light", List.of(lightNote), List.of()),
+                    new FieldAnswerRequest("song-note-other",
+                            otherNote.isEmpty() ? List.of() : List.of(otherNote), List.of()))));
         }
 
         return setlist;

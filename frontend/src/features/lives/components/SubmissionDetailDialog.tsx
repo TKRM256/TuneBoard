@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Copy, Music } from 'lucide-react';
+import { Copy, FileDown, Music } from 'lucide-react';
 import {
   type ItunesLinkSelection,
   type PublicSettingSheetSubmissionDetailResponse,
@@ -30,6 +30,7 @@ interface SubmissionDetailDialogProps {
   config: SettingSheetConfigResponse | null;
   recordLabel: string;
   onCopyEditLink: (submissionId: string) => void;
+  onOpenPdfPreview?: (submissionId: string) => void;
 }
 
 export function SubmissionDetailDialog({
@@ -39,6 +40,7 @@ export function SubmissionDetailDialog({
   config,
   recordLabel,
   onCopyEditLink,
+  onOpenPdfPreview,
 }: SubmissionDetailDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -76,10 +78,18 @@ export function SubmissionDetailDialog({
         </ScrollArea>
         <DialogFooter className="flex-row justify-between gap-2 border-t px-4 py-3 sm:justify-between sm:px-6">
           {detail ? (
-            <Button variant="outline" size="sm" onClick={() => onCopyEditLink(detail.id)}>
-              <Copy className="size-4" />
-              編集リンクをコピー
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => onCopyEditLink(detail.id)}>
+                <Copy className="size-4" />
+                編集リンクをコピー
+              </Button>
+              {onOpenPdfPreview ? (
+                <Button variant="outline" size="sm" onClick={() => onOpenPdfPreview(detail.id)}>
+                  <FileDown className="size-4" />
+                  PDF出力
+                </Button>
+              ) : null}
+            </div>
           ) : <span />}
           <Button variant="outline" onClick={() => onOpenChange(false)}>閉じる</Button>
         </DialogFooter>

@@ -1,7 +1,7 @@
 /** Live submissions list with detail dialog and song duplicate detection. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft,Search, Trash2 } from 'lucide-react';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { ChevronLeft, FileDown, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -15,6 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -38,6 +39,7 @@ const getDuplicateActionKey = (normalizedTitle: string) => `duplicate:${normaliz
 
 export const LiveSubmissionsPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
+  const navigate = useNavigate();
   const [live, setLive] = useState<LiveResponse | null>(null);
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
@@ -50,6 +52,7 @@ export const LiveSubmissionsPage = () => {
   const [trashedDetails, setTrashedDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
   const [trashOpen, setTrashOpen] = useState(false);
   const [trashFetched, setTrashFetched] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const { isRunning: isDuplicateLoading, run: runDuplicateRefresh } = useSingleFlight();
   const { run: runSubmissionAction, isRunning: isSubmissionActionRunning } = useKeyedSingleFlight<string>();
   const { run: runDuplicateDismiss, isRunning: isDuplicateDismissRunning } = useKeyedSingleFlight<string>();
@@ -209,6 +212,28 @@ export const LiveSubmissionsPage = () => {
     });
   }, [liveId, runSubmissionAction]);
 
+  const openSinglePdfPreview = useCallback((submissionId: string) => {
+    if (!tenantId || !liveId) return;
+    navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/${submissionId}/pdf-preview`);
+  }, [tenantId, liveId, navigate]);
+
+  const openBulkPdfPreview = useCallback((ids: string[]) => {
+    if (!tenantId || !liveId) return;
+    if (ids.length === 0) {
+      toast.error('対象の提出を選択してください', { position: 'top-center' });
+      return;
+    }
+    navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/pdf-preview?ids=${ids.join(',')}`);
+  }, [tenantId, liveId, navigate]);
+
+  const toggleSelectOne = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
   const handlePurgeSubmission = useCallback((id: string) => {
     void runSubmissionAction(getSubmissionActionKey(id), async () => {
       try {
@@ -233,6 +258,30 @@ export const LiveSubmissionsPage = () => {
       });
     });
   }, [searchQuery, details, tableColumns]);
+
+  const filteredSelectedCount = useMemo(
+    () => filteredDetails.reduce((acc, d) => (selectedIds.has(d.id) ? acc + 1 : acc), 0),
+    [filteredDetails, selectedIds],
+  );
+  const allFilteredSelected = filteredDetails.length > 0 && filteredSelectedCount === filteredDetails.length;
+  const toggleSelectAllFiltered = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        for (const d of filteredDetails) next.delete(d.id);
+      } else {
+        for (const d of filteredDetails) next.add(d.id);
+      }
+      return next;
+    });
+  }, [allFilteredSelected, filteredDetails]);
+
+  const handleClickBulkPdf = useCallback(() => {
+    const ids = filteredSelectedCount > 0
+      ? filteredDetails.filter((d) => selectedIds.has(d.id)).map((d) => d.id)
+      : filteredDetails.map((d) => d.id);
+    openBulkPdfPreview(ids);
+  }, [filteredDetails, filteredSelectedCount, selectedIds, openBulkPdfPreview]);
 
   if (!tenantId || !liveId) {
     return <Navigate to="/tenants" replace />;
@@ -293,13 +342,25 @@ export const LiveSubmissionsPage = () => {
               <h1 className="text-lg font-semibold sm:text-2xl">提出済みフォーム</h1>
               <p className="text-xs text-muted-foreground sm:text-sm">{live.name} / {formatLiveDate(live.date)} / 全{details.length}件</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClickBulkPdf}
+                disabled={filteredDetails.length === 0}
+                title={filteredSelectedCount > 0
+                  ? `選択中の${filteredSelectedCount}件をPDFで出力します`
+                  : '一覧の全件をPDFで出力します'}
+              >
+                <FileDown className="size-4" />
+                {filteredSelectedCount > 0 ? `選択 ${filteredSelectedCount}件をPDF` : 'PDF一括出力'}
+              </Button>
               <Button asChild variant="outline" size="sm">
                 <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
                   <ChevronLeft className="size-4" />
                   戻る
                 </Link>
-              </Button>              
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -335,6 +396,13 @@ export const LiveSubmissionsPage = () => {
                 <Table>
                   <TableHeader className="sticky top-0 z-20 bg-background">
                     <TableRow>
+                      <TableHead className="bg-background w-10">
+                        <Checkbox
+                          checked={allFilteredSelected}
+                          onCheckedChange={() => toggleSelectAllFiltered()}
+                          aria-label="表示中の全提出を選択"
+                        />
+                      </TableHead>
                       {tableColumns.map((column) => (
                         <TableHead key={column.id} className="min-w-[150px] whitespace-normal bg-background">{column.label}</TableHead>
                       ))}
@@ -351,6 +419,13 @@ export const LiveSubmissionsPage = () => {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => { setSelectedSubmissionId(detail.id); setIsDetailDialogOpen(true); }}
                       >
+                        <TableCell className="align-top" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(detail.id)}
+                            onCheckedChange={() => toggleSelectOne(detail.id)}
+                            aria-label="この提出を選択"
+                          />
+                        </TableCell>
                         {tableColumns.map((column) => (
                           <TableCell key={`${detail.id}-${column.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">
                             {extractCellValue(detail.answers, column.path, column.type)}
@@ -394,6 +469,7 @@ export const LiveSubmissionsPage = () => {
         config={config}
         recordLabel={recordLabel}
         onCopyEditLink={copyEditLink}
+        onOpenPdfPreview={openSinglePdfPreview}
       />
 
       <TrashSheet

@@ -60,16 +60,21 @@ public class SettingSheetConfigService {
                                                 "マイク追加", "マイク",
                                                 "mic-member", formBuilderHelper.layoutFull(1), songMicFields));
 
-                List<FormBlockResponse> mcVariantFields = List.of(
-                                formBuilderHelper.textBlock("mc-title", "タイトル", false,
-                                                formBuilderHelper.layoutHalf(1)),
-                                formBuilderHelper.selectBlock("mc-member", SettingSheetConstants.BLOCK_SINGLE_SELECT,
-                                                "担当者", false,
+                List<FormBlockResponse> mcMicFields = List.of(
+                                formBuilderHelper.selectBlock("mc-mic-member",
+                                                SettingSheetConstants.BLOCK_SINGLE_SELECT,
+                                                "担当者", true,
                                                 List.of(),
                                                 formBuilderHelper.optionSource("members", "member-name"),
-                                                formBuilderHelper.layoutHalf(1)),
-                                formBuilderHelper.longTextBlock("mc-content", "内容・備考", false,
-                                                formBuilderHelper.layoutFull(1)));
+                                                formBuilderHelper.layoutTwoThirds(1)),
+                                formBuilderHelper.booleanBlock("mc-mic-main", "メインボーカル", "",
+                                                formBuilderHelper.layoutThird(1)));
+
+                List<FormBlockResponse> mcVariantFields = List.of(
+                                formBuilderHelper.groupBlock("mc-mics", "使うマイク",
+                                                "MC中に使うマイクと担当者を入力します。", false, true, 0,
+                                                "マイク追加", "マイク",
+                                                "mc-mic-member", formBuilderHelper.layoutFull(1), mcMicFields));
 
                 List<FormBlockResponse> bandFields = List.of(
                                 formBuilderHelper.textBlock("band-name", "バンド名", true,
