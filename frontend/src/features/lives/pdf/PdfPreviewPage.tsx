@@ -109,10 +109,11 @@ export const PdfPreviewPage = () => {
     if (!liveId || submissionIds.length === 0) return;
     setIsCompiling(true);
     try {
-      // Compile all submissions in parallel and show paginated preview.
-      const results = await Promise.all(
-        submissionIds.map((id) => fetchSubmissionPdf(liveId, id, editor.doc)),
-      );
+      // Compile all submissions sequentially to avoid overwhelming the server.
+      const results: Awaited<ReturnType<typeof fetchSubmissionPdf>>[] = [];
+      for (const id of submissionIds) {
+        results.push(await fetchSubmissionPdf(liveId, id, editor.doc));
+      }
       const newUrls = results.map((r) => URL.createObjectURL(r.blob));
       for (const url of previewUrlsRef.current) URL.revokeObjectURL(url);
       previewUrlsRef.current = newUrls;
