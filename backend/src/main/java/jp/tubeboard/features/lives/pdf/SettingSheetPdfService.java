@@ -2,6 +2,7 @@ package jp.tubeboard.features.lives.pdf;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,21 +36,22 @@ public class SettingSheetPdfService {
 
     public byte[] generate(LiveResponse live, SettingSheetConfigResponse config,
             PublicSettingSheetSubmissionDetailResponse submission, CanvasDocument canvas) throws IOException {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            writePdfToStream(live, config, submission, canvas, baos);
+            return baos.toByteArray();
+        }
+    }
+
+    private void writePdfToStream(LiveResponse live, SettingSheetConfigResponse config,
+            PublicSettingSheetSubmissionDetailResponse submission, CanvasDocument canvas,
+            OutputStream out) throws IOException {
         CanvasDocument doc = canvas != null && canvas.elements() != null
                 ? canvas
                 : defaultCanvasFactory.build(config);
         try (PDDocument pdf = new PDDocument()) {
             PDType0Font font = fontLoader.load(pdf);
-            CanvasRenderer renderer = new CanvasRenderer(evaluator, live, config, submission);
-            renderer.render(doc, pdf, font);
-            return toBytes(pdf);
-        }
-    }
-
-    private byte[] toBytes(PDDocument document) throws IOException {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            document.save(baos);
-            return baos.toByteArray();
+            new CanvasRenderer(evaluator, live, config, submission).render(doc, pdf, font);
+            pdf.save(out);
         }
     }
 
@@ -59,11 +61,9 @@ public class SettingSheetPdfService {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ZipOutputStream zos = new ZipOutputStream(baos)) {
             for (SubmissionInputs item : inputs) {
-                byte[] pdf = generate(item.live(), item.config(), item.submission(), canvas);
                 String filename = uniqueFilename(sanitize(item.submission().recordLabel()) + ".pdf", usedNames);
-                ZipEntry entry = new ZipEntry(filename);
-                zos.putNextEntry(entry);
-                zos.write(pdf);
+                zos.putNextEntry(new ZipEntry(filename));
+                writePdfToStream(item.live(), item.config(), item.submission(), canvas, zos);
                 zos.closeEntry();
             }
             zos.finish();
