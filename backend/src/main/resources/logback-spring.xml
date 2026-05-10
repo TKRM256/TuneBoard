@@ -2,16 +2,50 @@
 <configuration>
 
     <!-- ──────────────────────────────────────
-         Console appender (structured for dev)
+         Console appender (dev/default: human-readable with colors)
          ────────────────────────────────────── -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] [%X{requestId:-}] %cyan(%logger{36}) - %msg%n</pattern>
         </encoder>
     </appender>
 
     <!-- ──────────────────────────────────────
-         Dev profile: verbose logging
+         Console appender (prod: JSON for Cloud Logging)
+         ────────────────────────────────────── -->
+    <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <fieldName>time</fieldName>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <pattern>
+                    <pattern>{"severity": "%level", "logger": "%logger", "thread": "%thread"}</pattern>
+                </pattern>
+                <message>
+                    <fieldName>message</fieldName>
+                </message>
+                <mdc>
+                    <fieldName>mdc</fieldName>
+                </mdc>
+                <stackTrace>
+                    <fieldName>stack_trace</fieldName>
+                    <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                        <maxDepthPerCause>20</maxDepthPerCause>
+                        <rootCauseFirst>true</rootCauseFirst>
+                    </throwableConverter>
+                </stackTrace>
+                <pattern>
+                    <omitEmptyFields>true</omitEmptyFields>
+                    <pattern>{"logging.googleapis.com/trace": "%mdc{trace}"}</pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- ──────────────────────────────────────
+         Dev profile: verbose, human-readable
          ────────────────────────────────────── -->
     <springProfile name="dev">
         <logger name="jp.tubeboard" level="DEBUG" />
@@ -25,7 +59,7 @@
     </springProfile>
 
     <!-- ──────────────────────────────────────
-         Prod profile: minimal logging
+         Prod profile: JSON for Cloud Logging
          ────────────────────────────────────── -->
     <springProfile name="prod">
         <logger name="jp.tubeboard" level="INFO" />
@@ -34,12 +68,12 @@
         <logger name="org.hibernate.SQL" level="WARN" />
         <logger name="org.flywaydb" level="INFO" />
         <root level="WARN">
-            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="CONSOLE_JSON" />
         </root>
     </springProfile>
 
     <!-- ──────────────────────────────────────
-         Default (no profile): reasonable defaults
+         Default (no profile): human-readable
          ────────────────────────────────────── -->
     <springProfile name="default">
         <logger name="jp.tubeboard" level="DEBUG" />
