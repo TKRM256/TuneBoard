@@ -75,11 +75,11 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
     xMm: 8,
     yMm: y,
     wMm: pageWidthMm - 16,
-    hMm: 1,
+    hMm: 4,
     color: '#d1d5db',
     thicknessPt: 0.6,
   });
-  y += 4;
+  y += 6;
 
   const catalog = buildFieldCatalog(config);
 
