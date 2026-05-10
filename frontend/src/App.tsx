@@ -13,6 +13,7 @@ const LiveManagementPage = lazy(() => import('./features/lives/pages/LiveManagem
 const LiveFormEditorPage = lazy(() => import('./features/lives/pages/LiveFormEditorPage').then((module) => ({ default: module.LiveFormEditorPage })));
 const LiveSubmissionsPage = lazy(() => import('./features/lives/pages/LiveSubmissionsPage').then((module) => ({ default: module.LiveSubmissionsPage })));
 const PdfPreviewPage = lazy(() => import('./features/lives/pdf/PdfPreviewPage').then((module) => ({ default: module.PdfPreviewPage })));
+const PdfPreviewPageMobile = lazy(() => import('./features/lives/pdf/PdfPreviewPageMobile').then((module) => ({ default: module.PdfPreviewPageMobile })));
 const LiveVisibilitySettingsPage = lazy(() => import('./features/lives/pages/LiveVisibilitySettingsPage').then((module) => ({ default: module.LiveVisibilitySettingsPage })));
 const InvitationAcceptPage = lazy(() => import('./features/tenants/pages/InvitationAcceptPage').then((module) => ({ default: module.InvitationAcceptPage })));
 
@@ -59,6 +60,8 @@ function App() {
           >
             <Route path="tenants/:tenantId/lives/:liveId/submissions/pdf-preview" element={<Suspense fallback={routeFallback}><PdfPreviewPage /></Suspense>} />
             <Route path="tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview" element={<Suspense fallback={routeFallback}><PdfPreviewPage /></Suspense>} />
+            <Route path="tenants/:tenantId/lives/:liveId/submissions/pdf-preview-mobile" element={<Suspense fallback={routeFallback}><PdfPreviewPageMobile /></Suspense>} />
+            <Route path="tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview-mobile" element={<Suspense fallback={routeFallback}><PdfPreviewPageMobile /></Suspense>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

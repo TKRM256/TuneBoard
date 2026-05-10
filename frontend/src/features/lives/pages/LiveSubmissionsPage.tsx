@@ -33,6 +33,7 @@ import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { collectColumns, extractCellValue } from '../helpers/submission-table-helpers';
 import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
 import { useKeyedSingleFlight, useSingleFlight } from '@/hooks/use-single-flight';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const getSubmissionActionKey = (id: string) => `submission:${id}`;
 const getDuplicateActionKey = (normalizedTitle: string) => `duplicate:${normalizedTitle}`;
@@ -56,6 +57,7 @@ export const LiveSubmissionsPage = () => {
   const { isRunning: isDuplicateLoading, run: runDuplicateRefresh } = useSingleFlight();
   const { run: runSubmissionAction, isRunning: isSubmissionActionRunning } = useKeyedSingleFlight<string>();
   const { run: runDuplicateDismiss, isRunning: isDuplicateDismissRunning } = useKeyedSingleFlight<string>();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!liveId) {
@@ -214,8 +216,9 @@ export const LiveSubmissionsPage = () => {
 
   const openSinglePdfPreview = useCallback((submissionId: string) => {
     if (!tenantId || !liveId) return;
-    navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/${submissionId}/pdf-preview`);
-  }, [tenantId, liveId, navigate]);
+    const suffix = isMobile ? 'pdf-preview-mobile' : 'pdf-preview';
+    navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/${submissionId}/${suffix}`);
+  }, [tenantId, liveId, navigate, isMobile]);
 
   const openBulkPdfPreview = useCallback((ids: string[]) => {
     if (!tenantId || !liveId) return;
@@ -223,8 +226,9 @@ export const LiveSubmissionsPage = () => {
       toast.error('対象の提出を選択してください', { position: 'top-center' });
       return;
     }
-    navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/pdf-preview?ids=${ids.join(',')}`);
-  }, [tenantId, liveId, navigate]);
+    const suffix = isMobile ? 'pdf-preview-mobile' : 'pdf-preview';
+    navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/${suffix}?ids=${ids.join(',')}`);
+  }, [tenantId, liveId, navigate, isMobile]);
 
   const toggleSelectOne = useCallback((id: string) => {
     setSelectedIds((prev) => {
