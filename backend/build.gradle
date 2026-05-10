@@ -14,6 +14,10 @@ java {
 	}
 }
 
+tasks.withType(JavaCompile) {
+	options.compilerArgs = ['-parameters']
+}
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
@@ -38,6 +42,9 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation 'com.atilika.kuromoji:kuromoji-ipadic:0.9.0'
+	implementation 'org.apache.pdfbox:pdfbox:3.0.4'
+	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
+	implementation 'org.apache.commons:commons-jexl3:3.5.0'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.h2database:h2'
