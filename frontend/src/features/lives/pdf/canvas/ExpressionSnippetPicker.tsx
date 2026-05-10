@@ -10,7 +10,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import type { FieldCatalog } from '../field-catalog';
 import { buildSnippetGroups, type SnippetEntry } from './expression-snippets';
 
@@ -24,6 +23,7 @@ interface Props {
 export function ExpressionSnippetPicker({ catalog, onInsert, buttonLabel = '式を挿入', size = 'sm' }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+
   const groups = useMemo(() => buildSnippetGroups(catalog), [catalog]);
 
   const filteredGroups = useMemo(() => {
@@ -73,7 +73,7 @@ export function ExpressionSnippetPicker({ catalog, onInsert, buttonLabel = '式�
             />
           </div>
         </div>
-        <ScrollArea className="h-[420px]">
+        <div className="h-[400px] overflow-y-auto">
           <div className="space-y-3 p-2">
             {filteredGroups.length === 0 && (
               <p className="px-2 py-6 text-center text-xs text-muted-foreground">
@@ -87,10 +87,10 @@ export function ExpressionSnippetPicker({ catalog, onInsert, buttonLabel = '式�
                 </div>
                 {group.entries.map((entry) => (
                   <button
-                    type="button"
                     key={entry.expression + entry.label}
+                    type="button"
                     onClick={() => handleInsert(entry)}
-                    className="block w-full rounded px-2 py-1 text-left transition-colors hover:bg-muted"
+                    className="w-full rounded px-2 py-1 text-left transition-colors hover:bg-muted"
                   >
                     <div className="text-xs font-medium">{entry.label}</div>
                     <div className="truncate font-mono text-[10px] text-muted-foreground">
@@ -106,7 +106,7 @@ export function ExpressionSnippetPicker({ catalog, onInsert, buttonLabel = '式�
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );
