@@ -1,8 +1,12 @@
 package jp.tubeboard.features.lives.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,19 +16,27 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import java.util.Map;
+
 import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
 import jp.tubeboard.features.lives.dto.request.LivePurgeRequest;
 import jp.tubeboard.features.lives.dto.request.LiveRestoreRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.PdfGenerateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SongDuplicateDismissRequest;
+import jp.tubeboard.features.lives.dto.request.SubmissionsZipRequest;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasContext;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
+import jp.tubeboard.features.lives.pdf.canvas.ExpressionEvaluator;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
+import jp.tubeboard.features.lives.service.crud.ILivesService.SubmissionPdfResult;
 import lombok.AllArgsConstructor;
 
 @RestController
@@ -33,6 +45,7 @@ import lombok.AllArgsConstructor;
 public class LivesController {
 
     private final ILivesService livesService;
+    private final ExpressionEvaluator expressionEvaluator;
 
     @PostMapping("/create")
     public ResponseEntity<LiveResponse> create(@RequestBody @Valid LiveCreateRequest request) {
@@ -165,5 +178,58 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SongDuplicateDismissRequest request) {
         return ResponseEntity.ok(livesService.toggleDismissSongDuplicate(id, request.normalizedTitle()));
+    }
+
+    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/preview-expression")
+    public ResponseEntity<Map<String, String>> previewExpression(
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "submissionId") UUID submissionId,
+            @RequestBody Map<String, String> body) {
+        try {
+            String expression = body.getOrDefault("expression", "");
+            LiveResponse live = livesService.get(id);
+            SettingSheetConfigResponse config = livesService.getSettingSheetConfig(id);
+            PublicSettingSheetSubmissionDetailResponse submission = livesService.getOwnedSettingSheetSubmission(id, submissionId);
+            Map<String, Object> ns = CanvasContext.build(live, config, submission);
+            String result = expressionEvaluator.interpolate(expression, ns);
+            return ResponseEntity.ok(Map.of("result", result));
+        } catch (Exception ex) {
+            return ResponseEntity.ok(Map.of("result", "[評価エラー: " + ex.getMessage() + "]", "error", "true"));
+        }
+    }
+
+    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/pdf")
+    public ResponseEntity<byte[]> downloadSubmissionPdf(
+            @PathVariable(name = "id") UUID id,
+            @PathVariable(name = "submissionId") UUID submissionId,
+            @RequestBody(required = false) PdfGenerateRequest request) {
+        CanvasDocument canvas = request != null ? request.canvas() : null;
+        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId, canvas);
+        return pdfResponse(result, "pdf", MediaType.APPLICATION_PDF);
+    }
+
+    @PostMapping("/{id}/setting-sheet/submissions/pdf-zip")
+    public ResponseEntity<byte[]> downloadSubmissionsZip(
+            @PathVariable(name = "id") UUID id,
+            @RequestBody @Valid SubmissionsZipRequest request) {
+        SubmissionPdfResult result = livesService.generateSubmissionsZip(id, request.submissionIds(),
+                request.canvas());
+        return pdfResponse(result, "zip", MediaType.parseMediaType("application/zip"));
+    }
+
+    private ResponseEntity<byte[]> pdfResponse(SubmissionPdfResult result, String extension, MediaType mediaType) {
+        String filename = sanitizeFilename(result.filenameStem()) + "." + extension;
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"download." + extension + "\"; filename*=UTF-8''" + encoded)
+                .body(result.bytes());
+    }
+
+    private String sanitizeFilename(String stem) {
+        if (stem == null || stem.isBlank()) return "submission";
+        String cleaned = stem.replaceAll("[\\\\/:*?\"<>|\\r\\n\\t]", "_").trim();
+        return cleaned.length() > 80 ? cleaned.substring(0, 80) : cleaned;
     }
 }

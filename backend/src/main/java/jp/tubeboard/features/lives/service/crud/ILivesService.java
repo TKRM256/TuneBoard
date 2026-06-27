@@ -15,6 +15,7 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.request.PublicSongDuplicateCheckRequest;
 import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
 
 public interface ILivesService {
 
@@ -81,4 +82,11 @@ public interface ILivesService {
 
         PublicSongDuplicateCheckResponse checkPublicSongDuplicate(String publicToken,
                         PublicSongDuplicateCheckRequest request, UUID excludeSubmissionId);
+
+        SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, CanvasDocument canvas);
+
+        SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds, CanvasDocument canvas);
+
+        record SubmissionPdfResult(byte[] bytes, String filenameStem) {
+        }
 }

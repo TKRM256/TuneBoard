@@ -171,3 +171,35 @@
     letter-spacing: var(--tracking-normal);
     }
 }
+
+/* UUID label chip rendered by the CodeMirror uuid-label-decoration extension */
+.cm-uuid-chip {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  font-size: 10px;
+  font-family: inherit;
+  font-style: normal;
+  vertical-align: baseline;
+  cursor: text;
+}
+
+/* ExpressionEditor sizing and border styles */
+.expression-editor .cm-editor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.expression-editor--single .cm-editor {
+  overflow: hidden;
+}
+
+.expression-editor--single .cm-scroller {
+  overflow: hidden;
+}
+
+.expression-editor .cm-focused {
+  outline: none;
+}

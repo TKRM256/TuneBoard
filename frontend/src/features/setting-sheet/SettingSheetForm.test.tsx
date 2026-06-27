@@ -108,6 +108,7 @@ describe('SettingSheetForm', () => {
             items: [],
           },
         ],
+        itunesLinks: null,
       });
     });
 
@@ -158,6 +159,7 @@ describe('SettingSheetForm', () => {
             items: [],
           },
         ],
+        itunesLinks: null,
       });
     });
 
@@ -345,6 +347,7 @@ describe('SettingSheetForm', () => {
             items: [],
           },
         ],
+        itunesLinks: null,
       });
     });
   });

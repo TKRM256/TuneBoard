@@ -22,4 +22,4 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=prod
-ENTRYPOINT ["sh", "-c", "java -jar /app/*.jar"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -jar /app/*.jar"]

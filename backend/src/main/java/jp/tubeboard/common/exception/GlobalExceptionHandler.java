@@ -17,6 +17,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasException;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
 
 @RestControllerAdvice
@@ -70,6 +71,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ TenantsNotFoundException.class, LivesNotFoundException.class })
     public ResponseEntity<ApiErrorResponse> handleDomainNotFound(RuntimeException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(CanvasException.class)
+    public ResponseEntity<ApiErrorResponse> handleCanvas(CanvasException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+        if (ex.elementId() != null) details.put("elementId", ex.elementId());
+        log.warn("キャンバスレイアウトエラー: {} {}", ex.getMessage(), details);
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), details.isEmpty() ? null : details);
     }
 
     @ExceptionHandler(Exception.class)
