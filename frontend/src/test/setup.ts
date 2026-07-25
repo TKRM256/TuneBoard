@@ -32,3 +32,16 @@ Object.defineProperty(window, 'localStorage', {
 	value: new MemoryStorage(),
 	writable: true,
 });
+
+// jsdom には ResizeObserver が無い。Radix の ScrollArea などが参照するため最小実装を入れる
+if (!('ResizeObserver' in globalThis)) {
+	class ResizeObserverStub {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	}
+	Object.defineProperty(globalThis, 'ResizeObserver', {
+		value: ResizeObserverStub,
+		writable: true,
+	});
+}

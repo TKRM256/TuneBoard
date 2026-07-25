@@ -66,8 +66,10 @@ public class PublicLivesController {
     public ResponseEntity<SettingSheetSubmissionResponse> updateSubmission(
             @PathVariable(name = "publicToken") String publicToken,
             @PathVariable(name = "submissionId") UUID submissionId,
+            @RequestParam(name = "baseVersion", required = false) Long baseVersion,
             @RequestBody @Valid PublicSettingSheetSubmissionRequest request) {
-        return ResponseEntity.ok(livesService.updatePublicSettingSheetSubmission(publicToken, submissionId, request));
+        return ResponseEntity
+                .ok(livesService.updatePublicSettingSheetSubmission(publicToken, submissionId, baseVersion, request));
     }
 
     @PostMapping("/{publicToken}/check-song-duplicate")

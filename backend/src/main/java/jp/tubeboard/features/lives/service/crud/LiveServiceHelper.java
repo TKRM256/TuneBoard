@@ -147,7 +147,8 @@ public class LiveServiceHelper {
                 target.setSubmissionStatus(SettingSheetConstants.SUBMISSION_STATUS);
                 target.setPayloadJson(settingSheetSubmissionService.writeSubmissionPayload(normalizedRequest));
 
-                SettingSheetSubmission saved = settingSheetSubmissionRepository.save(target);
+                // レスポンスに更新後の version を載せるため、ここでフラッシュしてインクリメントを確定させる
+                SettingSheetSubmission saved = settingSheetSubmissionRepository.saveAndFlush(target);
                 saveItunesLinks(saved, request.itunesLinks());
                 return toSubmissionResponse(saved);
         }
@@ -179,7 +180,8 @@ public class LiveServiceHelper {
                                 submission.getId(),
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
-                                submission.getCreatedAt());
+                                submission.getCreatedAt(),
+                                submission.getVersion());
         }
 
         private void saveItunesLinks(SettingSheetSubmission submission,

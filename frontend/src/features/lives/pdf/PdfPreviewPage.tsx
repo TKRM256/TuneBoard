@@ -249,7 +249,11 @@ export const PdfPreviewPage = () => {
         </div>
       </header>
 
-      <ExpressionPreviewProvider liveId={liveId} submissionId={submissionIds[previewIndex] ?? submissionIds[0]}>
+      <ExpressionPreviewProvider
+        liveId={liveId}
+        submissionId={submissionIds[previewIndex] ?? submissionIds[0]}
+        submissionLabel={isBulk ? `${previewIndex + 1}件目の提出` : 'この提出'}
+      >
       <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
         <ResizablePanel>
           <div className="flex h-full min-h-0 flex-col">
@@ -294,6 +298,7 @@ export const PdfPreviewPage = () => {
                   onUpdateColumn={(columnId, patch) => editor.selectedElement && editor.updateColumn(editor.selectedElement.id, columnId, patch)}
                   onAddColumn={() => editor.selectedElement && editor.addColumn(editor.selectedElement.id)}
                   onRemoveColumn={(columnId) => editor.selectedElement && editor.removeColumn(editor.selectedElement.id, columnId)}
+                  onMoveColumn={(columnId, direction) => editor.selectedElement && editor.moveColumn(editor.selectedElement.id, columnId, direction)}
                 />
               </SideDrawer>
             </div>

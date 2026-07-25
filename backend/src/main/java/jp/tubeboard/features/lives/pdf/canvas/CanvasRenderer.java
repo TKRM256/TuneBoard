@@ -9,11 +9,11 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDType0Font;
 
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
+import jp.tubeboard.features.lives.pdf.FontChain;
 import jp.tubeboard.features.lives.pdf.PdfLayoutEngine;
 import jp.tubeboard.features.lives.pdf.PdfOrientation;
 import jp.tubeboard.features.lives.pdf.PdfPaperSize;
@@ -48,7 +48,7 @@ public class CanvasRenderer {
         this.namespace = CanvasContext.build(live, config, submission);
     }
 
-    public void render(CanvasDocument document, PDDocument pdf, PDType0Font font) throws IOException {
+    public void render(CanvasDocument document, PDDocument pdf, FontChain fontChain) throws IOException {
         CanvasPage page = document.page();
         PdfPaperSize size = page != null && page.size() != null ? page.size() : PdfPaperSize.A4;
         PdfOrientation orientation = page != null && page.orientation() != null
@@ -64,39 +64,39 @@ public class CanvasRenderer {
             if (elements == null)
                 return;
             for (CanvasElement element : elements) {
-                renderElement(element, stream, font, pageHeightPt);
+                renderElement(element, stream, fontChain, pageHeightPt);
             }
         }
     }
 
-    private void renderElement(CanvasElement element, PDPageContentStream stream, PDType0Font font,
+    private void renderElement(CanvasElement element, PDPageContentStream stream, FontChain fontChain,
             float pageHeightPt) throws IOException {
         if (element instanceof CanvasElement.TextElement t) {
-            renderText(t, stream, font, pageHeightPt);
+            renderText(t, stream, fontChain, pageHeightPt);
         } else if (element instanceof CanvasElement.FieldElement f) {
-            renderField(f, stream, font, pageHeightPt);
+            renderField(f, stream, fontChain, pageHeightPt);
         } else if (element instanceof CanvasElement.DividerElement d) {
             renderDivider(d, stream, pageHeightPt);
         } else if (element instanceof CanvasElement.SpacerElement) {
             // Spacer is editor-only; nothing to draw.
         } else if (element instanceof CanvasElement.TableElement table) {
-            renderTable(table, stream, font, pageHeightPt);
+            renderTable(table, stream, fontChain, pageHeightPt);
         }
     }
 
     // ─────────── Text / Field ───────────
 
-    private void renderText(CanvasElement.TextElement t, PDPageContentStream stream, PDType0Font font,
+    private void renderText(CanvasElement.TextElement t, PDPageContentStream stream, FontChain fontChain,
             float pageHeightPt) throws IOException {
         Box box = boxOf(t.xMm(), t.yMm(), t.wMm(), t.hMm(), pageHeightPt);
         drawBackgroundAndBorder(stream, box, t.backgroundColor(), t.borderColor(), t.borderThicknessPt());
         String content = evaluator.interpolate(nullToEmpty(t.content()), namespace);
         float fs = nonNullOr(t.fontSizePt(), DEFAULT_FONT_SIZE);
         Color color = parseColor(t.color(), Color.BLACK);
-        drawTextBox(stream, font, content, box, fs, t.align(), t.verticalAlign(), color, Boolean.TRUE.equals(t.bold()));
+        drawTextBox(stream, fontChain, content, box, fs, t.align(), t.verticalAlign(), color, Boolean.TRUE.equals(t.bold()));
     }
 
-    private void renderField(CanvasElement.FieldElement f, PDPageContentStream stream, PDType0Font font,
+    private void renderField(CanvasElement.FieldElement f, PDPageContentStream stream, FontChain fontChain,
             float pageHeightPt) throws IOException {
         Box box = boxOf(f.xMm(), f.yMm(), f.wMm(), f.hMm(), pageHeightPt);
         drawBackgroundAndBorder(stream, box, f.backgroundColor(), f.borderColor(), f.borderThicknessPt());
@@ -112,7 +112,7 @@ public class CanvasRenderer {
         } else {
             text = value;
         }
-        drawTextBox(stream, font, text, box, fs, f.align(), f.verticalAlign(), color, Boolean.TRUE.equals(f.bold()));
+        drawTextBox(stream, fontChain, text, box, fs, f.align(), f.verticalAlign(), color, Boolean.TRUE.equals(f.bold()));
     }
 
     private String lookupFieldValue(String fieldId) {
@@ -144,7 +144,7 @@ public class CanvasRenderer {
 
     // ─────────── Table ───────────
 
-    private void renderTable(CanvasElement.TableElement table, PDPageContentStream stream, PDType0Font font,
+    private void renderTable(CanvasElement.TableElement table, PDPageContentStream stream, FontChain fontChain,
             float pageHeightPt) throws IOException {
         Box box = boxOf(table.xMm(), table.yMm(), table.wMm(), table.hMm(), pageHeightPt);
         Color borderColor = parseColor(table.borderColor(), BORDER_COLOR);
@@ -168,7 +168,7 @@ public class CanvasRenderer {
             float x = box.leftX;
             for (int i = 0; i < columns.size(); i++) {
                 TableColumn c = columns.get(i);
-                drawCellText(stream, font, nullToEmpty(c.header()), x, baselineY, widths[i], fs, c.align(),
+                drawCellText(stream, fontChain, nullToEmpty(c.header()), x, baselineY, widths[i], fs, c.align(),
                         Color.BLACK);
                 x += widths[i];
             }
@@ -181,7 +181,7 @@ public class CanvasRenderer {
         boolean zebra = Boolean.TRUE.equals(table.zebra());
         for (int r = 0; r < rows.size(); r++) {
             RowData row = rows.get(r);
-            float rowHeight = computeRowHeight(font, columns, widths, row, rowFs);
+            float rowHeight = computeRowHeight(fontChain, columns, widths, row, rowFs);
             if (zebra && r % 2 == 1) {
                 fillRect(stream, box.leftX, currentY - rowHeight, box.widthPt, rowHeight,
                         new Color(0xf9, 0xfa, 0xfb));
@@ -191,7 +191,7 @@ public class CanvasRenderer {
             for (int i = 0; i < columns.size(); i++) {
                 TableColumn c = columns.get(i);
                 String text = row.cellText(c, evaluator, namespace);
-                drawCellText(stream, font, text, x, baselineY, widths[i], rowFs, c.align(), Color.BLACK);
+                drawCellText(stream, fontChain, text, x, baselineY, widths[i], rowFs, c.align(), Color.BLACK);
                 x += widths[i];
             }
             currentY -= rowHeight;
@@ -240,13 +240,13 @@ public class CanvasRenderer {
         return List.of();
     }
 
-    private float computeRowHeight(PDType0Font font, List<TableColumn> columns, float[] widths,
+    private float computeRowHeight(FontChain fontChain, List<TableColumn> columns, float[] widths,
             RowData row, float fs) throws IOException {
         float maxLines = 1;
         for (int i = 0; i < columns.size(); i++) {
             TableColumn c = columns.get(i);
             String text = row.cellText(c, evaluator, namespace);
-            int lineCount = Math.max(1, wrapLines(font, text, widths[i] - CELL_PAD_X * 2, fs).size());
+            int lineCount = Math.max(1, wrapLines(fontChain, text, widths[i] - CELL_PAD_X * 2, fs).size());
             if (lineCount > maxLines)
                 maxLines = lineCount;
         }
@@ -330,11 +330,11 @@ public class CanvasRenderer {
 
     // ─────────── Drawing primitives ───────────
 
-    private void drawTextBox(PDPageContentStream stream, PDType0Font font, String text, Box box,
+    private void drawTextBox(PDPageContentStream stream, FontChain fontChain, String text, Box box,
             float fs, String align, String verticalAlign, Color color, boolean bold) throws IOException {
         if (text == null || text.isEmpty())
             return;
-        List<String> lines = wrapLines(font, text, box.widthPt - 2f, fs);
+        List<String> lines = wrapLines(fontChain, text, box.widthPt - 2f, fs);
         float lh = lineHeight(fs);
         float totalHeight = lines.size() * lh;
         float topOffset;
@@ -347,7 +347,7 @@ public class CanvasRenderer {
         }
         float y = box.topY - topOffset - fs;
         for (String line : lines) {
-            float lineWidth = measureWidth(font, line, fs);
+            float lineWidth = measureWidth(fontChain, line, fs);
             float x;
             if ("center".equalsIgnoreCase(align)) {
                 x = box.leftX + (box.widthPt - lineWidth) / 2f;
@@ -357,33 +357,31 @@ public class CanvasRenderer {
                 x = box.leftX + 1f;
             }
             stream.beginText();
-            stream.setFont(font, fs);
             stream.setNonStrokingColor(color);
             stream.newLineAtOffset(x, y);
-            stream.showText(line);
+            fontChain.showText(stream, line, fs);
             stream.endText();
             y -= lh;
             if (bold) {
                 // Rough bold emulation: redraw with a small offset.
                 stream.beginText();
-                stream.setFont(font, fs);
                 stream.setNonStrokingColor(color);
                 stream.newLineAtOffset(x + 0.3f, y + lh);
-                stream.showText(line);
+                fontChain.showText(stream, line, fs);
                 stream.endText();
             }
         }
     }
 
-    private void drawCellText(PDPageContentStream stream, PDType0Font font, String text, float cellX,
+    private void drawCellText(PDPageContentStream stream, FontChain fontChain, String text, float cellX,
             float baselineY, float cellWidth, float fs, String align, Color color) throws IOException {
         if (text == null || text.isEmpty())
             return;
-        List<String> lines = wrapLines(font, text, cellWidth - CELL_PAD_X * 2, fs);
+        List<String> lines = wrapLines(fontChain, text, cellWidth - CELL_PAD_X * 2, fs);
         float lh = lineHeight(fs);
         float y = baselineY;
         for (String line : lines) {
-            float lineWidth = measureWidth(font, line, fs);
+            float lineWidth = measureWidth(fontChain, line, fs);
             float x;
             if ("center".equalsIgnoreCase(align)) {
                 x = cellX + (cellWidth - lineWidth) / 2f;
@@ -393,10 +391,9 @@ public class CanvasRenderer {
                 x = cellX + CELL_PAD_X;
             }
             stream.beginText();
-            stream.setFont(font, fs);
             stream.setNonStrokingColor(color);
             stream.newLineAtOffset(x, y);
-            stream.showText(line);
+            fontChain.showText(stream, line, fs);
             stream.endText();
             y -= lh;
         }
@@ -435,17 +432,17 @@ public class CanvasRenderer {
 
     // ─────────── Text wrapping ───────────
 
-    private List<String> wrapLines(PDType0Font font, String text, float maxWidth, float fs) throws IOException {
+    private List<String> wrapLines(FontChain fontChain, String text, float maxWidth, float fs) throws IOException {
         java.util.List<String> result = new java.util.ArrayList<>();
         if (text == null || text.isEmpty())
             return result;
         for (String paragraph : text.split("\\R", -1)) {
-            wrapParagraph(font, paragraph, maxWidth, fs, result);
+            wrapParagraph(fontChain, paragraph, maxWidth, fs, result);
         }
         return result;
     }
 
-    private void wrapParagraph(PDType0Font font, String paragraph, float maxWidth, float fs, List<String> out)
+    private void wrapParagraph(FontChain fontChain, String paragraph, float maxWidth, float fs, List<String> out)
             throws IOException {
         if (paragraph.isEmpty()) {
             out.add("");
@@ -455,7 +452,7 @@ public class CanvasRenderer {
         for (int i = 0; i < paragraph.length(); i++) {
             char ch = paragraph.charAt(i);
             current.append(ch);
-            float width = measureWidth(font, current.toString(), fs);
+            float width = measureWidth(fontChain, current.toString(), fs);
             if (width > maxWidth) {
                 if (current.length() == 1) {
                     out.add(current.toString());
@@ -473,10 +470,10 @@ public class CanvasRenderer {
         }
     }
 
-    private float measureWidth(PDType0Font font, String text, float fs) throws IOException {
+    private float measureWidth(FontChain fontChain, String text, float fs) throws IOException {
         if (text == null || text.isEmpty())
             return 0f;
-        return font.getStringWidth(text) / 1000f * fs;
+        return fontChain.stringWidth(text, fs);
     }
 
     private float lineHeight(float fs) {

@@ -80,6 +80,49 @@ describe('useCanvasEditor', () => {
     });
   });
 
+  describe('columns', () => {
+    function tableDoc() {
+      const table: TableElement = {
+        id: 't', kind: 'table', xMm: 0, yMm: 0, wMm: 100, hMm: 40, fontSizePt: 9,
+        source: { kind: 'group', groupId: 'members' },
+        columns: [
+          { id: 'c1', header: '氏名', fieldId: 'f1', widthRatio: 0.3 },
+          { id: 'c2', header: 'パート', fieldId: 'f2', widthRatio: 0.3 },
+          { id: 'c3', header: '備考', fieldId: 'f3', widthRatio: 0.4 },
+        ],
+      };
+      return makeDoc([table]);
+    }
+
+    const headers = (doc: CanvasDocument) => (doc.elements[0] as TableElement).columns.map((c) => c.header);
+
+    it('列を左へ移動できる', () => {
+      const { result } = renderHook(() => useCanvasEditor(tableDoc()));
+      act(() => result.current.moveColumn('t', 'c2', -1));
+      expect(headers(result.current.doc)).toEqual(['パート', '氏名', '備考']);
+    });
+
+    it('列を右へ移動できる', () => {
+      const { result } = renderHook(() => useCanvasEditor(tableDoc()));
+      act(() => result.current.moveColumn('t', 'c1', 1));
+      expect(headers(result.current.doc)).toEqual(['パート', '氏名', '備考']);
+    });
+
+    it('端を越える移動は並びを変えない', () => {
+      const { result } = renderHook(() => useCanvasEditor(tableDoc()));
+      act(() => result.current.moveColumn('t', 'c1', -1));
+      act(() => result.current.moveColumn('t', 'c3', 1));
+      expect(headers(result.current.doc)).toEqual(['氏名', 'パート', '備考']);
+    });
+
+    it('列の移動は undo できる', () => {
+      const { result } = renderHook(() => useCanvasEditor(tableDoc()));
+      act(() => result.current.moveColumn('t', 'c1', 1));
+      act(() => result.current.undo());
+      expect(headers(result.current.doc)).toEqual(['氏名', 'パート', '備考']);
+    });
+  });
+
   describe('updateElement', () => {
     it('merges patch onto an existing element without losing the kind discriminant', () => {
       const { result } = renderHook(() => useCanvasEditor(makeDoc([makeText('a', 0, 0)])));

@@ -7,5 +7,6 @@ public record SettingSheetSubmissionResponse(
                 UUID id,
                 String recordLabel,
                 String submissionStatus,
-                LocalDateTime submittedAt) {
+                LocalDateTime submittedAt,
+                Long version) {
 }

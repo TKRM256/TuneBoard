@@ -186,15 +186,83 @@ public class LivesController {
             @PathVariable(name = "submissionId") UUID submissionId,
             @RequestBody Map<String, String> body) {
         try {
-            String expression = body.getOrDefault("expression", "");
             LiveResponse live = livesService.get(id);
             SettingSheetConfigResponse config = livesService.getSettingSheetConfig(id);
             PublicSettingSheetSubmissionDetailResponse submission = livesService.getOwnedSettingSheetSubmission(id, submissionId);
-            Map<String, Object> ns = CanvasContext.build(live, config, submission);
-            String result = expressionEvaluator.interpolate(expression, ns);
-            return ResponseEntity.ok(Map.of("result", result));
+            Evaluation evaluation = evaluate(live, config, submission, body);
+            return evaluation.error()
+                    ? ResponseEntity.ok(Map.of("result", evaluation.result(), "error", "true"))
+                    : ResponseEntity.ok(Map.of("result", evaluation.result()));
         } catch (Exception ex) {
             return ResponseEntity.ok(Map.of("result", "[評価エラー: " + ex.getMessage() + "]", "error", "true"));
+        }
+    }
+
+    /**
+     * 同じ式をライブの全提出に対して評価する。式が一部の提出だけで壊れていないかを
+     * PDF を作らずに一覧で確認できるようにするためのもの。
+     */
+    @PostMapping("/{id}/setting-sheet/preview-expression")
+    public ResponseEntity<List<ExpressionPreviewRowResponse>> previewExpressionForAllSubmissions(
+            @PathVariable(name = "id") UUID id,
+            @RequestBody Map<String, String> body) {
+        LiveResponse live = livesService.get(id);
+        SettingSheetConfigResponse config = livesService.getSettingSheetConfig(id);
+
+        return ResponseEntity.ok(livesService.listOwnedSettingSheetSubmissionDetails(id).stream()
+                .map(submission -> {
+                    Evaluation evaluation = evaluate(live, config, submission, body);
+                    return new ExpressionPreviewRowResponse(
+                            submission.id(),
+                            submission.recordLabel(),
+                            evaluation.result(),
+                            evaluation.error());
+                })
+                .toList());
+    }
+
+    public record ExpressionPreviewRowResponse(UUID submissionId, String recordLabel, String result, boolean error) {
+    }
+
+    private record Evaluation(String result, boolean error) {
+    }
+
+    private Evaluation evaluate(LiveResponse live, SettingSheetConfigResponse config,
+            PublicSettingSheetSubmissionDetailResponse submission, Map<String, String> body) {
+        try {
+            Map<String, Object> ns = new java.util.HashMap<>(CanvasContext.build(live, config, submission));
+            bindSampleRow(ns, body.get("groupId"), body.get("fieldId"));
+            return new Evaluation(expressionEvaluator.interpolate(body.getOrDefault("expression", ""), ns), false);
+        } catch (Exception ex) {
+            return new Evaluation("[評価エラー: " + ex.getMessage() + "]", true);
+        }
+    }
+
+    /**
+     * 繰り返し行やフィールド行の書式は描画時に {@code item} / {@code value} / {@code values}
+     * が束縛されて評価される。プレビューでも同じ式を試せるよう、
+     * 指定されたグループの 1 件目（グループ未指定なら該当フィールド）を見本として束縛する。
+     */
+    private void bindSampleRow(Map<String, Object> ns, String groupId, String fieldId) {
+        if (groupId != null && !groupId.isBlank()
+                && ns.get("groups") instanceof Map<?, ?> groups
+                && groups.get(groupId) instanceof CanvasContext.GroupRef group
+                && !group.getItems().isEmpty()) {
+            CanvasContext.ItemRef item = group.getItems().get(0);
+            ns.put("item", item);
+            if (fieldId != null && !fieldId.isBlank()) {
+                CanvasContext.FieldRef ref = item.field(fieldId);
+                ns.put("value", ref.getValue());
+                ns.put("values", ref.getValues());
+            }
+            return;
+        }
+
+        if (fieldId != null && !fieldId.isBlank()
+                && ns.get("fields") instanceof Map<?, ?> fields
+                && fields.get(fieldId) instanceof CanvasContext.FieldRef ref) {
+            ns.put("value", ref.getValue());
+            ns.put("values", ref.getValues());
         }
     }
 

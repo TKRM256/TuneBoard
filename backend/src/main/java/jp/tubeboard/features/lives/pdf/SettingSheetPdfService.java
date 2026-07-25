@@ -10,7 +10,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.springframework.stereotype.Service;
 
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
@@ -49,8 +48,8 @@ public class SettingSheetPdfService {
                 ? canvas
                 : defaultCanvasFactory.build(config);
         try (PDDocument pdf = new PDDocument()) {
-            PDType0Font font = fontLoader.load(pdf);
-            new CanvasRenderer(evaluator, live, config, submission).render(doc, pdf, font);
+            FontChain fontChain = fontLoader.loadFontChain(pdf);
+            new CanvasRenderer(evaluator, live, config, submission).render(doc, pdf, fontChain);
             pdf.save(out);
         }
     }

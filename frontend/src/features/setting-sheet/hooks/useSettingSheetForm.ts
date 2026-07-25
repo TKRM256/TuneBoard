@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast  } from 'sonner';
 
 import {
-  DEFAULT_SETTING_SHEET_CONFIG,
   getPublicSubmissionStatusMessage,
   isPublicSubmissionClosed,
   normalizeSettingSheetConfig,
@@ -17,7 +16,6 @@ import {
   createDefaultSettingSheetValues,
   createSettingSheetValuesFromSubmissionAnswers,
   fieldIdFromKey,
-  parseSettingSheetDraft,
   toSettingSheetSubmissionPayload,
   validateSettingSheetForm,
   type SettingSheetFieldValue,
@@ -25,6 +23,10 @@ import {
   type SettingSheetIssue,
 } from '../types';
 import { useSingleFlight } from '@/hooks/use-single-flight';
+import { useSubmissionMerge } from './useSubmissionMerge';
+import { buildDraftStorageKey, readSettingSheetDraft, useSettingSheetDraft } from './useSettingSheetDraft';
+import { resolveIssueLabel } from '../helpers/issue-labels';
+import { parseSubmissionConflict } from '../merge/conflict-error';
 
 interface UseSettingSheetFormParams {
   publicToken: string;
@@ -35,27 +37,35 @@ interface UseSettingSheetFormParams {
 
 export function useSettingSheetForm({ publicToken, live, submission, onSubmitted }: UseSettingSheetFormParams) {
   const settingSheetConfig = useMemo(
-    () => normalizeSettingSheetConfig(live.settingSheetConfig ?? DEFAULT_SETTING_SHEET_CONFIG),
+    () => normalizeSettingSheetConfig(live.settingSheetConfig),
     [live.settingSheetConfig],
   );
-  const storageKey = submission
-    ? `tuneboard:setting-sheet:${publicToken}:submission:${submission.id}`
-    : `tuneboard:setting-sheet:${publicToken}`;
+  const storageKey = buildDraftStorageKey(publicToken, submission?.id);
   const initialValues = useMemo(
     () => submission
       ? createSettingSheetValuesFromSubmissionAnswers(settingSheetConfig.blocks, submission.answers, submission.itunesLinks)
       : createDefaultSettingSheetValues(settingSheetConfig.blocks),
     [settingSheetConfig.blocks, submission],
   );
-  const initialDraft = useMemo(() => {
-    const draft = window.localStorage.getItem(storageKey);
-    return draft ? parseSettingSheetDraft(draft, settingSheetConfig.blocks) : null;
-  }, [settingSheetConfig.blocks, storageKey]);
+  const initialDraft = useMemo(
+    () => readSettingSheetDraft(storageKey, settingSheetConfig.blocks),
+    [settingSheetConfig.blocks, storageKey],
+  );
 
   const [formValues, setFormValues] = useState<SettingSheetFormValues>(() => initialDraft?.values ?? initialValues);
   const [issues, setIssues] = useState<SettingSheetIssue[]>([]);
-  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(() => initialDraft?.savedAt ?? null);
+  const { draftSavedAt, clearDraft } = useSettingSheetDraft({
+    storageKey,
+    formValues,
+    initialSavedAt: initialDraft?.savedAt ?? null,
+  });
   const { isRunning: isSubmitting, run: runSubmit } = useSingleFlight();
+
+  // 3-way マージの base（＝自分の編集の出発点になったサーバの状態）と、その版番号。
+  // 下書き復元は「自分の編集」側に入るため、base はあくまでサーバから読み込んだ内容。
+  const baseValuesRef = useRef<SettingSheetFormValues>(initialValues);
+  const [baseVersion, setBaseVersion] = useState<number | null>(submission?.version ?? null);
+  const merge = useSubmissionMerge(settingSheetConfig);
 
   const isSubmissionClosed = isPublicSubmissionClosed(live);
   const submissionStatusMessage = getPublicSubmissionStatusMessage(live);
@@ -84,16 +94,6 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
     await copyFormUrl(submittedFormUrl);
   };
 
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const nextSavedAt = new Date().toISOString();
-      window.localStorage.setItem(storageKey, JSON.stringify({ savedAt: nextSavedAt, values: formValues }));
-      setDraftSavedAt(nextSavedAt);
-    }, 400);
-
-    return () => window.clearTimeout(timer);
-  }, [formValues, storageKey]);
 
   const errorMap = useMemo(
     () => Object.fromEntries(issues.map((issue) => [issue.key, issue.message])) as Record<string, string>,
@@ -138,26 +138,15 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
     [blockId]: nextValue,
   });
 
-  const handleSubmit = () => {
-    if (isSubmissionClosed) {
-      toast.error(submissionStatusMessage || '現在は回答を受け付けていません。', { position: 'top-center' });
-      return;
-    }
-
-    const nextIssues = validateSettingSheetForm(formValues, settingSheetConfig);
-    setIssues(nextIssues);
-
-    if (nextIssues.length > 0) {
-      toast.error('未入力または不足している項目があります。', { position: 'top-center' });
-      focusIssue(nextIssues[0]);
-      return;
-    }
-
-    void runSubmit(async () => {
-      const requestPath = submission
+  const submitValues = (values: SettingSheetFormValues, versionForRequest: number | null) =>
+    runSubmit(async () => {
+      const basePath = submission
         ? `/public/lives/${publicToken}/setting-sheet/submissions/${submission.id}`
         : `/public/lives/${publicToken}/setting-sheet/submissions`;
-      const request = toSettingSheetSubmissionPayload(formValues, settingSheetConfig);
+      const requestPath = submission && versionForRequest !== null
+        ? `${basePath}?baseVersion=${versionForRequest}`
+        : basePath;
+      const request = toSettingSheetSubmissionPayload(values, settingSheetConfig);
 
       try {
         const response = submission
@@ -165,10 +154,17 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
           : await apiClient.post<SettingSheetSubmissionResponse>(requestPath, request);
 
         setIssues([]);
-        window.localStorage.removeItem(storageKey);
-        setDraftSavedAt(null);
+        clearDraft();
 
         if (submission) {
+          // 続けて保存できるよう、base をいま送った内容とサーバが返した版番号に揃える
+          baseValuesRef.current = values;
+          const savedVersion = (response as SettingSheetSubmissionResponse | void)?.version;
+          if (typeof savedVersion === 'number') {
+            setBaseVersion(savedVersion);
+          }
+          merge.closeConflict();
+
           toast.success('提出済みシートを更新しました。', {
             position: 'top-center',
             action: {
@@ -200,6 +196,13 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
         setFormValues(createDefaultSettingSheetValues(settingSheetConfig.blocks));
         toast.success('ライブフォームを送信しました。', { position: 'top-center' });
       } catch (error: unknown) {
+        const latest = parseSubmissionConflict(error);
+        if (latest) {
+          merge.openConflict(latest, baseValuesRef.current, values);
+          toast.error('他の人がこのシートを更新しました。取り込む内容を選んでください。', { position: 'top-center' });
+          return;
+        }
+
         const apiError = error instanceof ApiClientError ? error : undefined;
         if (apiError) {
           applyServerErrors(apiError);
@@ -209,6 +212,48 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
         });
       }
     });
+
+  const handleSubmit = () => {
+    if (isSubmissionClosed) {
+      toast.error(submissionStatusMessage || '現在は回答を受け付けていません。', { position: 'top-center' });
+      return;
+    }
+
+    const nextIssues = validateSettingSheetForm(formValues, settingSheetConfig);
+    setIssues(nextIssues);
+
+    if (nextIssues.length > 0) {
+      toast.error('未入力または不足している項目があります。', { position: 'top-center' });
+      focusIssue(nextIssues[0]);
+      return;
+    }
+
+    void submitValues(formValues, baseVersion);
+  };
+
+  /** マージ画面での選択を確定し、相手の最新版を base として保存し直す。 */
+  const confirmMerge = () => {
+    const conflict = merge.conflict;
+    const merged = merge.buildMergedValues();
+    if (!conflict || !merged) {
+      return;
+    }
+
+    setFormValues(merged);
+
+    const nextIssues = validateSettingSheetForm(merged, settingSheetConfig);
+    if (nextIssues.length > 0) {
+      setIssues(nextIssues);
+      merge.closeConflict();
+      toast.error('マージ結果に未入力または不足している項目があります。', { position: 'top-center' });
+      focusIssue(nextIssues[0]);
+      return;
+    }
+
+    // 再度競合したときに正しく 3-way できるよう、いま突き合わせた相手の内容を base にする
+    baseValuesRef.current = conflict.theirs;
+    setBaseVersion(conflict.latestVersion);
+    void submitValues(merged, conflict.latestVersion);
   };
 
   return {
@@ -227,31 +272,12 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
     updateScopedAnswers,
     submittedFormUrl,
     copySubmittedFormUrl,
+    mergeNodes: merge.nodes,
+    mergeRows: merge.rows,
+    mergeSelections: merge.selections,
+    isMergeOpen: merge.conflict !== null,
+    selectMergeChoice: merge.select,
+    closeMerge: merge.closeConflict,
+    confirmMerge,
   };
-}
-
-function resolveIssueLabel(key: string, config: typeof DEFAULT_SETTING_SHEET_CONFIG) {
-  const fieldId = key.match(/answers\.(.+?)(?:\.items|$)/)?.[1];
-  if (!fieldId) {
-    return key;
-  }
-
-  return findBlockLabel(config.blocks, fieldId) ?? fieldId;
-}
-
-function findBlockLabel(blocks: typeof DEFAULT_SETTING_SHEET_CONFIG.blocks, fieldId: string): string | null {
-  for (const block of blocks) {
-    if (block.id === fieldId) {
-      return block.label;
-    }
-
-    if (block.fields.length > 0) {
-      const nested = findBlockLabel(block.fields, fieldId);
-      if (nested) {
-        return nested;
-      }
-    }
-  }
-
-  return null;
 }

@@ -78,7 +78,7 @@ async function request<T>(
       throw new ApiClientError(response.status);
     }
     log.warn(`${method} ${path} -> ${response.status}`, apiError?.message);
-    throw new ApiClientError(response.status, apiError);
+    throw new ApiClientError(response.status, apiError, apiError);
   }
 
   // 204 No Content or empty body

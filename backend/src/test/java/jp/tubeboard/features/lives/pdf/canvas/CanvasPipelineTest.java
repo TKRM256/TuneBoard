@@ -64,7 +64,7 @@ class CanvasPipelineTest {
                                 new GroupItemResponse(null, List.of(
                                         new FieldAnswerResponse("mic-name", List.of("e835"), List.of())))))))));
         PublicSettingSheetSubmissionDetailResponse sub = new PublicSettingSheetSubmissionDetailResponse(
-                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0),
+                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0), 0L,
                 List.of(answer), List.of());
 
         Map<String, Object> ns = CanvasContext.build(sampleLive(), cfg, sub);
@@ -169,7 +169,7 @@ class CanvasPipelineTest {
                                 new GroupItemResponse(null, List.of(
                                         new FieldAnswerResponse("mic-name", List.of("e835"), List.of())))))))));
         PublicSettingSheetSubmissionDetailResponse sub = new PublicSettingSheetSubmissionDetailResponse(
-                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0),
+                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0), 0L,
                 List.of(answer), List.of());
 
         Map<String, Object> ns = CanvasContext.build(sampleLive(), cfg, sub);
@@ -213,7 +213,7 @@ class CanvasPipelineTest {
                         new FieldAnswerResponse("member-name", List.of("佐藤"), List.of()),
                         new FieldAnswerResponse("member-parts", List.of("Ba"), List.of())))));
         return new PublicSettingSheetSubmissionDetailResponse(UUID.randomUUID(), "KingGnu", "完成",
-                LocalDateTime.of(2026, 6, 20, 12, 0), List.of(bandName, memberItems), List.of());
+                LocalDateTime.of(2026, 6, 20, 12, 0), 0L, List.of(bandName, memberItems), List.of());
     }
 
     private FormBlockResponse leaf(String id, String type, String label) {

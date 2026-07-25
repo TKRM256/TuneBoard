@@ -31,6 +31,7 @@ export interface CanvasEditor {
   updateColumn: (elementId: string, columnId: string, patch: Partial<TableColumn>) => void;
   addColumn: (elementId: string) => void;
   removeColumn: (elementId: string, columnId: string) => void;
+  moveColumn: (elementId: string, columnId: string, direction: -1 | 1) => void;
   remove: (ids?: string[]) => void;
   duplicate: () => void;
   align: (mode: AlignMode) => void;
@@ -299,6 +300,22 @@ export function useCanvasEditor(initial: CanvasDocument): CanvasEditor {
     });
   }, [commit]);
 
+  /** 表の列を 1 つ前／後ろへ入れ替える。端を越える移動は何もしない。 */
+  const moveColumn = useCallback((elementId: string, columnId: string, direction: -1 | 1) => {
+    commit({
+      ...docRef.current,
+      elements: docRef.current.elements.map((e) => {
+        if (e.id !== elementId || e.kind !== 'table') return e;
+        const from = e.columns.findIndex((c) => c.id === columnId);
+        const to = from + direction;
+        if (from < 0 || to < 0 || to >= e.columns.length) return e;
+        const columns = [...e.columns];
+        [columns[from], columns[to]] = [columns[to], columns[from]];
+        return { ...e, columns };
+      }),
+    });
+  }, [commit]);
+
   const remove = useCallback((ids?: string[]) => {
     const removeSet = new Set(ids ?? Array.from(selectedIds));
     if (removeSet.size === 0) return;
@@ -423,6 +440,7 @@ export function useCanvasEditor(initial: CanvasDocument): CanvasEditor {
     updateColumn,
     addColumn,
     removeColumn,
+    moveColumn,
     remove,
     duplicate,
     align,
