@@ -1,11 +1,16 @@
-/** CodeMirror extension that overlays `fields['UUID']` / `groups['UUID']`
- *  tokens with a human-readable label chip. When the cursor is inside the
- *  matched range the raw UUID is revealed for editing. */
+/** CodeMirror extension that overlays項目 ID を参照しているトークンを
+ *  人が読めるラベルのチップに置き換える。カーソルがその範囲に入ると
+ *  編集できるよう生の ID を表示に戻す。
+ *
+ *  対象は `fields['id']` / `groups['id']` / `.field('id')` / `.group('id')` と、
+ *  `joinField(group, 'id', sep)` のように引数として渡される裸の ID 文字列。
+ *  ユーザーが追加した項目は ID が UUID になるため、ID の形は問わず
+ *  カタログに載っているものをすべて対象にする。 */
 import { Decoration, type DecorationSet, EditorView, MatchDecorator, ViewPlugin, type ViewUpdate, WidgetType } from '@codemirror/view';
 
 import type { FieldCatalog } from '../field-catalog';
 
-const UUID_RE = /(fields|groups)\['([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})'\]/g;
+const ID_REFERENCE_RE = /(?:fields|groups)\['([^']+)'\]|\.(?:field|group)\('([^']+)'\)|'([^']+)'/g;
 
 class LabelWidget extends WidgetType {
   private readonly _label: string;
@@ -29,10 +34,10 @@ class LabelWidget extends WidgetType {
 
 export function uuidLabelDecoration(catalog: FieldCatalog) {
   const decorator = new MatchDecorator({
-    regexp: UUID_RE,
+    regexp: ID_REFERENCE_RE,
     decorate(add, from, to, match, view) {
-      const uuid = match[2];
-      const info = catalog.labelById.get(uuid);
+      const id = match[1] ?? match[2] ?? match[3];
+      const info = id ? catalog.labelById.get(id) : undefined;
       if (!info) return;
       const { from: sFrom, to: sTo } = view.state.selection.main;
       if (sFrom <= to && sTo >= from) return;

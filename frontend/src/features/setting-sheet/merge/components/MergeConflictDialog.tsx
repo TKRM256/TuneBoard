@@ -43,7 +43,8 @@ export function MergeConflictDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] w-[95vw] max-w-5xl overflow-hidden p-0 sm:w-full">
+      {/* DialogContent の既定に sm:max-w-lg があるため、sm: 付きでも打ち消さないと広がらない */}
+      <DialogContent className="max-h-[90dvh] w-[95vw] max-w-5xl overflow-hidden p-0 sm:w-full sm:max-w-5xl">
         <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="size-5 text-destructive" />

@@ -22,6 +22,8 @@ interface Props {
   placeholder?: string;
   multiline?: boolean;
   rows?: number;
+  /** 親の高さいっぱいに広げる（拡大編集モーダル用）。rows より優先される。 */
+  fillHeight?: boolean;
   className?: string;
 }
 
@@ -33,7 +35,7 @@ const MULTI_LINE_EXTENSIONS = [
   keymap.of([indentWithTab]),
 ];
 
-export function ExpressionEditor({ catalog, value, onChange, placeholder, multiline = false, rows = 3, className }: Props) {
+export function ExpressionEditor({ catalog, value, onChange, placeholder, multiline = false, rows = 3, fillHeight = false, className }: Props) {
   const extensions = [
     javascript({ jsx: false }),
     autocompletion({ override: [makeCatalogCompletionSource(catalog)], closeOnBlur: true }),
@@ -42,8 +44,8 @@ export function ExpressionEditor({ catalog, value, onChange, placeholder, multil
     ...(multiline ? MULTI_LINE_EXTENSIONS : SINGLE_LINE_EXTENSIONS),
   ];
 
-  const minHeight = multiline ? `${rows * 1.6}rem` : '2rem';
-  const maxHeight = multiline ? `${rows * 4}rem` : '2.5rem';
+  const minHeight = fillHeight ? '100%' : multiline ? `${rows * 1.6}rem` : '2rem';
+  const maxHeight = fillHeight ? '100%' : multiline ? `${rows * 4}rem` : '2.5rem';
 
   return (
     <ReactCodeMirror

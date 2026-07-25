@@ -121,6 +121,99 @@ class LivesControllerIntegrationTest {
     }
 
     @Test
+    void 式プレビューは実際の提出データで評価される() throws Exception {
+        givenLiveWithMembersGroup();
+
+        mockMvc.perform(post("/api/lives/{id}/setting-sheet/submissions/{submissionId}/preview-expression",
+                live.getId(), submission.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"expression\":\"${joinField(groups['members'], 'member-name', ', ')}\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("Alice, Bob"));
+    }
+
+    @Test
+    void 行ごとに評価される式は見本行を束縛してプレビューできる() throws Exception {
+        givenLiveWithMembersGroup();
+
+        // value / item は描画時に行ごとへ束縛されるので、groupId・fieldId の指定で 1 件目を見本にする
+        mockMvc.perform(post("/api/lives/{id}/setting-sheet/submissions/{submissionId}/preview-expression",
+                live.getId(), submission.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"expression\":\"${value} さん\",\"groupId\":\"members\",\"fieldId\":\"member-name\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("Alice さん"));
+    }
+
+    @Test
+    void 式プレビューは評価エラーをメッセージとして返す() throws Exception {
+        givenLiveWithMembersGroup();
+
+        mockMvc.perform(post("/api/lives/{id}/setting-sheet/submissions/{submissionId}/preview-expression",
+                live.getId(), submission.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"expression\":\"${joinField(}\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value(org.hamcrest.Matchers.containsString("[")));
+    }
+
+    @Test
+    void 式は全提出に対してまとめて評価できる() throws Exception {
+        givenLiveWithMembersGroup();
+
+        // 同じライブに、出演者が 1 人だけの提出を追加する
+        settingSheetSubmissionRepository.save(SettingSheetSubmission.builder()
+                .live(live)
+                .recordLabel("Band B")
+                .submissionStatus("submitted")
+                .payloadJson("""
+                        {"answers":[{"fieldId":"members","values":[],"items":[
+                          {"variantId":"","answers":[{"fieldId":"member-name","values":["Carol"],"items":[]}]}]}]}
+                        """)
+                .build());
+
+        mockMvc.perform(post("/api/lives/{id}/setting-sheet/preview-expression", live.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"expression\":\"${joinField(groups['members'], 'member-name', ', ')}\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[?(@.recordLabel=='Band A')].result").value("Alice, Bob"))
+                .andExpect(jsonPath("$[?(@.recordLabel=='Band B')].result").value("Carol"))
+                .andExpect(jsonPath("$[0].error").value(false));
+    }
+
+    /** 出演者グループを 1 つ持つフォーム定義と、2 件回答済みの提出を用意する。 */
+    private void givenLiveWithMembersGroup() {
+        live.setSettingsJson("""
+                {"title":"t","description":"","submitButtonLabel":"送信","publicSubmissionEnabled":true,
+                 "blocks":[{"id":"members","type":"REPEATABLE_GROUP","label":"出演者","description":"",
+                   "hidden":false,"publicVisible":false,"required":false,"collapsible":false,
+                   "appearance":"subtle","itemAppearance":"outline","options":[],"minItems":0,
+                   "addButtonLabel":"","entryTitle":"","titleSourceFieldId":"",
+                   "fields":[{"id":"member-name","type":"SHORT_TEXT","label":"氏名","description":"",
+                     "hidden":false,"publicVisible":false,"required":false,"collapsible":false,
+                     "appearance":"outline","itemAppearance":"plain","options":[],"minItems":0,
+                     "addButtonLabel":"","entryTitle":"","titleSourceFieldId":"","fields":[],
+                     "layout":{"width":"half","optionColumns":1,"optionFitContent":false},
+                     "optionSource":null,"duplicateDetectionRole":"","variants":[]}],
+                   "layout":{"width":"full","optionColumns":1,"optionFitContent":false},
+                   "optionSource":null,"duplicateDetectionRole":"","variants":[]}]}
+                """);
+        liveRepository.save(live);
+
+        submission.setPayloadJson("""
+                {"answers":[{"fieldId":"members","values":[],"items":[
+                  {"variantId":"","answers":[{"fieldId":"member-name","values":["Alice"],"items":[]}]},
+                  {"variantId":"","answers":[{"fieldId":"member-name","values":["Bob"],"items":[]}]}]}]}
+                """);
+        settingSheetSubmissionRepository.save(submission);
+    }
+
+    @Test
     void 管理者は提出済みセッティングシートを削除復元完全削除できる() throws Exception {
         mockMvc.perform(post("/api/lives/{id}/setting-sheet/submissions/{submissionId}/delete",
                 live.getId(), submission.getId())

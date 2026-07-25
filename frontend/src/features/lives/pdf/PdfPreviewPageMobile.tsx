@@ -220,6 +220,7 @@ export const PdfPreviewPageMobile = () => {
     <ExpressionPreviewProvider
       liveId={liveId}
       submissionId={submissionIds[previewIndex] ?? submissionIds[0]}
+      submissionLabel={isBulk ? `${previewIndex + 1}件目の提出` : 'この提出'}
     >
       <div className="flex h-full w-full flex-col">
         {/* Compact header */}
@@ -345,6 +346,9 @@ export const PdfPreviewPageMobile = () => {
               }
               onRemoveColumn={(columnId) =>
                 editor.selectedElement && editor.removeColumn(editor.selectedElement.id, columnId)
+              }
+              onMoveColumn={(columnId, direction) =>
+                editor.selectedElement && editor.moveColumn(editor.selectedElement.id, columnId, direction)
               }
             />
           </TabsContent>

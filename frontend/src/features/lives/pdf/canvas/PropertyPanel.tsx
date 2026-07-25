@@ -1,7 +1,7 @@
 /** Right-side property editor for the currently selected element(s).
  *  Shows position/size/typography and (for tables/fields) the data binding. */
 import { useMemo } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,9 +36,10 @@ interface Props {
   onUpdateColumn: (columnId: string, patch: Partial<TableColumn>) => void;
   onAddColumn: () => void;
   onRemoveColumn: (columnId: string) => void;
+  onMoveColumn: (columnId: string, direction: -1 | 1) => void;
 }
 
-export function PropertyPanel({ element, catalog, onUpdate, onUpdateColumn, onAddColumn, onRemoveColumn }: Props) {
+export function PropertyPanel({ element, catalog, onUpdate, onUpdateColumn, onAddColumn, onRemoveColumn, onMoveColumn }: Props) {
   if (!element) {
     return (
       <aside className="flex h-full w-full items-center justify-center border-l bg-background p-4 text-center text-xs text-muted-foreground">
@@ -75,6 +76,7 @@ export function PropertyPanel({ element, catalog, onUpdate, onUpdateColumn, onAd
               onUpdateColumn={onUpdateColumn}
               onAddColumn={onAddColumn}
               onRemoveColumn={onRemoveColumn}
+              onMoveColumn={onMoveColumn}
             />
           )}
           {element.kind === 'spacer' && (
@@ -226,6 +228,7 @@ function TableProperties({
   onUpdateColumn,
   onAddColumn,
   onRemoveColumn,
+  onMoveColumn,
 }: {
   element: TableElement;
   catalog: FieldCatalog;
@@ -233,6 +236,7 @@ function TableProperties({
   onUpdateColumn: (columnId: string, patch: Partial<TableColumn>) => void;
   onAddColumn: () => void;
   onRemoveColumn: (columnId: string) => void;
+  onMoveColumn: (columnId: string, direction: -1 | 1) => void;
 }) {
   const groupFieldOptions = useMemo(() => {
     const source = element.source;
@@ -290,9 +294,10 @@ function TableProperties({
 
       <FieldGroup label="列">
         <div className="space-y-1.5">
-          {element.columns.map((c) => (
+          {element.columns.map((c, columnIndex) => (
             <div key={c.id} className="space-y-1 rounded border p-2">
               <div className="flex items-center gap-1">
+                <span className="w-4 shrink-0 text-center text-[10px] text-muted-foreground">{columnIndex + 1}</span>
                 <Input
                   value={c.header}
                   placeholder="見出し"
@@ -303,6 +308,29 @@ function TableProperties({
                   variant="ghost"
                   size="icon"
                   className="size-7"
+                  title="左へ移動"
+                  aria-label={`${c.header || `列${columnIndex + 1}`} を左へ移動`}
+                  disabled={columnIndex === 0}
+                  onClick={() => onMoveColumn(c.id, -1)}
+                >
+                  <ChevronLeft className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  title="右へ移動"
+                  aria-label={`${c.header || `列${columnIndex + 1}`} を右へ移動`}
+                  disabled={columnIndex === element.columns.length - 1}
+                  onClick={() => onMoveColumn(c.id, 1)}
+                >
+                  <ChevronRight className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  title="この列を削除"
                   onClick={() => onRemoveColumn(c.id)}
                 >
                   <Trash2 className="size-3.5" />
@@ -388,6 +416,12 @@ function TableProperties({
                 value={c.format ?? ''}
                 placeholder="フォーマット (例: ${value} 名)"
                 onChange={(format) => onUpdateColumn(c.id, { format })}
+                title={`${c.header || '列'} のフォーマット`}
+                // 行ごとに評価される式なので、1 件目を見本にしてプレビューする
+                scope={{
+                  groupId: element.source.kind === 'group' ? element.source.groupId : undefined,
+                  fieldId: c.fieldId,
+                }}
               />
             </div>
           ))}
