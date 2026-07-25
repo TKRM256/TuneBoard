@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import { toast  } from 'sonner';
 
 import {
-  DEFAULT_SETTING_SHEET_CONFIG,
   getPublicSubmissionStatusMessage,
   isPublicSubmissionClosed,
   normalizeSettingSheetConfig,
@@ -38,7 +37,7 @@ interface UseSettingSheetFormParams {
 
 export function useSettingSheetForm({ publicToken, live, submission, onSubmitted }: UseSettingSheetFormParams) {
   const settingSheetConfig = useMemo(
-    () => normalizeSettingSheetConfig(live.settingSheetConfig ?? DEFAULT_SETTING_SHEET_CONFIG),
+    () => normalizeSettingSheetConfig(live.settingSheetConfig),
     [live.settingSheetConfig],
   );
   const storageKey = buildDraftStorageKey(publicToken, submission?.id);

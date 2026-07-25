@@ -207,9 +207,6 @@ export const SETTING_SHEET_APPEARANCE_OPTIONS: Array<{ value: SettingSheetBlockA
   { value: 'subtle', label: 'やわらかい面', description: '淡い背景でまとまりを見せます。' },
 ];
 
-const DEFAULT_MEMBER_PART_OPTIONS = ['Vo', 'Gt', 'Ba', 'Dr', 'Key', 'Cho', 'DJ'];
-const DEFAULT_SONG_PART_OPTIONS = ['Vo', 'Gt', 'Ba', 'Dr', 'Key', 'Cho', 'SE', '同期'];
-
 function createId() {
   return crypto.randomUUID();
 }
@@ -235,118 +232,14 @@ export function createBlockTemplate(type: SettingSheetBlockType): SettingSheetBl
   }
 }
 
-export const DEFAULT_SETTING_SHEET_CONFIG: SettingSheetConfigResponse = {
-  title: 'バンド申請フォーム',
-  description: '出演情報、メンバー、演奏曲を入力してください。',
-  submitButtonLabel: '送信する',
-  publicSubmissionEnabled: true,
-  blocks: [
-    { id: 'section-band', type: 'SECTION', label: 'バンド基本情報', description: 'バンド名、提出状況、備考を入力します。', hidden: false, required: false, collapsible: false, appearance: 'plain', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-    { id: 'band-name', type: 'SHORT_TEXT', label: 'バンド名', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-    { id: 'submission-status', type: 'SINGLE_SELECT', label: '提出状況', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: ['未完成', '完成'], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-    { id: 'detail', type: 'LONG_TEXT', label: '備考', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-    {
-      id: 'members',
-      type: 'REPEATABLE_GROUP',
-      label: '出演者',
-      description: '出演者と担当パートを入力します。',
-      hidden: false,
-      required: true,
-      collapsible: true,
-      appearance: 'subtle',
-      itemAppearance: 'outline',
-      options: [],
-      minItems: 1,
-      addButtonLabel: 'メンバー追加',
-      entryTitle: 'メンバー',
-      titleSourceFieldId: 'member-name',
-      layout: { width: 'full', optionColumns: 1, optionFitContent: false },
-      optionSource: null,
-      duplicateDetectionRole: '',
-      fields: [
-        { id: 'member-name', type: 'SHORT_TEXT', label: '氏名', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-        { id: 'member-parts', type: 'MULTI_SELECT', label: '担当パート', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [...DEFAULT_MEMBER_PART_OPTIONS], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 2, optionFitContent: true }, optionSource: null, duplicateDetectionRole: '' },
-        { id: 'member-representative', type: 'BOOLEAN', label: '代表者', description: '代表者にチェックを入れてください。', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-      ],
-    },
-    {
-      id: 'setlist',
-      type: 'REPEATABLE_GROUP',
-      label: 'セットリスト',
-      description: '曲やMCの演出順を入力します。',
-      hidden: false,
-      required: true,
-      collapsible: true,
-      appearance: 'subtle',
-      itemAppearance: 'outline',
-      options: [],
-      minItems: 1,
-      addButtonLabel: '追加',
-      entryTitle: '項目',
-      titleSourceFieldId: 'song',
-      layout: { width: 'full', optionColumns: 1, optionFitContent: false },
-      optionSource: null,
-      duplicateDetectionRole: '',
-      fields: [],
-      variants: [
-        {
-          id: 'song-entry',
-          label: '曲',
-          fields: [
-            { id: 'song', type: 'SONG', label: '楽曲', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-            { id: 'song-parts', type: 'MULTI_SELECT', label: '使うパート', description: '', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [...DEFAULT_SONG_PART_OPTIONS], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 2, optionFitContent: true }, optionSource: null, duplicateDetectionRole: '' },
-            { id: 'song-note-pa', type: 'LONG_TEXT', label: 'PAへの要望', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-            { id: 'song-note-light', type: 'LONG_TEXT', label: '照明への要望', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-            { id: 'song-note-other', type: 'LONG_TEXT', label: '備考', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-            {
-              id: 'song-mics',
-              type: 'REPEATABLE_GROUP',
-              label: '使うマイク',
-              description: '誰がどのマイクを使うか入力します。',
-              hidden: false,
-              required: false,
-              collapsible: true,
-              appearance: 'subtle',
-              itemAppearance: 'outline',
-              options: [],
-              minItems: 0,
-              addButtonLabel: 'マイク追加',
-              entryTitle: 'マイク',
-              titleSourceFieldId: 'mic-member',
-              layout: { width: 'full', optionColumns: 1, optionFitContent: false },
-              optionSource: null,
-              duplicateDetectionRole: '',
-              fields: [
-                { id: 'mic-member', type: 'SINGLE_SELECT', label: '担当者', description: '出演者から選択します。', hidden: false, required: true, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: { blockId: 'members', fieldId: 'member-name' }, duplicateDetectionRole: '' },
-                { id: 'mic-main-vocal', type: 'BOOLEAN', label: 'メインボーカル', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-              ],
-            },
-          ],
-        },
-        {
-          id: 'mc-entry',
-          label: 'MC',
-          fields: [
-            { id: 'mc-title', type: 'SHORT_TEXT', label: 'タイトル', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-            { id: 'mc-member', type: 'SINGLE_SELECT', label: '担当者', description: '出演者から選択します。', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'half', optionColumns: 1, optionFitContent: false }, optionSource: { blockId: 'members', fieldId: 'member-name' }, duplicateDetectionRole: '' },
-            { id: 'mc-content', type: 'LONG_TEXT', label: '内容・備考', description: '', hidden: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: { width: 'full', optionColumns: 1, optionFitContent: false }, optionSource: null, duplicateDetectionRole: '' },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
-export function createTemplateSettingSheetConfig(): SettingSheetConfigResponse {
-  return {
-    ...DEFAULT_SETTING_SHEET_CONFIG,
-    blocks: DEFAULT_SETTING_SHEET_CONFIG.blocks.map(cloneBlock),
-  };
-}
-
+// フォームの実際の初期構造は backend の SettingSheetConfigService.defaultSettingSheetConfig() が唯一の情報源。
+// ここでは「空の状態」だけを最小限のシェイプとして提供する。
 export function createEmptySettingSheetConfig(): SettingSheetConfigResponse {
   return {
-    ...createTemplateSettingSheetConfig(),
+    title: '',
+    description: '',
+    submitButtonLabel: '送信する',
+    publicSubmissionEnabled: true,
     blocks: [],
   };
 }
@@ -354,17 +247,6 @@ export function createEmptySettingSheetConfig(): SettingSheetConfigResponse {
 function normalizeOptions(values: string[] | undefined, fallback: string[] = []) {
   const normalized = (values ?? []).map((value) => value.trim()).filter(Boolean);
   return normalized.length > 0 ? Array.from(new Set(normalized)) : fallback;
-}
-
-function cloneBlock(block: SettingSheetBlock): SettingSheetBlock {
-  return {
-    ...block,
-    options: [...block.options],
-    fields: block.fields.map(cloneBlock),
-    layout: { ...block.layout },
-    optionSource: block.optionSource ? { ...block.optionSource } : null,
-    variants: (block.variants ?? []).map((v) => ({ ...v, fields: v.fields.map(cloneBlock) })),
-  };
 }
 
 export function isOptionBlock(type: SettingSheetBlockType) {
@@ -407,17 +289,17 @@ export function getGroupItemFields(block: SettingSheetBlock, variantId: string):
 
 export function normalizeSettingSheetConfig(config: SettingSheetConfigResponse | null | undefined): SettingSheetConfigResponse {
   if (!config) {
-    return createTemplateSettingSheetConfig();
+    return createEmptySettingSheetConfig();
   }
 
   const blocks = (config.blocks ?? []).map((block, index) => normalizeBlock(block, `${index + 1}`));
 
   return {
-    title: config.title?.trim() || DEFAULT_SETTING_SHEET_CONFIG.title,
-    description: config.description?.trim() || DEFAULT_SETTING_SHEET_CONFIG.description,
-    submitButtonLabel: config.submitButtonLabel?.trim() || DEFAULT_SETTING_SHEET_CONFIG.submitButtonLabel,
+    title: config.title?.trim() || '',
+    description: config.description?.trim() || '',
+    submitButtonLabel: config.submitButtonLabel?.trim() || '送信する',
     publicSubmissionEnabled: config.publicSubmissionEnabled === true,
-    blocks: config.blocks == null ? createTemplateSettingSheetConfig().blocks : blocks,
+    blocks: config.blocks == null ? [] : blocks,
   };
 }
 

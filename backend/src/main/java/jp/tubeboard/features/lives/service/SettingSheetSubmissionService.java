@@ -5,6 +5,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -25,6 +27,7 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.Varia
 @Service
 public class SettingSheetSubmissionService {
 
+    private static final Logger log = LoggerFactory.getLogger(SettingSheetSubmissionService.class);
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
     public PublicSettingSheetSubmissionRequest normalizeSubmissionRequest(PublicSettingSheetSubmissionRequest request) {
@@ -64,6 +67,7 @@ public class SettingSheetSubmissionService {
             return normalizeSubmissionRequest(
                     objectMapper.readValue(payloadJson, PublicSettingSheetSubmissionRequest.class));
         } catch (JsonProcessingException ex) {
+            log.warn("提出データのデシリアライズに失敗、空データとして処理: {}", ex.getMessage());
             return new PublicSettingSheetSubmissionRequest(List.of(), null);
         }
     }
