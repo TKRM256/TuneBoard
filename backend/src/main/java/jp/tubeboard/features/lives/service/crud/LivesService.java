@@ -22,6 +22,7 @@ import jp.tubeboard.features.lives.dto.request.PublicSongDuplicateCheckRequest;
 import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
+import jp.tubeboard.features.lives.exception.SettingSheetSubmissionConflictException;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
 import jp.tubeboard.features.lives.pdf.SettingSheetPdfService;
@@ -266,6 +267,7 @@ public class LivesService implements ILivesService {
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
+                                submission.getVersion(),
                                 settingSheetSubmissionService.mapFieldAnswers(payload.answers()),
                                 helper.mapItunesLinks(submission.getId()));
         }
@@ -287,6 +289,7 @@ public class LivesService implements ILivesService {
                                                         submission.getRecordLabel(),
                                                         submission.getSubmissionStatus(),
                                                         submission.getCreatedAt(),
+                                                        submission.getVersion(),
                                                         settingSheetSubmissionService
                                                                         .mapFieldAnswers(payload.answers()),
                                                         List.of());
@@ -305,6 +308,7 @@ public class LivesService implements ILivesService {
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
+                                submission.getVersion(),
                                 settingSheetSubmissionService.mapFieldAnswers(payload.answers()),
                                 helper.mapItunesLinks(submission.getId()));
         }
@@ -330,6 +334,7 @@ public class LivesService implements ILivesService {
                                 settingSheetSubmissionService.resolveSharedRecordLabel(config, sharedPayload),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
+                                submission.getVersion(),
                                 settingSheetSubmissionService.mapFieldAnswers(sharedPayload.answers()),
                                 List.of());
         }
@@ -360,6 +365,7 @@ public class LivesService implements ILivesService {
                                                                         sharedPayload),
                                                         submission.getSubmissionStatus(),
                                                         submission.getCreatedAt(),
+                                                        submission.getVersion(),
                                                         settingSheetSubmissionService
                                                                         .mapFieldAnswers(sharedPayload.answers()),
                                                         List.of());
@@ -371,12 +377,29 @@ public class LivesService implements ILivesService {
         @Transactional
         public SettingSheetSubmissionResponse updatePublicSettingSheetSubmission(String publicToken,
                         UUID submissionId,
+                        Long baseVersion,
                         PublicSettingSheetSubmissionRequest request) {
                 SettingSheetSubmission submission = helper.findPublicSubmission(publicToken, submissionId);
+                assertNoConcurrentUpdate(publicToken, submissionId, baseVersion, submission);
                 SettingSheetSubmissionResponse response = helper.saveSubmission(submission.getLive(), request,
                                 submission);
                 helper.triggerDuplicateDetection(submission.getLive().getId());
                 return response;
+        }
+
+        /**
+         * 読み込み時点の版と現在の版が食い違う場合、最新の提出内容を添えて 409 を返す。
+         * baseVersion が null のクライアントはチェックせず、従来どおり上書きする。
+         */
+        private void assertNoConcurrentUpdate(String publicToken, UUID submissionId, Long baseVersion,
+                        SettingSheetSubmission submission) {
+                if (baseVersion == null || baseVersion.equals(submission.getVersion())) {
+                        return;
+                }
+
+                throw new SettingSheetSubmissionConflictException(
+                                "他の人がこのシートを更新しました",
+                                getPublicSettingSheetSubmission(publicToken, submissionId));
         }
 
         @Override

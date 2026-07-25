@@ -239,7 +239,7 @@ function normalizeScalarValues(candidate: unknown) {
   return Array.isArray(candidate) ? candidate.map((value) => String(value).trim()).filter(Boolean) : [];
 }
 
-function matchItunesLinksToGroupItems(
+export function matchItunesLinksToGroupItems(
   blocks: SettingSheetBlock[],
   answers: Record<string, SettingSheetFieldValue>,
   serverLinks: ItunesLinkSelection[],

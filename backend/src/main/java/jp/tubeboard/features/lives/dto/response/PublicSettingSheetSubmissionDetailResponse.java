@@ -9,6 +9,7 @@ public record PublicSettingSheetSubmissionDetailResponse(
                 String recordLabel,
                 String submissionStatus,
                 LocalDateTime submittedAt,
+                Long version,
                 List<FieldAnswerResponse> answers,
                 List<ItunesLinkResponse> itunesLinks) {
 

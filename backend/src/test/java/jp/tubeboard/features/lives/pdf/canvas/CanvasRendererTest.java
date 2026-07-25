@@ -195,7 +195,7 @@ class CanvasRendererTest {
                         new FieldAnswerResponse("member-name", List.of("佐藤"), List.of()),
                         new FieldAnswerResponse("member-parts", List.of("Ba"), List.of())))));
         return new PublicSettingSheetSubmissionDetailResponse(UUID.randomUUID(), "KingGnu", "完成",
-                LocalDateTime.of(2026, 6, 20, 12, 0), List.of(bandName, memberItems), List.of());
+                LocalDateTime.of(2026, 6, 20, 12, 0), 0L, List.of(bandName, memberItems), List.of());
     }
 
     private FormBlockResponse leaf(String id, String type, String label) {

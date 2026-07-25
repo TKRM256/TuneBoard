@@ -127,6 +127,65 @@ class PublicLivesControllerIntegrationTest {
         }
 
         @Test
+        void baseVersionが一致する更新は成功しversionがインクリメントされる() throws Exception {
+                Live live = createPublicLive();
+                UUID submissionId = submitAndGetId(live, "Original Band");
+
+                long submittedVersion = fetchSubmission(live, submissionId).path("version").asLong();
+
+                mockMvc.perform(put("/api/public/lives/{publicToken}/setting-sheet/submissions/{submissionId}",
+                                live.getPublicToken(), submissionId)
+                                .param("baseVersion", String.valueOf(submittedVersion))
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createSubmissionRequest("Updated Band"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.version").value(submittedVersion + 1));
+        }
+
+        @Test
+        void 古いbaseVersionで更新すると409と最新の提出内容が返る() throws Exception {
+                Live live = createPublicLive();
+                UUID submissionId = submitAndGetId(live, "Original Band");
+
+                long staleVersion = fetchSubmission(live, submissionId).path("version").asLong();
+
+                // 先に別の人が更新して version を進める
+                mockMvc.perform(put("/api/public/lives/{publicToken}/setting-sheet/submissions/{submissionId}",
+                                live.getPublicToken(), submissionId)
+                                .param("baseVersion", String.valueOf(staleVersion))
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createSubmissionRequest("Their Band"))))
+                                .andExpect(status().isOk());
+
+                mockMvc.perform(put("/api/public/lives/{publicToken}/setting-sheet/submissions/{submissionId}",
+                                live.getPublicToken(), submissionId)
+                                .param("baseVersion", String.valueOf(staleVersion))
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createSubmissionRequest("My Band"))))
+                                .andExpect(status().isConflict())
+                                .andExpect(jsonPath("$.message").value("他の人がこのシートを更新しました"))
+                                .andExpect(jsonPath("$.latest.version").value(staleVersion + 1))
+                                .andExpect(jsonPath("$.latest.answers[0].values[0]").value("Their Band"));
+
+                // 競合した更新は反映されていない
+                assertThat(settingSheetSubmissionRepository.findById(submissionId).orElseThrow().getRecordLabel())
+                                .isEqualTo("Their Band");
+        }
+
+        @Test
+        void baseVersion未指定の更新は従来どおり成功する() throws Exception {
+                Live live = createPublicLive();
+                UUID submissionId = submitAndGetId(live, "Original Band");
+
+                mockMvc.perform(put("/api/public/lives/{publicToken}/setting-sheet/submissions/{submissionId}",
+                                live.getPublicToken(), submissionId)
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createSubmissionRequest("Updated Band"))))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.recordLabel").value("Updated Band"));
+        }
+
+        @Test
         void hiddenな必須項目は未入力でも公開APIのバリデーションを通過する() throws Exception {
                 Live live = createPublicLive(createHiddenSectionConfig());
 
@@ -259,6 +318,29 @@ class PublicLivesControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(createSubmissionRequest("Late Band"))))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.message").value("回答受付は終了しました"));
+        }
+
+        private UUID submitAndGetId(Live live, String bandName) throws Exception {
+                MvcResult result = mockMvc.perform(
+                                post("/api/public/lives/{publicToken}/setting-sheet/submissions", live.getPublicToken())
+                                                .contentType(APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(
+                                                                createSubmissionRequest(bandName))))
+                                .andExpect(status().isOk())
+                                .andReturn();
+
+                return UUID.fromString(
+                                objectMapper.readTree(result.getResponse().getContentAsString()).path("id").asText());
+        }
+
+        private JsonNode fetchSubmission(Live live, UUID submissionId) throws Exception {
+                MvcResult result = mockMvc.perform(
+                                get("/api/public/lives/{publicToken}/setting-sheet/submissions/{submissionId}",
+                                                live.getPublicToken(), submissionId))
+                                .andExpect(status().isOk())
+                                .andReturn();
+
+                return objectMapper.readTree(result.getResponse().getContentAsString());
         }
 
         private Live createPublicLive() throws Exception {

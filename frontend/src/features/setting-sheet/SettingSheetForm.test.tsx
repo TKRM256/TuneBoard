@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PublicLiveResponse, PublicSettingSheetSubmissionDetailResponse } from '@/features/lives/types/live-types';
+import { ApiClientError } from '@/lib/api/type';
 
 import { SettingSheetForm } from './components/SettingSheetForm';
 
@@ -125,6 +126,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Saved Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      version: 3,
       itunesLinks: [],
       answers: [
         {
@@ -139,6 +141,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Updated Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      version: 4,
     });
 
     render(<SettingSheetForm publicToken="public-token" live={baseLive} submission={submission} />);
@@ -151,16 +154,19 @@ describe('SettingSheetForm', () => {
     await userEvent.click(screen.getByRole('button', { name: '更新する' }));
 
     await waitFor(() => {
-      expect(mockPut).toHaveBeenCalledWith('/public/lives/public-token/setting-sheet/submissions/submission-42', {
-        answers: [
-          {
-            fieldId: 'band-name',
-            values: ['Updated Band'],
-            items: [],
-          },
-        ],
-        itunesLinks: null,
-      });
+      expect(mockPut).toHaveBeenCalledWith(
+        '/public/lives/public-token/setting-sheet/submissions/submission-42?baseVersion=3',
+        {
+          answers: [
+            {
+              fieldId: 'band-name',
+              values: ['Updated Band'],
+              items: [],
+            },
+          ],
+          itunesLinks: null,
+        },
+      );
     });
 
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -258,6 +264,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Section Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      version: 0,
       itunesLinks: [],
       answers: [
         {
@@ -349,6 +356,64 @@ describe('SettingSheetForm', () => {
         ],
         itunesLinks: null,
       });
+    });
+  });
+
+  it('更新が競合したらマージ画面を出し、選択した内容で保存し直す', async () => {
+    const submission: PublicSettingSheetSubmissionDetailResponse = {
+      id: 'submission-7',
+      recordLabel: 'Base Band',
+      submissionStatus: 'SUBMITTED',
+      submittedAt: '2026-03-11T20:00:00',
+      version: 3,
+      itunesLinks: [],
+      answers: [{ fieldId: 'band-name', values: ['Base Band'], items: [] }],
+    };
+
+    mockPut
+      .mockRejectedValueOnce(new ApiClientError(409, undefined, {
+        status: 409,
+        error: 'Conflict',
+        message: '他の人がこのシートを更新しました',
+        latest: {
+          ...submission,
+          version: 4,
+          recordLabel: 'Their Band',
+          answers: [{ fieldId: 'band-name', values: ['Their Band'], items: [] }],
+        },
+      }))
+      .mockResolvedValueOnce({
+        id: 'submission-7',
+        recordLabel: 'Their Band',
+        submissionStatus: 'SUBMITTED',
+        submittedAt: '2026-03-11T20:00:00',
+        version: 5,
+      });
+
+    render(<SettingSheetForm publicToken="public-token" live={baseLive} submission={submission} />);
+
+    const input = screen.getByRole('textbox', { name: /バンド名/ });
+    await userEvent.clear(input);
+    await userEvent.type(input, 'My Band');
+    await userEvent.click(screen.getByRole('button', { name: '更新する' }));
+
+    expect(await screen.findByText('他の人がこのシートを更新しました')).toBeInTheDocument();
+
+    // 双方が変更したので既定選択は無く、選ぶまで確定できない
+    const confirmButton = screen.getByRole('button', { name: 'この内容で保存' });
+    expect(confirmButton).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: /相手\s*Their Band/ }));
+    await userEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(mockPut).toHaveBeenLastCalledWith(
+        '/public/lives/public-token/setting-sheet/submissions/submission-7?baseVersion=4',
+        {
+          answers: [{ fieldId: 'band-name', values: ['Their Band'], items: [] }],
+          itunesLinks: null,
+        },
+      );
     });
   });
 
