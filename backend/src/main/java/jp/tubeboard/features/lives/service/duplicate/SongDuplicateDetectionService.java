@@ -80,7 +80,7 @@ public class SongDuplicateDetectionService {
                 doComputeAndStore(liveId, false);
             });
         } catch (Exception ex) {
-            log.warn("曲かぶり検出の非同期処理に失敗: liveId={}", liveId, ex);
+            log.error("曲かぶり検出の非同期処理に失敗: liveId={}", liveId, ex);
         }
     }
 
@@ -200,7 +200,7 @@ public class SongDuplicateDetectionService {
             stored.setSubmissionsFingerprint(fingerprint);
             songDuplicateResultRepository.save(stored);
         } catch (Exception ex) {
-            log.warn("曲かぶり検出結果の保存に失敗: liveId={}", liveId, ex);
+            log.error("曲かぶり検出結果の保存に失敗: liveId={}", liveId, ex);
         }
 
         return result;

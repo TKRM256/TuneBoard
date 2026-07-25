@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast  } from 'sonner';
 
 import {
-  DEFAULT_SETTING_SHEET_CONFIG,
   getPublicSubmissionStatusMessage,
   isPublicSubmissionClosed,
   normalizeSettingSheetConfig,
   type PublicLiveResponse,
   type PublicSettingSheetSubmissionDetailResponse,
+  type SettingSheetBlock,
+  type SettingSheetConfigResponse,
   type SettingSheetSubmissionResponse,
 } from '@/features/lives/types/live-types';
 import { apiClient } from '@/lib/api/client';
@@ -35,7 +36,7 @@ interface UseSettingSheetFormParams {
 
 export function useSettingSheetForm({ publicToken, live, submission, onSubmitted }: UseSettingSheetFormParams) {
   const settingSheetConfig = useMemo(
-    () => normalizeSettingSheetConfig(live.settingSheetConfig ?? DEFAULT_SETTING_SHEET_CONFIG),
+    () => normalizeSettingSheetConfig(live.settingSheetConfig),
     [live.settingSheetConfig],
   );
   const storageKey = submission
@@ -230,7 +231,7 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
   };
 }
 
-function resolveIssueLabel(key: string, config: typeof DEFAULT_SETTING_SHEET_CONFIG) {
+function resolveIssueLabel(key: string, config: SettingSheetConfigResponse) {
   const fieldId = key.match(/answers\.(.+?)(?:\.items|$)/)?.[1];
   if (!fieldId) {
     return key;
@@ -239,7 +240,7 @@ function resolveIssueLabel(key: string, config: typeof DEFAULT_SETTING_SHEET_CON
   return findBlockLabel(config.blocks, fieldId) ?? fieldId;
 }
 
-function findBlockLabel(blocks: typeof DEFAULT_SETTING_SHEET_CONFIG.blocks, fieldId: string): string | null {
+function findBlockLabel(blocks: SettingSheetBlock[], fieldId: string): string | null {
   for (const block of blocks) {
     if (block.id === fieldId) {
       return block.label;

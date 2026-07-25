@@ -49,7 +49,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             } else if (status >= 400) {
                 log.warn("{} {} -> {} ({}ms)", method, uri, status, durationMs);
             } else {
-                log.info("{} {} -> {} ({}ms)", method, uri, status, durationMs);
+                log.debug("{} {} -> {} ({}ms)", method, uri, status, durationMs);
             }
             MDC.clear();
         }

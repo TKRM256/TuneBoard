@@ -50,8 +50,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         null,
                         List.of(new SimpleGrantedAuthority("ROLE_USER")));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (Exception ignored) {
-                log.debug("JWT認証に失敗: {}", ignored.getMessage());
+            } catch (Exception ex) {
+                log.warn("JWT解析に失敗、未認証として処理: {}", ex.getMessage());
                 SecurityContextHolder.clearContext();
             }
         }
