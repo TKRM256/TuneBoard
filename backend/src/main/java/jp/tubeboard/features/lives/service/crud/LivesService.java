@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +43,8 @@ import lombok.AllArgsConstructor;
 @Transactional(readOnly = true)
 public class LivesService implements ILivesService {
 
+        private static final Logger log = LoggerFactory.getLogger(LivesService.class);
+
         private final LiveRepository liveRepository;
         private final UserService userService;
         private final SettingSheetConfigService settingSheetConfigService;
@@ -69,7 +73,9 @@ public class LivesService implements ILivesService {
                                                 settingSheetConfigService.defaultSettingSheetConfig()))
                                 .build();
 
-                return helper.toResponse(liveRepository.save(live));
+                LiveResponse response = helper.toResponse(liveRepository.save(live));
+                log.info("ライブを作成: id={}, tenantId={}, name={}", response.id(), request.tenantId(), request.name());
+                return response;
         }
 
         @Override
@@ -238,6 +244,7 @@ public class LivesService implements ILivesService {
                 Live live = liveRepository.findByPublicTokenAndDeletedAtIsNull(publicToken)
                                 .orElseThrow(() -> new LivesNotFoundException("公開ライブが見つかりません"));
                 SettingSheetSubmissionResponse response = helper.saveSubmission(live, request, null);
+                log.info("セッティングシート提出を受信: liveId={}, submissionId={}", live.getId(), response.id());
                 helper.triggerDuplicateDetection(live.getId());
                 return response;
         }
@@ -421,6 +428,7 @@ public class LivesService implements ILivesService {
                         byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail, canvas);
                         return new SubmissionPdfResult(bytes, detail.recordLabel());
                 } catch (IOException ex) {
+                        log.error("PDF生成に失敗: liveId={}, submissionId={}", liveId, submissionId, ex);
                         throw new UncheckedIOException("PDF生成に失敗しました", ex);
                 }
         }
@@ -438,6 +446,7 @@ public class LivesService implements ILivesService {
                         byte[] bytes = settingSheetPdfService.generateZip(inputs, canvas);
                         return new SubmissionPdfResult(bytes, live.getName() + "_セッティングシート");
                 } catch (IOException ex) {
+                        log.error("PDF ZIP生成に失敗: liveId={}, submissions={}", liveId, submissionIds.size(), ex);
                         throw new UncheckedIOException("PDF Zip生成に失敗しました", ex);
                 }
         }
