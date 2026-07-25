@@ -14,7 +14,6 @@ import java.util.UUID;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +27,7 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormB
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.LayoutResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 import jp.tubeboard.features.lives.model.LiveStatus;
+import jp.tubeboard.features.lives.pdf.FontChain;
 import jp.tubeboard.features.lives.pdf.PdfFontLoader;
 import jp.tubeboard.features.lives.pdf.PdfOrientation;
 import jp.tubeboard.features.lives.pdf.PdfPaperSize;
@@ -123,6 +123,30 @@ class CanvasRendererTest {
     }
 
     @Test
+    void invisibleFormatCharactersAreDroppedInsteadOfCrashing() throws IOException {
+        // U+202A/U+202C (LEFT-TO-RIGHT EMBEDDING / POP DIRECTIONAL FORMATTING) commonly
+        // sneak into copy-pasted band/song names. No font maps a real glyph to them, so
+        // the renderer must drop them rather than let PDFBox blow up the whole PDF.
+        String withBidiMarks = "‪King Gnu‬";
+        CanvasDocument doc = new CanvasDocument(
+                new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 10f),
+                List.of(text("t", 10, 10, 100, 12, withBidiMarks, 12f, false)));
+        String rendered = renderToText(doc);
+        assertTrue(rendered.contains("King Gnu"), "visible text should survive: " + rendered);
+    }
+
+    @Test
+    void fallbackFontsRenderScriptsIpaexGothicLacks() throws IOException {
+        // Song/artist names pulled from the iTunes catalog can be in any script.
+        CanvasDocument doc = new CanvasDocument(
+                new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 10f),
+                List.of(text("t", 10, 10, 150, 12, "뉴진스 Новый Мир", 12f, false)));
+        String rendered = renderToText(doc);
+        assertTrue(rendered.contains("뉴진스"), "Hangul should render via the NotoSansKR fallback: " + rendered);
+        assertTrue(rendered.contains("Новый"), "Cyrillic should render via the NotoSans fallback: " + rendered);
+    }
+
+    @Test
     void emptyCanvasProducesSinglePage() throws IOException {
         CanvasDocument doc = new CanvasDocument(
                 new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 10f),
@@ -153,9 +177,9 @@ class CanvasRendererTest {
 
     private PDDocument render(CanvasDocument doc) throws IOException {
         PDDocument pdf = new PDDocument();
-        PDType0Font font = fontLoader.load(pdf);
+        FontChain fontChain = fontLoader.loadFontChain(pdf);
         CanvasRenderer renderer = new CanvasRenderer(evaluator, sampleLive(), sampleConfig(), sampleSubmission());
-        renderer.render(doc, pdf, font);
+        renderer.render(doc, pdf, fontChain);
         return pdf;
     }
 

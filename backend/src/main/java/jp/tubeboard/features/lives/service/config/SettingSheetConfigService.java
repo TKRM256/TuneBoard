@@ -31,7 +31,7 @@ public class SettingSheetConfigService {
                                                 formBuilderHelper.layoutThird(1)),
                                 formBuilderHelper.selectBlock("member-parts", SettingSheetConstants.BLOCK_MULTI_SELECT,
                                                 "担当パート", true,
-                                                List.of("Vo", "Gt", "Ba", "Dr", "Keyboard", "その他"), null,
+                                                List.of("Vocal", "Guitar", "Bass", "Drum", "Keyboard", "その他"), null,
                                                 formBuilderHelper.layoutFull(3)));
 
                 List<FormBlockResponse> songMicFields = List.of(
