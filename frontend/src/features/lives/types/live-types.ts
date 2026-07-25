@@ -106,11 +106,21 @@ export interface SettingSheetSubmissionResponse {
   recordLabel: string;
   submissionStatus: string;
   submittedAt: string;
+  /** 楽観ロック用の版番号。更新時に baseVersion として送り返す。 */
+  version: number;
 }
 
 export interface PublicSettingSheetSubmissionDetailResponse extends SettingSheetSubmissionResponse {
   answers: SettingSheetSubmissionAnswerResponse[];
   itunesLinks: ItunesLinkSelection[];
+}
+
+/** 提出済みシートの更新が競合したときに 409 で返るボディ。 */
+export interface SettingSheetSubmissionConflictBody {
+  status: number;
+  error: string;
+  message: string;
+  latest: PublicSettingSheetSubmissionDetailResponse;
 }
 
 export interface SongDuplicateResponse {

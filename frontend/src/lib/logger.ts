@@ -1,7 +1,3 @@
-/**
- * 簡易ロガー。開発時はすべてのレベルを出力し、本番では warn 以上のみ出力する。
- */
-
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 const LOG_LEVELS: Record<LogLevel, number> = {

@@ -23,6 +23,7 @@ import {
 } from '../types';
 import { SettingSheetFieldRenderer } from './SettingSheetFieldRenderer';
 import { useSettingSheetForm } from '../hooks/useSettingSheetForm';
+import { MergeConflictDialog } from '../merge/components/MergeConflictDialog';
 
 interface SettingSheetFormProps {
   publicToken: string;
@@ -47,6 +48,13 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
     updateScopedAnswers,
     submittedFormUrl,
     copySubmittedFormUrl,
+    mergeNodes,
+    mergeRows,
+    mergeSelections,
+    isMergeOpen,
+    selectMergeChoice,
+    closeMerge,
+    confirmMerge,
   } = useSettingSheetForm({
     publicToken,
     live,
@@ -197,6 +205,17 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
           </div>
         </main>
       </div>
+
+      <MergeConflictDialog
+        open={isMergeOpen}
+        onOpenChange={(open) => { if (!open) closeMerge(); }}
+        nodes={mergeNodes}
+        rows={mergeRows}
+        selections={mergeSelections}
+        onSelect={selectMergeChoice}
+        onConfirm={confirmMerge}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 };

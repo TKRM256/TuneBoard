@@ -50,17 +50,24 @@ export function buildSnippetGroups(catalog: FieldCatalog): SnippetGroup[] {
     pushGroupSnippets(group, groups, []);
   }
 
+  // ヘルパーの雛形にはプレースホルダではなく実在するグループ／フィールドの ID を埋める。
+  // そのまま挿入して動く状態にしておき、必要なら差し替えてもらう。
+  const sampleGroup = catalog.groups[0];
+  const sampleField = sampleGroup?.fields[0];
+  const groupRef = sampleGroup ? `groups['${sampleGroup.fieldId}']` : "groups['グループを選択']";
+  const fieldId = sampleField ? sampleField.id : 'フィールドを選択';
+
   groups.push({
     title: 'ヘルパー関数',
     entries: [
-      { label: 'mapJoin(items, fn, 区切り)', expression: "mapJoin(groups['ID'].items, (m) -> m.field('field-id').value, ' / ')", hint: "ラムダで変換しながら全件結合 (推奨)。区切りに '\\n' で改行も可" },
-      { label: 'map(items, fn)', expression: "map(groups['ID'].items, (m) -> m.field('field-id').value)", hint: '各アイテムをラムダで変換してリストに' },
-      { label: 'filter(items, predicate)', expression: "filter(groups['ID'].items, (m) -> m.field('field-id').value == 'x')", hint: '条件に合うアイテムだけ抽出' },
-      { label: 'find(items, predicate)', expression: "find(groups['ID'].items, (m) -> m.field('field-id').value == 'x')", hint: '最初のマッチを返す' },
+      { label: 'mapJoin(items, fn, 区切り)', expression: `mapJoin(${groupRef}.items, (m) -> m.field('${fieldId}').value, ' / ')`, hint: "ラムダで変換しながら全件結合 (推奨)。区切りに '\\n' で改行も可" },
+      { label: 'map(items, fn)', expression: `map(${groupRef}.items, (m) -> m.field('${fieldId}').value)`, hint: '各アイテムをラムダで変換してリストに' },
+      { label: 'filter(items, predicate)', expression: `filter(${groupRef}.items, (m) -> m.field('${fieldId}').value == 'x')`, hint: '条件に合うアイテムだけ抽出' },
+      { label: 'find(items, predicate)', expression: `find(${groupRef}.items, (m) -> m.field('${fieldId}').value == 'x')`, hint: '最初のマッチを返す' },
       { label: 'join(配列, 区切り)', expression: "join(values, ' / ')", hint: '配列・グループを区切り結合' },
-      { label: 'joinField(グループ, fieldId, 区切り)', expression: "joinField(groups['ID'], 'field-id', ' / ')", hint: '繰り返し項目から1フィールドを連結' },
-      { label: 'pluck(グループ, fieldId)', expression: "pluck(groups['ID'], 'field-id')", hint: '繰り返し項目から1フィールドの配列を取得' },
-      { label: 'filterEquals(グループ, fieldId, 値)', expression: "filterEquals(groups['ID'], 'field-id', 'true')", hint: '条件に合う行だけ抽出' },
+      { label: 'joinField(グループ, fieldId, 区切り)', expression: `joinField(${groupRef}, '${fieldId}', ' / ')`, hint: '繰り返し項目から1フィールドを連結' },
+      { label: 'pluck(グループ, fieldId)', expression: `pluck(${groupRef}, '${fieldId}')`, hint: '繰り返し項目から1フィールドの配列を取得' },
+      { label: 'filterEquals(グループ, fieldId, 値)', expression: `filterEquals(${groupRef}, '${fieldId}', 'true')`, hint: '条件に合う行だけ抽出' },
       { label: 'count(リスト)', expression: 'count(values)', hint: '件数' },
       { label: 'boolMark(値)', expression: 'boolMark(value)', hint: 'true→○ / false→×' },
       { label: 'truncate(文字列, n)', expression: 'truncate(value, 30)', hint: '末尾省略' },
@@ -77,25 +84,39 @@ function pushGroupSnippets(group: CatalogGroup, target: SnippetGroup[], parentId
   const groupRef = parentIds.length > 0
     ? buildItemPath(parentIds, group.fieldId)
     : `groups['${group.fieldId}']`;
-  const entries: SnippetEntry[] = [];
+  const entries: SnippetEntry[] = [
+    {
+      label: `${group.label}の件数`,
+      expression: `count(${groupRef})`,
+      hint: group.pathLabel,
+      keywords: `${group.label} count 件数`,
+    },
+  ];
 
-  for (const f of group.fields) {
-  entries.push({
-      label: `${f.label} のid`,
-      expression: `'${f.id}'`,
-      hint: `${group.pathLabel} > ${f.label}`,
-      keywords: f.label + f.id,
+  // 各フィールドは「全件を区切り連結」と「1件目だけ」をそのまま挿せる形で出す。
+  // ID はここで埋め込むので、ユーザーが UUID を手で貼る必要はない。
+  for (const field of group.fields) {
+    entries.push({
+      label: `${field.label}（全件を連結）`,
+      expression: `joinField(${groupRef}, '${field.id}', ', ')`,
+      hint: `${group.pathLabel} > ${field.label}`,
+      keywords: `${field.label} ${group.label} join 連結`,
+    });
+    entries.push({
+      label: `${field.label}（1件目）`,
+      expression: `${groupRef}.items[0].field('${field.id}').value`,
+      hint: `${group.pathLabel} > ${field.label}`,
+      keywords: `${field.label} ${group.label}`,
     });
   }
 
   if (group.fields.length > 0) {
     const first = group.fields[0];
     entries.push({
-      label: 'groupのフィールド値',
-      expression: parentIds.length > 0
-        ? `${groupRef}`
-        : `groups['${group.fieldId}']`,
-      hint: `${first.label}`,
+      label: `${group.label}を1行ずつ改行で並べる`,
+      expression: `mapJoin(${groupRef}.items, (m) -> m.field('${first.id}').value, '\\n')`,
+      hint: `${group.pathLabel} > ${first.label}`,
+      keywords: `${group.label} mapJoin 改行 一覧`,
     });
   }
 

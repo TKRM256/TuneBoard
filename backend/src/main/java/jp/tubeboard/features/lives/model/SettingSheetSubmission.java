@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jp.tubeboard.common.model.Audit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,4 +45,9 @@ public class SettingSheetSubmission extends Audit {
 
     @Column(name = "payload_json", nullable = false, columnDefinition = "TEXT")
     private String payloadJson;
+
+    /** 楽観ロック用。公開フォームの同時編集を検出するために使う。 */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 }

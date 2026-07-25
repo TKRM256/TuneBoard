@@ -4,6 +4,7 @@ export {
   createGroupItemValue,
   createSettingSheetFieldValue,
   createSettingSheetValuesFromSubmissionAnswers,
+  matchItunesLinksToGroupItems,
   normalizeValuesForBlocks,
   parseSettingSheetDraft,
   type SettingSheetDraft,

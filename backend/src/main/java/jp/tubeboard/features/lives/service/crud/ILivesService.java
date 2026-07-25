@@ -64,6 +64,7 @@ public interface ILivesService {
 
         SettingSheetSubmissionResponse updatePublicSettingSheetSubmission(String publicToken,
                         UUID submissionId,
+                        Long baseVersion,
                         PublicSettingSheetSubmissionRequest request);
 
         void deleteSubmission(UUID liveId, UUID submissionId);

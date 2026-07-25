@@ -16,7 +16,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
+import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionConflictResponse;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
+import jp.tubeboard.features.lives.exception.SettingSheetSubmissionConflictException;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasException;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
 
@@ -71,6 +75,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ TenantsNotFoundException.class, LivesNotFoundException.class })
     public ResponseEntity<ApiErrorResponse> handleDomainNotFound(RuntimeException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(SettingSheetSubmissionConflictException.class)
+    public ResponseEntity<SettingSheetSubmissionConflictResponse> handleSubmissionConflict(
+            SettingSheetSubmissionConflictException ex) {
+        log.warn("提出済みシートの競合を検出しました: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new SettingSheetSubmissionConflictResponse(
+                        HttpStatus.CONFLICT.value(),
+                        HttpStatus.CONFLICT.getReasonPhrase(),
+                        ex.getMessage(),
+                        ex.latest()));
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiErrorResponse> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        log.warn("楽観ロックの競合が発生しました: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, "他の人がこのシートを更新しました。ページを再読み込みしてください。");
     }
 
     @ExceptionHandler(CanvasException.class)
