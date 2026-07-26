@@ -135,7 +135,7 @@ export const PdfCanvasCopyDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>他のライブからPDFレイアウトを取り込む</DialogTitle>
           <DialogDescription>
@@ -145,8 +145,9 @@ export const PdfCanvasCopyDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {plan ? (
-          <div className="space-y-4">
+        <div className="min-h-0 overflow-y-auto">
+          {plan ? (
+            <div className="space-y-4">
             <RadioGroup value={mode} onValueChange={(value) => setMode(value as PdfCanvasCopyMode)} className="gap-2">
               <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <RadioGroupItem value="replace" />
@@ -173,24 +174,24 @@ export const PdfCanvasCopyDialog = ({
               </span>
             </label>
 
-            <CopyChecklist
-              items={items}
-              selected={selectedIds}
-              onToggle={toggle}
-              emptyMessage="取り込める要素がありません。"
-              className="max-h-[320px]"
+              <CopyChecklist
+                items={items}
+                selected={selectedIds}
+                onToggle={toggle}
+                emptyMessage="取り込める要素がありません。"
+              />
+            </div>
+          ) : (
+            <CopySourcePicker
+              sources={sources}
+              isLoading={isLoading || isFetching}
+              selectedId={null}
+              onSelect={handleSelectSource}
+              isAvailable={(candidate) => candidate.hasPdfCanvas}
+              unavailableLabel="PDFレイアウト未保存"
             />
-          </div>
-        ) : (
-          <CopySourcePicker
-            sources={sources}
-            isLoading={isLoading || isFetching}
-            selectedId={null}
-            onSelect={handleSelectSource}
-            isAvailable={(candidate) => candidate.hasPdfCanvas}
-            unavailableLabel="PDFレイアウト未保存"
-          />
-        )}
+          )}
+        </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
           {plan ? (

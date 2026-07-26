@@ -140,7 +140,7 @@ export const SubmissionValueCopyDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>前回の入力を取り込む</DialogTitle>
           <DialogDescription>
@@ -150,34 +150,35 @@ export const SubmissionValueCopyDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {plan ? (
-          <div className="space-y-3">
-            <CopyChecklist
-              items={items}
-              selected={selectedKeys}
-              onToggle={toggle}
-              emptyMessage="このフォームに取り込める項目がありませんでした。"
-              className="max-h-[360px]"
-            />
-            {plan.unmatchedLabels.length > 0 ? (
-              <p className="text-xs text-muted-foreground wrap-break-word">
-                取り込み元に内容が無い項目: {plan.unmatchedLabels.join(' / ')}
+        <div className="min-h-0 overflow-y-auto">
+          {plan ? (
+            <div className="space-y-3">
+              <CopyChecklist
+                items={items}
+                selected={selectedKeys}
+                onToggle={toggle}
+                emptyMessage="このフォームに取り込める項目がありませんでした。"
+              />
+              {plan.unmatchedLabels.length > 0 ? (
+                <p className="text-xs text-muted-foreground wrap-break-word">
+                  取り込み元に内容が無い項目: {plan.unmatchedLabels.join(' / ')}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Input
+                value={link}
+                onChange={(event) => setLink(event.target.value)}
+                placeholder="https://.../public/lives/xxxx/submissions/xxxx"
+                autoComplete="off"
+              />
+              <p className="text-xs text-muted-foreground">
+                前回の提出後に表示された「編集用リンクをコピー」で取得したURLです。
               </p>
-            ) : null}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <Input
-              value={link}
-              onChange={(event) => setLink(event.target.value)}
-              placeholder="https://.../public/lives/xxxx/submissions/xxxx"
-              autoComplete="off"
-            />
-            <p className="text-xs text-muted-foreground">
-              前回の提出後に表示された「編集用リンクをコピー」で取得したURLです。
-            </p>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
           {plan ? (

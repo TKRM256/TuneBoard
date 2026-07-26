@@ -4,7 +4,6 @@ import { Check, Search } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 import { formatLiveDate, LIVE_STATUS_LABELS, type LiveCopySourceResponse } from '../types/live-types';
@@ -65,7 +64,8 @@ export const CopySourcePicker = ({
         />
       </div>
 
-      <ScrollArea className="h-[320px] rounded-md border">
+      {/* 高さはダイアログ側のスクロール領域に任せる。ここで独自にスクロールさせない。 */}
+      <div className="rounded-md border">
         <div className="space-y-4 p-3">
           {grouped.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">条件に合うライブがありません。</p>
@@ -103,7 +103,7 @@ export const CopySourcePicker = ({
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

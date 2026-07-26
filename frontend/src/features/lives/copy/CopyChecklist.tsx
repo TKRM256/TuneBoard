@@ -3,7 +3,6 @@ import { ArrowRight } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 export interface CopyChecklistItem {
@@ -33,8 +32,9 @@ export const CopyChecklist = ({ items, selected, onToggle, emptyMessage, classNa
     return <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
+  // 高さはダイアログ側のスクロール領域に任せる。ここで独自にスクロールさせない。
   return (
-    <ScrollArea className={cn('rounded-md border', className)}>
+    <div className={cn('rounded-md border', className)}>
       <ul className="divide-y">
         {items.map((item) => (
           <li key={item.key} className={cn('p-3', !item.selectable && 'opacity-60')}>
@@ -67,6 +67,6 @@ export const CopyChecklist = ({ items, selected, onToggle, emptyMessage, classNa
           </li>
         ))}
       </ul>
-    </ScrollArea>
+    </div>
   );
 };

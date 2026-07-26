@@ -155,7 +155,7 @@ export const FormConfigCopyDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>他のライブからフォーム設定を取り込む</DialogTitle>
           <DialogDescription>
@@ -165,39 +165,39 @@ export const FormConfigCopyDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {plan ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">ブロック</p>
-              <CopyChecklist
-                items={blockItems}
-                selected={selectedBlockIds}
-                onToggle={toggleBlock}
-                emptyMessage="取り込めるブロックがありません。"
-                className="max-h-[300px]"
-              />
+        <div className="min-h-0 overflow-y-auto">
+          {plan ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">ブロック</p>
+                <CopyChecklist
+                  items={blockItems}
+                  selected={selectedBlockIds}
+                  onToggle={toggleBlock}
+                  emptyMessage="取り込めるブロックがありません。"
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">フォーム全体の設定</p>
+                <CopyChecklist
+                  items={metaItems}
+                  selected={selectedMetaKeys as Set<string>}
+                  onToggle={toggleMeta}
+                  emptyMessage="現在の設定と違いはありません。"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">フォーム全体の設定</p>
-              <CopyChecklist
-                items={metaItems}
-                selected={selectedMetaKeys as Set<string>}
-                onToggle={toggleMeta}
-                emptyMessage="現在の設定と違いはありません。"
-                className="max-h-[200px]"
-              />
-            </div>
-          </div>
-        ) : (
-          <CopySourcePicker
-            sources={sources}
-            isLoading={isLoading || isFetching}
-            selectedId={null}
-            onSelect={handleSelectSource}
-            isAvailable={(candidate) => candidate.hasSettingSheetConfig}
-            unavailableLabel="フォーム設定なし"
-          />
-        )}
+          ) : (
+            <CopySourcePicker
+              sources={sources}
+              isLoading={isLoading || isFetching}
+              selectedId={null}
+              onSelect={handleSelectSource}
+              isAvailable={(candidate) => candidate.hasSettingSheetConfig}
+              unavailableLabel="フォーム設定なし"
+            />
+          )}
+        </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
           {plan ? (
