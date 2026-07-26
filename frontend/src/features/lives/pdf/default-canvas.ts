@@ -10,13 +10,18 @@ import type {
   TableColumn,
   TableElement,
 } from './canvas-schema';
-import { buildFieldCatalog } from './field-catalog';
+import { buildStandardGroupColumns, indexColumn } from './default-canvas-columns';
+import { buildFieldCatalog, type CatalogGroup } from './field-catalog';
 
 export function newId(): string {
   return crypto.randomUUID();
 }
 
 const DEFAULT_PAGE = { size: 'A4' as PaperSize, orientation: 'LANDSCAPE' as Orientation, marginMm: 8, baseFontSizePt: 9 };
+
+const PAGE_HEIGHT_MM = 210; // A4 landscape
+/** 上段（単発項目のKV表・最初の繰り返しグループ）の高さ。 */
+const TOP_ROW_HEIGHT_MM = 46;
 
 export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): CanvasDocument {
   const elements: CanvasElement[] = [];
@@ -82,68 +87,88 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
   y += 6;
 
   const catalog = buildFieldCatalog(config);
+  const contentW = pageWidthMm - 16;
+  const halfW = contentW * 0.5 - 2;
+  const hasFields = catalog.fields.length > 0;
+  const [firstGroup, ...restGroups] = catalog.groups.filter((group) => group.fields.length > 0);
 
-  if (catalog.fields.length > 0) {
-    const tableW = (pageWidthMm - 16) * 0.5 - 2;
-    const columns: TableColumn[] = [
-      { id: newId(), header: '項目', fieldId: '__label__', widthRatio: 0.3, align: 'left' },
-      { id: newId(), header: '内容', fieldId: '', widthRatio: 0.7, align: 'left' },
-    ];
-    const tableEl: TableElement = {
+  // 上段は「単発項目のKV表」と「最初の繰り返しグループ」を左右に並べ、
+  // 残りのグループ（セットリストなど）は下段に幅いっぱいで積む。
+  if (hasFields) {
+    elements.push({
       id: newId(),
       kind: 'table',
       xMm: 8,
       yMm: y,
-      wMm: tableW,
-      hMm: Math.max(20, catalog.fields.length * 7),
+      wMm: firstGroup ? halfW : contentW,
+      hMm: TOP_ROW_HEIGHT_MM,
       source: {
         kind: 'fields',
         fields: catalog.fields.map((f) => ({ fieldId: f.id, fallbackLabel: f.label })),
       },
-      columns,
-      showHeader: true,
-      fontSizePt: 9,
-      headerFill: '#e5edf6',
-      borderColor: '#d1d5db',
-      zebra: false,
-    };
-    elements.push(tableEl);
-  }
-
-  let groupX = catalog.fields.length > 0 ? 8 + (pageWidthMm - 16) * 0.5 + 2 : 8;
-  let groupW = catalog.fields.length > 0 ? (pageWidthMm - 16) * 0.5 - 2 : pageWidthMm - 16;
-  let groupY = y;
-  for (const group of catalog.groups) {
-    if (group.fields.length === 0) continue;
-    const columns: TableColumn[] = [
-      { id: newId(), header: 'No', fieldId: '__index__', widthRatio: 0.08, align: 'center' },
-    ];
-    const each = 0.92 / group.fields.length;
-    for (const f of group.fields) {
-      columns.push({ id: newId(), header: f.label, fieldId: f.id, widthRatio: each, align: 'left' });
-    }
-    elements.push({
-      id: newId(),
-      kind: 'table',
-      xMm: groupX,
-      yMm: groupY,
-      wMm: groupW,
-      hMm: Math.max(40, group.fields.length * 6 + 16),
-      source: { kind: 'group', groupId: group.id, fallbackLabel: group.label },
-      columns,
+      columns: [
+        { id: newId(), header: '項目', fieldId: '__label__', widthRatio: 0.3, align: 'left' },
+        { id: newId(), header: '内容', fieldId: '', widthRatio: 0.7, align: 'left' },
+      ],
       showHeader: true,
       fontSizePt: 9,
       headerFill: '#e5edf6',
       borderColor: '#d1d5db',
       zebra: false,
     });
-    groupY += 50;
-    groupX = 8;
-    groupW = pageWidthMm - 16;
   }
+
+  if (firstGroup) {
+    elements.push(groupTable(
+      firstGroup,
+      hasFields ? 8 + contentW * 0.5 + 2 : 8,
+      y,
+      hasFields ? halfW : contentW,
+      TOP_ROW_HEIGHT_MM,
+    ));
+  }
+
+  const bottomTop = y + TOP_ROW_HEIGHT_MM + 4;
+  const bottomHeight = PAGE_HEIGHT_MM - 8 - bottomTop;
+  restGroups.forEach((group, index) => {
+    const each = bottomHeight / restGroups.length;
+    elements.push(groupTable(group, 8, bottomTop + each * index, contentW, each - 4));
+  });
 
   return {
     page: { ...DEFAULT_PAGE },
     elements,
   };
+}
+
+function groupTable(group: CatalogGroup, xMm: number, yMm: number, wMm: number, hMm: number): TableElement {
+  return {
+    id: newId(),
+    kind: 'table',
+    xMm,
+    yMm,
+    wMm,
+    hMm,
+    source: { kind: 'group', groupId: group.id, fallbackLabel: group.label },
+    columns: buildStandardGroupColumns(group) ?? genericGroupColumns(group),
+    showHeader: true,
+    fontSizePt: 9,
+    headerFill: '#e5edf6',
+    borderColor: '#d1d5db',
+    zebra: false,
+  };
+}
+
+function genericGroupColumns(group: CatalogGroup): TableColumn[] {
+  const each = 0.92 / group.fields.length;
+  return [
+    indexColumn(0.08),
+    ...group.fields.map((f) => ({
+      id: newId(),
+      header: f.label,
+      fieldId: f.id,
+      widthRatio: each,
+      align: 'left' as const,
+    })),
+  ];
 }
