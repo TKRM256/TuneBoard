@@ -483,7 +483,7 @@ function FieldsRowEditor({
   return (
     <div className="space-y-1">
       {fields.map((row, i) => (
-        <div key={`${row.fieldId}-${i}`} className="flex items-center gap-1">
+        <div key={`${row.fieldId}-${i}`} className="flex min-w-0 items-center gap-1">
           <Select
             value={row.fieldId}
             onValueChange={(v) => {
@@ -494,7 +494,7 @@ function FieldsRowEditor({
               onUpdate({ source: { kind: 'fields', fields: next } });
             }}
           >
-            <SelectTrigger className="h-7 text-xs">
+            <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
               <SelectValue placeholder="フィールドを選択" />
             </SelectTrigger>
             <SelectContent>
