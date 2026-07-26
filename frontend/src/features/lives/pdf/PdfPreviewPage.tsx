@@ -7,8 +7,11 @@ import { ChevronLeft, CopyPlus, Download, Loader2, RefreshCw, RotateCcw, Save, S
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/original/ConfirmDialog';
+import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { cn } from '@/lib/utils';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { ApiClientError } from '@/lib/api/type';
 import { apiClient } from '@/lib/api/client';
 import {
@@ -62,12 +65,14 @@ export const PdfPreviewPage = () => {
   const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
   const [panelVisible, setPanelVisible] = useState<Record<PanelKey, boolean>>(() => loadPanelVisibility());
   const [isCopyOpen, setIsCopyOpen] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
   const previewUrlsRef = useRef<string[]>([]);
 
   const editor = useCanvasEditor(buildDefaultCanvas(null));
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
   const canvasSync = useLiveCanvasSync(liveId);
   useCanvasKeyboardShortcuts(editor);
+  const leaveGuard = useUnsavedChangesWarning(canvasSync.isDirty(editor.doc));
 
   useEffect(() => {
     if (!liveId) return;
@@ -159,7 +164,6 @@ export const PdfPreviewPage = () => {
   }, [liveId, submissionIds, editor.doc]);
 
   const handleResetLayout = useCallback(() => {
-    if (!confirm('現在のレイアウトを破棄して、初期レイアウトを再生成しますか？')) return;
     editor.setDoc(buildDefaultCanvas(config));
     toast.success('レイアウトを初期化しました', { position: 'top-center' });
   }, [editor, config]);
@@ -227,7 +231,7 @@ export const PdfPreviewPage = () => {
             orientation={editor.doc.page.orientation}
             onChange={(patch) => editor.setPage(patch)}
           />
-          <Button variant="ghost" size="sm" onClick={handleResetLayout} className="gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setIsResetOpen(true)} className="gap-1">
             <RotateCcw className="size-4" />
             初期化
           </Button>
@@ -338,6 +342,18 @@ export const PdfPreviewPage = () => {
         )}
       </ResizablePanelGroup>
       </ExpressionPreviewProvider>
+
+      <ConfirmDialog
+        open={isResetOpen}
+        onOpenChange={setIsResetOpen}
+        title="レイアウトを初期化しますか？"
+        description="現在のレイアウトを破棄して、初期レイアウトを組み直します。"
+        confirmLabel="初期化する"
+        destructive
+        onConfirm={handleResetLayout}
+      />
+
+      <UnsavedChangesDialog guard={leaveGuard} />
 
       <PdfCanvasCopyDialog
         open={isCopyOpen}

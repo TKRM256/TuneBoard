@@ -21,7 +21,10 @@ import {
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/original/ConfirmDialog';
+import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { ApiClientError } from '@/lib/api/type';
 import { apiClient } from '@/lib/api/client';
 import {
@@ -72,11 +75,13 @@ export const PdfPreviewPageMobile = () => {
   const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
   const [tab, setTab] = useState<MobileTab>('canvas');
   const [isCopyOpen, setIsCopyOpen] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
   const previewUrlsRef = useRef<string[]>([]);
 
   const editor = useCanvasEditor(buildDefaultCanvas(null));
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
   const canvasSync = useLiveCanvasSync(liveId);
+  const leaveGuard = useUnsavedChangesWarning(canvasSync.isDirty(editor.doc));
 
   useEffect(() => {
     if (!liveId) return;
@@ -169,7 +174,6 @@ export const PdfPreviewPageMobile = () => {
   }, [liveId, submissionIds, editor.doc]);
 
   const handleResetLayout = useCallback(() => {
-    if (!confirm('現在のレイアウトを破棄して、初期レイアウトを再生成しますか？')) return;
     editor.setDoc(buildDefaultCanvas(config));
     toast.success('レイアウトを初期化しました', { position: 'top-center' });
   }, [editor, config]);
@@ -261,7 +265,7 @@ export const PdfPreviewPageMobile = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleResetLayout}
+            onClick={() => setIsResetOpen(true)}
             className="gap-1 px-2"
             title="初期化"
           >
@@ -389,6 +393,18 @@ export const PdfPreviewPageMobile = () => {
             />
           </TabsContent>
         </Tabs>
+
+        <ConfirmDialog
+          open={isResetOpen}
+          onOpenChange={setIsResetOpen}
+          title="レイアウトを初期化しますか？"
+          description="現在のレイアウトを破棄して、初期レイアウトを組み直します。"
+          confirmLabel="初期化する"
+          destructive
+          onConfirm={handleResetLayout}
+        />
+
+        <UnsavedChangesDialog guard={leaveGuard} />
 
         <PdfCanvasCopyDialog
           open={isCopyOpen}

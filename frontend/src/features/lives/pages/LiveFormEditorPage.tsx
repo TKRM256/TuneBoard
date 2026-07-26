@@ -11,6 +11,8 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { apiClient } from '@/lib/api/client';
 
 import { BlockEditorTree } from '../form-editor/BlockEditorTree';
@@ -41,6 +43,8 @@ export const LiveFormEditorPage = () => {
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  /** 最後に保存した内容。未保存の変更があるかの判定に使う。 */
+  const [savedSignature, setSavedSignature] = useState<string | null>(null);
 
   useEffect(() => {
     if (!liveId) {
@@ -55,7 +59,9 @@ export const LiveFormEditorPage = () => {
         if (liveResponse) {
           setLive(liveResponse);
         }
-        setConfig(normalizeSettingSheetConfig(configResponse ?? null));
+        const normalized = normalizeSettingSheetConfig(configResponse ?? null);
+        setConfig(normalized);
+        setSavedSignature(JSON.stringify(normalized));
       })
       .catch(() => {
         toast.error('フォーム設定の読み込みに失敗しました', { position: 'top-center' });
@@ -68,6 +74,10 @@ export const LiveFormEditorPage = () => {
   const optionSourceCandidates = useMemo(
     () => collectOptionSourceCandidates(config?.blocks ?? []),
     [config?.blocks],
+  );
+
+  const leaveGuard = useUnsavedChangesWarning(
+    config !== null && savedSignature !== null && JSON.stringify(config) !== savedSignature,
   );
 
   if (!tenantId || !liveId) {
@@ -173,7 +183,9 @@ export const LiveFormEditorPage = () => {
         if (!response) {
           return;
         }
-        setConfig(normalizeSettingSheetConfig(response));
+        const normalized = normalizeSettingSheetConfig(response);
+        setConfig(normalized);
+        setSavedSignature(JSON.stringify(normalized));
         toast.success('フォーム設定を保存しました', { position: 'top-center' });
       })
       .catch(() => {
@@ -200,6 +212,7 @@ export const LiveFormEditorPage = () => {
 
   return (
     <div className="space-y-4">
+      <UnsavedChangesDialog guard={leaveGuard} />
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
