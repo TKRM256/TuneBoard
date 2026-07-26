@@ -3,7 +3,7 @@
  *  the right as the only resizable panel. Compile regenerates PDF on demand. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Download, Loader2, RefreshCw, RotateCcw, Save, Smartphone } from 'lucide-react';
+import { ChevronLeft, CopyPlus, Download, Loader2, RefreshCw, RotateCcw, Save, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
   type LiveResponse,
   type SettingSheetConfigResponse,
 } from '../types/live-types';
+import { PdfCanvasCopyDialog } from '../copy/PdfCanvasCopyDialog';
 import { buildDefaultCanvas } from './default-canvas';
 import { buildFieldCatalog } from './field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
@@ -60,6 +61,7 @@ export const PdfPreviewPage = () => {
   const [pxPerMm, setPxPerMm] = useState(2.5);
   const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
   const [panelVisible, setPanelVisible] = useState<Record<PanelKey, boolean>>(() => loadPanelVisibility());
+  const [isCopyOpen, setIsCopyOpen] = useState(false);
   const previewUrlsRef = useRef<string[]>([]);
 
   const editor = useCanvasEditor(buildDefaultCanvas(null));
@@ -229,6 +231,10 @@ export const PdfPreviewPage = () => {
             <RotateCcw className="size-4" />
             初期化
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => setIsCopyOpen(true)} className="gap-1">
+            <CopyPlus className="size-4" />
+            他のライブから取り込む
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -332,6 +338,15 @@ export const PdfPreviewPage = () => {
         )}
       </ResizablePanelGroup>
       </ExpressionPreviewProvider>
+
+      <PdfCanvasCopyDialog
+        open={isCopyOpen}
+        onOpenChange={setIsCopyOpen}
+        currentLiveId={liveId}
+        currentCanvas={editor.doc}
+        currentCatalog={catalog}
+        onApply={(canvas) => editor.setDoc(canvas)}
+      />
     </div>
   );
 };

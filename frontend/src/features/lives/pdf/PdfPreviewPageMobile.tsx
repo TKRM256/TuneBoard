@@ -7,6 +7,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import {
   ChevronLeft,
   Copy,
+  CopyPlus,
   Download,
   Loader2,
   Monitor,
@@ -32,6 +33,7 @@ import { buildFieldCatalog } from './field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
 import { persistCanvas } from './canvas-storage';
 import { useLiveCanvasSync } from './useLiveCanvasSync';
+import { PdfCanvasCopyDialog } from '../copy/PdfCanvasCopyDialog';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
@@ -69,6 +71,7 @@ export const PdfPreviewPageMobile = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
   const [tab, setTab] = useState<MobileTab>('canvas');
+  const [isCopyOpen, setIsCopyOpen] = useState(false);
   const previewUrlsRef = useRef<string[]>([]);
 
   const editor = useCanvasEditor(buildDefaultCanvas(null));
@@ -265,6 +268,15 @@ export const PdfPreviewPageMobile = () => {
             <RotateCcw className="size-4" />
           </Button>
           <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCopyOpen(true)}
+            className="gap-1 px-2"
+            title="他のライブから取り込む"
+          >
+            <CopyPlus className="size-4" />
+          </Button>
+          <Button
             variant={canvasSync.isDirty(editor.doc) ? 'outline' : 'ghost'}
             size="sm"
             onClick={() => void canvasSync.save(editor.doc)}
@@ -377,6 +389,15 @@ export const PdfPreviewPageMobile = () => {
             />
           </TabsContent>
         </Tabs>
+
+        <PdfCanvasCopyDialog
+          open={isCopyOpen}
+          onOpenChange={setIsCopyOpen}
+          currentLiveId={liveId}
+          currentCanvas={editor.doc}
+          currentCatalog={catalog}
+          onApply={(canvas) => editor.setDoc(canvas)}
+        />
       </div>
     </ExpressionPreviewProvider>
   );
