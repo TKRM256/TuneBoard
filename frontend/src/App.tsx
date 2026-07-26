@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { FullWidthLayout, Layout } from '@/features/layout/Layout';
 import { RequireAuth } from '@/features/auth/RequireAuth';
@@ -23,49 +23,54 @@ const routeFallback = (
   </div>
 );
 
+const lazyRoute = (element: React.ReactNode) => <Suspense fallback={routeFallback}>{element}</Suspense>;
+
+// 未保存の変更がある画面で遷移をせき止められるよう（useBlocker）、データルーターを使う。
+const router = createBrowserRouter([
+  { path: '/login', element: lazyRoute(<Login />) },
+  { path: '/public/lives/:publicToken', element: lazyRoute(<PublicLivePage />) },
+  { path: '/public/lives/:publicToken/submissions/:submissionId', element: lazyRoute(<PublicLivePage />) },
+  { path: '/public/lives/:publicToken/submissions/:submissionId/shared', element: lazyRoute(<PublicSubmissionSharedPage />) },
+  { path: '/public/lives/:publicToken/submissions/shared', element: lazyRoute(<PublicSubmissionSharedPage />) },
+  { path: '/invitation/:token', element: lazyRoute(<InvitationAcceptPage />) },
+  {
+    path: '/',
+    element: (
+      <RequireAuth>
+        <Layout />
+      </RequireAuth>
+    ),
+    children: [
+      { index: true, element: <Navigate to="tenants" replace /> },
+      { path: 'tenants', element: lazyRoute(<TenantsPage />) },
+      { path: 'tenants/:tenantId/lives', element: lazyRoute(<TenantLivesPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId', element: lazyRoute(<LiveManagementPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId/form', element: lazyRoute(<LiveFormEditorPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId/submissions', element: lazyRoute(<LiveSubmissionsPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId/settings', element: lazyRoute(<LiveVisibilitySettingsPage />) },
+    ],
+  },
+  {
+    path: '/',
+    element: (
+      <RequireAuth>
+        <FullWidthLayout />
+      </RequireAuth>
+    ),
+    children: [
+      { path: 'tenants/:tenantId/lives/:liveId/submissions/pdf-preview', element: lazyRoute(<PdfPreviewPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview', element: lazyRoute(<PdfPreviewPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId/submissions/pdf-preview-mobile', element: lazyRoute(<PdfPreviewPageMobile />) },
+      { path: 'tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview-mobile', element: lazyRoute(<PdfPreviewPageMobile />) },
+    ],
+  },
+  { path: '*', element: <Navigate to="/" replace /> },
+]);
+
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Suspense fallback={routeFallback}><Login /></Suspense>} />
-          <Route path="/public/lives/:publicToken" element={<Suspense fallback={routeFallback}><PublicLivePage /></Suspense>} />
-          <Route path="/public/lives/:publicToken/submissions/:submissionId" element={<Suspense fallback={routeFallback}><PublicLivePage /></Suspense>} />
-          <Route path="/public/lives/:publicToken/submissions/:submissionId/shared" element={<Suspense fallback={routeFallback}><PublicSubmissionSharedPage /></Suspense>} />
-          <Route path="/public/lives/:publicToken/submissions/shared" element={<Suspense fallback={routeFallback}><PublicSubmissionSharedPage /></Suspense>} />
-          <Route path="/invitation/:token" element={<Suspense fallback={routeFallback}><InvitationAcceptPage /></Suspense>} />
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <Layout />
-              </RequireAuth>
-            }
-          >
-            <Route index element={<Navigate to="tenants" replace />} />
-            <Route path="tenants" element={<Suspense fallback={routeFallback}><TenantsPage /></Suspense>} />
-            <Route path="tenants/:tenantId/lives" element={<Suspense fallback={routeFallback}><TenantLivesPage /></Suspense>} />
-            <Route path="tenants/:tenantId/lives/:liveId" element={<Suspense fallback={routeFallback}><LiveManagementPage /></Suspense>} />
-            <Route path="tenants/:tenantId/lives/:liveId/form" element={<Suspense fallback={routeFallback}><LiveFormEditorPage /></Suspense>} />
-            <Route path="tenants/:tenantId/lives/:liveId/submissions" element={<Suspense fallback={routeFallback}><LiveSubmissionsPage /></Suspense>} />
-            <Route path="tenants/:tenantId/lives/:liveId/settings" element={<Suspense fallback={routeFallback}><LiveVisibilitySettingsPage /></Suspense>} />
-          </Route>
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <FullWidthLayout />
-              </RequireAuth>
-            }
-          >
-            <Route path="tenants/:tenantId/lives/:liveId/submissions/pdf-preview" element={<Suspense fallback={routeFallback}><PdfPreviewPage /></Suspense>} />
-            <Route path="tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview" element={<Suspense fallback={routeFallback}><PdfPreviewPage /></Suspense>} />
-            <Route path="tenants/:tenantId/lives/:liveId/submissions/pdf-preview-mobile" element={<Suspense fallback={routeFallback}><PdfPreviewPageMobile /></Suspense>} />
-            <Route path="tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview-mobile" element={<Suspense fallback={routeFallback}><PdfPreviewPageMobile /></Suspense>} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </AuthProvider>
   );
 }

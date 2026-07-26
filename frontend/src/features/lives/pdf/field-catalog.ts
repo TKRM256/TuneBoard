@@ -3,12 +3,14 @@
  *  shown to the user — labels are the primary key for browsing. Repeatable
  *  groups, variants, and nested groups are all surfaced so users can pick any
  *  field by name even if it lives several levels deep. */
-import type { SettingSheetBlock, SettingSheetConfigResponse } from '../types/live-types';
+import type { SettingSheetBlock, SettingSheetBlockType, SettingSheetConfigResponse } from '../types/live-types';
 
 export interface CatalogEntry {
   id: string;
   /** Human-friendly label shown in the palette. */
   label: string;
+  /** Block type, so callers can branch on it (e.g. BOOLEAN markers). */
+  type: SettingSheetBlockType;
   /** Type label for the secondary line ("テキスト", "選択", etc.) */
   typeLabel: string;
   /** Hierarchy display path (e.g. "出演者 > 氏名"). */
@@ -143,6 +145,7 @@ function makeEntry(block: SettingSheetBlock, path: string[]): CatalogEntry {
   return {
     id: block.id,
     label: block.label,
+    type: block.type,
     typeLabel: typeLabel(block.type),
     pathLabel: path.join(' > '),
   };

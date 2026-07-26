@@ -7,11 +7,13 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import {
   ChevronLeft,
   Copy,
+  CopyPlus,
   Download,
   Loader2,
   Monitor,
   RefreshCw,
   RotateCcw,
+  Save,
   Trash2,
   Undo2,
   Redo2,
@@ -19,7 +21,10 @@ import {
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/original/ConfirmDialog';
+import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { ApiClientError } from '@/lib/api/type';
 import { apiClient } from '@/lib/api/client';
 import {
@@ -29,7 +34,9 @@ import {
 import { buildDefaultCanvas } from './default-canvas';
 import { buildFieldCatalog } from './field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
-import { loadStoredCanvas, persistCanvas } from './canvas-storage';
+import { persistCanvas } from './canvas-storage';
+import { useLiveCanvasSync } from './useLiveCanvasSync';
+import { PdfCanvasCopyDialog } from '../copy/PdfCanvasCopyDialog';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
@@ -67,10 +74,14 @@ export const PdfPreviewPageMobile = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [hasCompiledOnce, setHasCompiledOnce] = useState(false);
   const [tab, setTab] = useState<MobileTab>('canvas');
+  const [isCopyOpen, setIsCopyOpen] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
   const previewUrlsRef = useRef<string[]>([]);
 
-  const editor = useCanvasEditor(loadStoredCanvas() ?? buildDefaultCanvas(null));
+  const editor = useCanvasEditor(buildDefaultCanvas(null));
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
+  const canvasSync = useLiveCanvasSync(liveId);
+  const leaveGuard = useUnsavedChangesWarning(canvasSync.isDirty(editor.doc));
 
   useEffect(() => {
     if (!liveId) return;
@@ -86,9 +97,9 @@ export const PdfPreviewPageMobile = () => {
         if (!liveRes || !configRes) throw new Error('missing');
         setLive(liveRes);
         setConfig(configRes);
-        if (!loadStoredCanvas()) {
-          editor.setDoc(buildDefaultCanvas(configRes));
-        }
+        const initialCanvas = await canvasSync.resolveInitialCanvas(configRes);
+        if (cancelled) return;
+        editor.setDoc(initialCanvas);
       } catch {
         if (!cancelled) toast.error('情報の取得に失敗しました', { position: 'top-center' });
       } finally {
@@ -103,7 +114,7 @@ export const PdfPreviewPageMobile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveId]);
 
-  useEffect(() => persistCanvas(editor.doc), [editor.doc]);
+  useEffect(() => persistCanvas(liveId, editor.doc), [liveId, editor.doc]);
 
   useEffect(
     () => () => {
@@ -163,7 +174,6 @@ export const PdfPreviewPageMobile = () => {
   }, [liveId, submissionIds, editor.doc]);
 
   const handleResetLayout = useCallback(() => {
-    if (!confirm('現在のレイアウトを破棄して、初期レイアウトを再生成しますか？')) return;
     editor.setDoc(buildDefaultCanvas(config));
     toast.success('レイアウトを初期化しました', { position: 'top-center' });
   }, [editor, config]);
@@ -255,11 +265,30 @@ export const PdfPreviewPageMobile = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleResetLayout}
+            onClick={() => setIsResetOpen(true)}
             className="gap-1 px-2"
             title="初期化"
           >
             <RotateCcw className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCopyOpen(true)}
+            className="gap-1 px-2"
+            title="他のライブから取り込む"
+          >
+            <CopyPlus className="size-4" />
+          </Button>
+          <Button
+            variant={canvasSync.isDirty(editor.doc) ? 'outline' : 'ghost'}
+            size="sm"
+            onClick={() => void canvasSync.save(editor.doc)}
+            disabled={canvasSync.isSaving}
+            className="gap-1 px-2"
+            title="レイアウトを保存"
+          >
+            {canvasSync.isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           </Button>
           <div className="ml-auto flex items-center gap-1">
             <Button
@@ -364,6 +393,27 @@ export const PdfPreviewPageMobile = () => {
             />
           </TabsContent>
         </Tabs>
+
+        <ConfirmDialog
+          open={isResetOpen}
+          onOpenChange={setIsResetOpen}
+          title="レイアウトを初期化しますか？"
+          description="現在のレイアウトを破棄して、初期レイアウトを組み直します。"
+          confirmLabel="初期化する"
+          destructive
+          onConfirm={handleResetLayout}
+        />
+
+        <UnsavedChangesDialog guard={leaveGuard} />
+
+        <PdfCanvasCopyDialog
+          open={isCopyOpen}
+          onOpenChange={setIsCopyOpen}
+          currentLiveId={liveId}
+          currentCanvas={editor.doc}
+          currentCatalog={catalog}
+          onApply={(canvas) => editor.setDoc(canvas)}
+        />
       </div>
     </ExpressionPreviewProvider>
   );

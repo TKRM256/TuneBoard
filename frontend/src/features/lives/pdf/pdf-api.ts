@@ -1,11 +1,26 @@
 /** API helpers for fetching/downloading setting-sheet PDFs from the backend. */
-import { API_BASE_URL, getAccessToken } from '@/lib/api/client';
+import { API_BASE_URL, apiClient, getAccessToken } from '@/lib/api/client';
 import { ApiClientError, type ApiError } from '@/lib/api/type';
 import type { CanvasDocument } from './canvas-schema';
 
 export interface PdfFetchResult {
   blob: Blob;
   filename: string;
+}
+
+interface PdfCanvasResponse {
+  canvas: CanvasDocument | null;
+  saved: boolean;
+}
+
+/** ライブに保存されている PDF レイアウト。未保存なら null。 */
+export async function fetchLivePdfCanvas(liveId: string): Promise<CanvasDocument | null> {
+  const response = await apiClient.get<PdfCanvasResponse>(`/lives/${liveId}/pdf-canvas`);
+  return response?.canvas ?? null;
+}
+
+export async function saveLivePdfCanvas(liveId: string, canvas: CanvasDocument): Promise<void> {
+  await apiClient.post<PdfCanvasResponse>(`/lives/${liveId}/pdf-canvas`, { canvas });
 }
 
 interface FetchOptions {

@@ -1,4 +1,5 @@
-import { ChevronLeft, RotateCcw, Save, Wrench } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, CopyPlus, RotateCcw, Save, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
+import { FormConfigCopyDialog } from '../copy/FormConfigCopyDialog';
 import { createEmptySettingSheetConfig, type SettingSheetConfigResponse } from '../types/live-types';
 
 interface FormEditorSidebarProps {
@@ -27,6 +29,8 @@ export const FormEditorSidebar = ({
   onResetToDefault,
   onSave,
 }: FormEditorSidebarProps) => {
+  const [isCopyOpen, setIsCopyOpen] = useState(false);
+
   return (
     <Card>
       <CardHeader>
@@ -65,6 +69,10 @@ export const FormEditorSidebar = ({
                 空から作る
               </Button>
             </div>
+            <Button type="button" variant="outline" className="w-full justify-start" onClick={() => setIsCopyOpen(true)}>
+              <CopyPlus className="size-4" />
+              他のライブから取り込む
+            </Button>
             <div>
               <p className="text-sm font-medium">フォームタイトル</p>
               <Input value={config.title} onChange={(event) => setConfig((current) => current ? { ...current, title: event.target.value } : current)} className="mt-2" />
@@ -85,6 +93,14 @@ export const FormEditorSidebar = ({
           {isSaving ? '保存中...' : 'フォーム設定を保存'}
         </Button>
       </CardContent>
+
+      <FormConfigCopyDialog
+        open={isCopyOpen}
+        onOpenChange={setIsCopyOpen}
+        currentLiveId={liveId}
+        currentConfig={config}
+        onApply={(nextConfig) => setConfig(nextConfig)}
+      />
     </Card>
   );
 };

@@ -62,4 +62,8 @@ public class Live extends Audit {
 
     @Column(name = "settings_json", columnDefinition = "TEXT")
     private String settingsJson;
+
+    /** PDF出力のレイアウト（CanvasDocument）。未設定なら既定レイアウトを使う。 */
+    @Column(name = "pdf_canvas_json", columnDefinition = "TEXT")
+    private String pdfCanvasJson;
 }

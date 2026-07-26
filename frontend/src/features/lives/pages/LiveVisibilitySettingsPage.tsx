@@ -17,6 +17,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toggle } from '@/components/ui/toggle';
+import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +56,8 @@ export const LiveVisibilitySettingsPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
   const [collapsedIds, setCollapsedIds] = useState<Record<string, boolean>>({});
+  /** 最後に保存した内容。未保存の変更があるかの判定に使う。 */
+  const [savedSignature, setSavedSignature] = useState<string | null>(null);
 
   useEffect(() => {
     if (!liveId) {
@@ -69,7 +73,9 @@ export const LiveVisibilitySettingsPage = () => {
           setLive(liveRes);
         }
         if (configRes) {
-          setConfig(normalizeSettingSheetConfig(configRes));
+          const normalized = normalizeSettingSheetConfig(configRes);
+          setConfig(normalized);
+          setSavedSignature(JSON.stringify(normalized));
         }
       })
       .catch(() => {
@@ -84,6 +90,10 @@ export const LiveVisibilitySettingsPage = () => {
   const leafTargets = useMemo(() => collectLeafTargets(blocks), [blocks]);
   const filteredBlocks = useMemo(() => filterBlocksByQuery(blocks, filterQuery), [blocks, filterQuery]);
   const isSearching = filterQuery.trim().length > 0;
+
+  const leaveGuard = useUnsavedChangesWarning(
+    config !== null && savedSignature !== null && JSON.stringify(config) !== savedSignature,
+  );
 
   const updateTargetVisibility = (blockId: string, field: 'publicVisible' | 'hidden', nextValue: boolean) => {
     setConfig((current) => {
@@ -119,7 +129,9 @@ export const LiveVisibilitySettingsPage = () => {
       .post<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`, config)
       .then((response) => {
         if (response) {
-          setConfig(normalizeSettingSheetConfig(response));
+          const normalized = normalizeSettingSheetConfig(response);
+          setConfig(normalized);
+          setSavedSignature(JSON.stringify(normalized));
         }
         toast.success('表示設定を保存しました', { position: 'top-center' });
       })
@@ -145,6 +157,7 @@ export const LiveVisibilitySettingsPage = () => {
 
   return (
     <div className="space-y-4">
+      <UnsavedChangesDialog guard={leaveGuard} />
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
