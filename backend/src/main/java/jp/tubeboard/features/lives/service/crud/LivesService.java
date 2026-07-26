@@ -16,6 +16,7 @@ import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
+import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
@@ -104,6 +105,25 @@ public class LivesService implements ILivesService {
                                                 currentUser.getId())
                                 .stream()
                                 .map(helper::toResponse)
+                                .toList();
+        }
+
+        @Override
+        public List<LiveCopySourceResponse> listCopySources() {
+                User currentUser = userService.getCurrentUser();
+
+                return liveRepository
+                                .findAllAccessibleByUserId(currentUser.getId())
+                                .stream()
+                                .map(live -> new LiveCopySourceResponse(
+                                                live.getId(),
+                                                live.getTenant().getId(),
+                                                live.getTenant().getName(),
+                                                live.getName(),
+                                                live.getDate(),
+                                                live.getStatus(),
+                                                live.getSettingsJson() != null && !live.getSettingsJson().isBlank(),
+                                                livePdfCanvasService.hasPdfCanvas(live)))
                                 .toList();
         }
 

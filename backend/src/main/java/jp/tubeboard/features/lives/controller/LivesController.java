@@ -28,6 +28,7 @@ import jp.tubeboard.features.lives.dto.request.PdfGenerateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SongDuplicateDismissRequest;
 import jp.tubeboard.features.lives.dto.request.SubmissionsZipRequest;
+import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
@@ -57,6 +58,11 @@ public class LivesController {
     @GetMapping("/list")
     public ResponseEntity<List<LiveResponse>> list() {
         return ResponseEntity.ok(livesService.list());
+    }
+
+    @GetMapping("/copy-sources")
+    public ResponseEntity<List<LiveCopySourceResponse>> listCopySources() {
+        return ResponseEntity.ok(livesService.listCopySources());
     }
 
     @GetMapping("/tenant/{tenantId}/list")

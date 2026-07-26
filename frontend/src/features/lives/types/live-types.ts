@@ -86,6 +86,18 @@ export interface LiveResponse {
   status: LiveStatus;
 }
 
+/** フォーム設定・PDFレイアウトのコピー元候補。所属する全テナントのライブが並ぶ。 */
+export interface LiveCopySourceResponse {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  name: string;
+  date: string | null;
+  status: LiveStatus;
+  hasSettingSheetConfig: boolean;
+  hasPdfCanvas: boolean;
+}
+
 export interface PublicLiveResponse {
   name: string;
   date: string | null;
