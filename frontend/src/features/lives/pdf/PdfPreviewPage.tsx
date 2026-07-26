@@ -3,7 +3,7 @@
  *  the right as the only resizable panel. Compile regenerates PDF on demand. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Download, Loader2, RefreshCw, RotateCcw, Smartphone } from 'lucide-react';
+import { ChevronLeft, Download, Loader2, RefreshCw, RotateCcw, Save, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -20,10 +20,10 @@ import { buildFieldCatalog } from './field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
 import {
   loadPanelVisibility,
-  loadStoredCanvas,
   persistCanvas,
   persistPanelVisibility,
 } from './canvas-storage';
+import { useLiveCanvasSync } from './useLiveCanvasSync';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
@@ -62,8 +62,9 @@ export const PdfPreviewPage = () => {
   const [panelVisible, setPanelVisible] = useState<Record<PanelKey, boolean>>(() => loadPanelVisibility());
   const previewUrlsRef = useRef<string[]>([]);
 
-  const editor = useCanvasEditor(loadStoredCanvas() ?? buildDefaultCanvas(null));
+  const editor = useCanvasEditor(buildDefaultCanvas(null));
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
+  const canvasSync = useLiveCanvasSync(liveId);
   useCanvasKeyboardShortcuts(editor);
 
   useEffect(() => {
@@ -80,9 +81,9 @@ export const PdfPreviewPage = () => {
         if (!liveRes || !configRes) throw new Error('missing');
         setLive(liveRes);
         setConfig(configRes);
-        if (!loadStoredCanvas()) {
-          editor.setDoc(buildDefaultCanvas(configRes));
-        }
+        const initialCanvas = await canvasSync.resolveInitialCanvas(configRes);
+        if (cancelled) return;
+        editor.setDoc(initialCanvas);
       } catch {
         if (!cancelled) toast.error('情報の取得に失敗しました', { position: 'top-center' });
       } finally {
@@ -97,7 +98,7 @@ export const PdfPreviewPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveId]);
 
-  useEffect(() => persistCanvas(editor.doc), [editor.doc]);
+  useEffect(() => persistCanvas(liveId, editor.doc), [liveId, editor.doc]);
   useEffect(() => persistPanelVisibility(panelVisible), [panelVisible]);
 
   useEffect(() => () => {
@@ -227,6 +228,16 @@ export const PdfPreviewPage = () => {
           <Button variant="ghost" size="sm" onClick={handleResetLayout} className="gap-1">
             <RotateCcw className="size-4" />
             初期化
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void canvasSync.save(editor.doc)}
+            disabled={canvasSync.isSaving}
+            className="gap-1"
+          >
+            {canvasSync.isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            {canvasSync.isDirty(editor.doc) ? 'レイアウトを保存 *' : 'レイアウトを保存'}
           </Button>
           <Button
             variant="ghost"

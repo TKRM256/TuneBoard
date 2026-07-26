@@ -12,6 +12,7 @@ import {
   Monitor,
   RefreshCw,
   RotateCcw,
+  Save,
   Trash2,
   Undo2,
   Redo2,
@@ -29,7 +30,8 @@ import {
 import { buildDefaultCanvas } from './default-canvas';
 import { buildFieldCatalog } from './field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
-import { loadStoredCanvas, persistCanvas } from './canvas-storage';
+import { persistCanvas } from './canvas-storage';
+import { useLiveCanvasSync } from './useLiveCanvasSync';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
@@ -69,8 +71,9 @@ export const PdfPreviewPageMobile = () => {
   const [tab, setTab] = useState<MobileTab>('canvas');
   const previewUrlsRef = useRef<string[]>([]);
 
-  const editor = useCanvasEditor(loadStoredCanvas() ?? buildDefaultCanvas(null));
+  const editor = useCanvasEditor(buildDefaultCanvas(null));
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
+  const canvasSync = useLiveCanvasSync(liveId);
 
   useEffect(() => {
     if (!liveId) return;
@@ -86,9 +89,9 @@ export const PdfPreviewPageMobile = () => {
         if (!liveRes || !configRes) throw new Error('missing');
         setLive(liveRes);
         setConfig(configRes);
-        if (!loadStoredCanvas()) {
-          editor.setDoc(buildDefaultCanvas(configRes));
-        }
+        const initialCanvas = await canvasSync.resolveInitialCanvas(configRes);
+        if (cancelled) return;
+        editor.setDoc(initialCanvas);
       } catch {
         if (!cancelled) toast.error('情報の取得に失敗しました', { position: 'top-center' });
       } finally {
@@ -103,7 +106,7 @@ export const PdfPreviewPageMobile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveId]);
 
-  useEffect(() => persistCanvas(editor.doc), [editor.doc]);
+  useEffect(() => persistCanvas(liveId, editor.doc), [liveId, editor.doc]);
 
   useEffect(
     () => () => {
@@ -260,6 +263,16 @@ export const PdfPreviewPageMobile = () => {
             title="初期化"
           >
             <RotateCcw className="size-4" />
+          </Button>
+          <Button
+            variant={canvasSync.isDirty(editor.doc) ? 'outline' : 'ghost'}
+            size="sm"
+            onClick={() => void canvasSync.save(editor.doc)}
+            disabled={canvasSync.isSaving}
+            className="gap-1 px-2"
+            title="レイアウトを保存"
+          >
+            {canvasSync.isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           </Button>
           <div className="ml-auto flex items-center gap-1">
             <Button

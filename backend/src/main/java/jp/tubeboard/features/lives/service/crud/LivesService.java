@@ -15,7 +15,9 @@ import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
+import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
@@ -34,6 +36,7 @@ import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
+import jp.tubeboard.features.lives.service.pdf.LivePdfCanvasService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import jp.tubeboard.features.tenants.model.Tenants;
@@ -53,6 +56,7 @@ public class LivesService implements ILivesService {
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
         private final SongDuplicateDetectionService songDuplicateDetectionService;
         private final SettingSheetPdfService settingSheetPdfService;
+        private final LivePdfCanvasService livePdfCanvasService;
 
         private final LiveServiceHelper helper;
 
@@ -236,6 +240,22 @@ public class LivesService implements ILivesService {
                 live.setSettingsJson(settingSheetConfigService.writeSettingSheetConfig(normalized));
                 liveRepository.save(live);
                 return normalized;
+        }
+
+        @Override
+        public PdfCanvasResponse getPdfCanvas(UUID id) {
+                CanvasDocument canvas = livePdfCanvasService.readPdfCanvas(helper.findOwnedLive(id));
+                return new PdfCanvasResponse(canvas, canvas != null);
+        }
+
+        @Override
+        @Transactional
+        public PdfCanvasResponse updatePdfCanvas(UUID id, PdfCanvasUpdateRequest request) {
+                Live live = helper.findAdminLive(id);
+
+                live.setPdfCanvasJson(livePdfCanvasService.writePdfCanvas(request.canvas()));
+                liveRepository.save(live);
+                return new PdfCanvasResponse(request.canvas(), request.canvas() != null);
         }
 
         @Override
@@ -448,7 +468,8 @@ public class LivesService implements ILivesService {
                 PublicSettingSheetSubmissionDetailResponse detail = getOwnedSettingSheetSubmission(liveId,
                                 submissionId);
                 try {
-                        byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail, canvas);
+                        byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail,
+                                        resolveCanvas(live, canvas));
                         return new SubmissionPdfResult(bytes, detail.recordLabel());
                 } catch (IOException ex) {
                         log.error("PDF生成に失敗: liveId={}, submissionId={}", liveId, submissionId, ex);
@@ -466,11 +487,19 @@ public class LivesService implements ILivesService {
                                                 getOwnedSettingSheetSubmission(liveId, id)))
                                 .toList();
                 try {
-                        byte[] bytes = settingSheetPdfService.generateZip(inputs, canvas);
+                        byte[] bytes = settingSheetPdfService.generateZip(inputs, resolveCanvas(live, canvas));
                         return new SubmissionPdfResult(bytes, live.getName() + "_セッティングシート");
                 } catch (IOException ex) {
                         log.error("PDF ZIP生成に失敗: liveId={}, submissions={}", liveId, submissionIds.size(), ex);
                         throw new UncheckedIOException("PDF Zip生成に失敗しました", ex);
                 }
+        }
+
+        /**
+         * リクエストにレイアウトが無ければ、そのライブに保存済みのレイアウトを使う。
+         * どちらも無い場合は null のままで、描画側が既定レイアウトを組み立てる。
+         */
+        private CanvasDocument resolveCanvas(Live live, CanvasDocument requested) {
+                return requested != null ? requested : livePdfCanvasService.readPdfCanvas(live);
         }
 }
