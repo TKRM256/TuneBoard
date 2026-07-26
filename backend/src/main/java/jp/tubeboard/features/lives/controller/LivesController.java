@@ -23,11 +23,14 @@ import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
 import jp.tubeboard.features.lives.dto.request.LivePurgeRequest;
 import jp.tubeboard.features.lives.dto.request.LiveRestoreRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PdfGenerateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SongDuplicateDismissRequest;
 import jp.tubeboard.features.lives.dto.request.SubmissionsZipRequest;
+import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
+import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
@@ -55,6 +58,11 @@ public class LivesController {
     @GetMapping("/list")
     public ResponseEntity<List<LiveResponse>> list() {
         return ResponseEntity.ok(livesService.list());
+    }
+
+    @GetMapping("/copy-sources")
+    public ResponseEntity<List<LiveCopySourceResponse>> listCopySources() {
+        return ResponseEntity.ok(livesService.listCopySources());
     }
 
     @GetMapping("/tenant/{tenantId}/list")
@@ -110,6 +118,18 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SettingSheetConfigUpdateRequest request) {
         return ResponseEntity.ok(livesService.updateSettingSheetConfig(id, request));
+    }
+
+    @GetMapping("/{id}/pdf-canvas")
+    public ResponseEntity<PdfCanvasResponse> getPdfCanvas(@PathVariable(name = "id") UUID id) {
+        return ResponseEntity.ok(livesService.getPdfCanvas(id));
+    }
+
+    @PostMapping("/{id}/pdf-canvas")
+    public ResponseEntity<PdfCanvasResponse> updatePdfCanvas(
+            @PathVariable(name = "id") UUID id,
+            @RequestBody @Valid PdfCanvasUpdateRequest request) {
+        return ResponseEntity.ok(livesService.updatePdfCanvas(id, request));
     }
 
     @GetMapping("/{id}/setting-sheet/submissions")

@@ -7,7 +7,10 @@ import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
+import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
+import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
@@ -24,6 +27,9 @@ public interface ILivesService {
         List<LiveResponse> list();
 
         List<LiveResponse> listByTenant(UUID tenantId);
+
+        /** フォーム設定・PDFレイアウトのコピー元候補（アクセスできる全テナントのライブ）。 */
+        List<LiveCopySourceResponse> listCopySources();
 
         LiveResponse get(UUID id);
 
@@ -44,6 +50,10 @@ public interface ILivesService {
         SettingSheetConfigResponse getSettingSheetConfig(UUID id);
 
         SettingSheetConfigResponse updateSettingSheetConfig(UUID id, SettingSheetConfigUpdateRequest request);
+
+        PdfCanvasResponse getPdfCanvas(UUID id);
+
+        PdfCanvasResponse updatePdfCanvas(UUID id, PdfCanvasUpdateRequest request);
 
         SettingSheetSubmissionResponse submitPublicSettingSheet(String publicToken,
                         PublicSettingSheetSubmissionRequest request);

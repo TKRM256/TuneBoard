@@ -23,6 +23,10 @@ import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableSource;
 @Component
 public class DefaultCanvasFactory {
 
+    private static final float PAGE_HEIGHT_MM = 210f; // A4 landscape
+    /** 上段（単発項目のKV表・最初の繰り返しグループ）の高さ。 */
+    private static final float TOP_ROW_HEIGHT_MM = 46f;
+
     public CanvasDocument build(SettingSheetConfigResponse config) {
         List<CanvasElement> elements = new ArrayList<>();
         float y = 8f;
@@ -46,8 +50,16 @@ public class DefaultCanvasFactory {
 
         if (config != null && config.blocks() != null) {
             List<FormBlockResponse> infoFields = collectInfoFields(config.blocks());
-            List<FormBlockResponse> groups = collectGroups(config.blocks());
+            List<FormBlockResponse> groups = collectGroups(config.blocks()).stream()
+                    .filter(group -> !leafFieldsOf(group).isEmpty())
+                    .toList();
 
+            float contentW = pageWidthMm - 16f;
+            float halfW = contentW * 0.5f - 2f;
+            FormBlockResponse firstGroup = groups.isEmpty() ? null : groups.get(0);
+
+            // 上段は「単発項目のKV表」と「最初の繰り返しグループ」を左右に並べ、
+            // 残りのグループ（セットリストなど）は下段に幅いっぱいで積む。
             if (!infoFields.isEmpty()) {
                 List<TableSource.FieldRef> refs = infoFields.stream()
                         .map(b -> new TableSource.FieldRef(b.id(), b.label()))
@@ -55,36 +67,50 @@ public class DefaultCanvasFactory {
                 List<TableColumn> cols = List.of(
                         new TableColumn(uuid(), "項目", "__label__", 0.3f, "left", null),
                         new TableColumn(uuid(), "内容", null, 0.7f, "left", null));
-                elements.add(new CanvasElement.TableElement(uuid(), 8f, y, (pageWidthMm - 16f) * 0.5f - 2f,
-                        Math.max(20f, refs.size() * 7f),
+                elements.add(new CanvasElement.TableElement(uuid(), 8f, y,
+                        firstGroup != null ? halfW : contentW, TOP_ROW_HEIGHT_MM,
                         new TableSource.FieldsSource(refs), cols, true, 9f, "#e5edf6", "#d1d5db", false));
             }
 
-            float groupX = !infoFields.isEmpty() ? 8f + (pageWidthMm - 16f) * 0.5f + 2f : 8f;
-            float groupW = !infoFields.isEmpty() ? (pageWidthMm - 16f) * 0.5f - 2f : pageWidthMm - 16f;
-            float groupY = y;
+            if (firstGroup != null) {
+                elements.add(groupTable(firstGroup,
+                        infoFields.isEmpty() ? 8f : 8f + contentW * 0.5f + 2f, y,
+                        infoFields.isEmpty() ? contentW : halfW, TOP_ROW_HEIGHT_MM));
+            }
 
-            for (FormBlockResponse group : groups) {
-                List<FormBlockResponse> leafFields = leafFieldsOf(group);
-                if (leafFields.isEmpty()) continue;
-                List<TableColumn> cols = new ArrayList<>();
-                cols.add(new TableColumn(uuid(), "No", "__index__", 0.08f, "center", null));
-                float colWidth = 0.92f / leafFields.size();
-                for (FormBlockResponse f : leafFields) {
-                    cols.add(new TableColumn(uuid(), f.label(), f.id(), colWidth, "left", null));
-                }
-                elements.add(new CanvasElement.TableElement(uuid(), groupX, groupY, groupW,
-                        Math.max(40f, leafFields.size() * 6f + 16f),
-                        new TableSource.GroupSource(group.id(), group.label()), cols, true, 9f,
-                        "#e5edf6", "#d1d5db", false));
-                groupY += 50f;
-                groupX = 8f;
-                groupW = pageWidthMm - 16f;
+            float bottomTop = y + TOP_ROW_HEIGHT_MM + 4f;
+            float bottomHeight = PAGE_HEIGHT_MM - 8f - bottomTop;
+            int restCount = groups.size() - 1;
+            for (int i = 0; i < restCount; i++) {
+                float each = bottomHeight / restCount;
+                elements.add(groupTable(groups.get(i + 1), 8f, bottomTop + each * i, contentW, each - 4f));
             }
         }
 
         CanvasPage page = new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 9f);
         return new CanvasDocument(page, elements);
+    }
+
+    private CanvasElement.TableElement groupTable(FormBlockResponse group, float xMm, float yMm,
+            float wMm, float hMm) {
+        List<TableColumn> columns = DefaultCanvasColumns.forGroup(group);
+        if (columns == null) {
+            columns = genericGroupColumns(group);
+        }
+        return new CanvasElement.TableElement(uuid(), xMm, yMm, wMm, hMm,
+                new TableSource.GroupSource(group.id(), group.label()), columns, true, 9f,
+                "#e5edf6", "#d1d5db", false);
+    }
+
+    private List<TableColumn> genericGroupColumns(FormBlockResponse group) {
+        List<FormBlockResponse> leafFields = leafFieldsOf(group);
+        List<TableColumn> columns = new ArrayList<>();
+        columns.add(DefaultCanvasColumns.indexColumn(0.08f));
+        float colWidth = 0.92f / leafFields.size();
+        for (FormBlockResponse field : leafFields) {
+            columns.add(new TableColumn(uuid(), field.label(), field.id(), colWidth, "left", null));
+        }
+        return columns;
     }
 
     private List<FormBlockResponse> collectInfoFields(List<FormBlockResponse> blocks) {
