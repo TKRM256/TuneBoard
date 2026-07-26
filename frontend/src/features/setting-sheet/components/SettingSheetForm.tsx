@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, ExternalLink, Send } from 'lucide-react';
+import { Copy, ExternalLink, History, Send } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ import {
 import { SettingSheetFieldRenderer } from './SettingSheetFieldRenderer';
 import { useSettingSheetForm } from '../hooks/useSettingSheetForm';
 import { MergeConflictDialog } from '../merge/components/MergeConflictDialog';
+import { SubmissionValueCopyDialog } from '../copy/SubmissionValueCopyDialog';
 
 interface SettingSheetFormProps {
   publicToken: string;
@@ -33,6 +35,7 @@ interface SettingSheetFormProps {
 
 export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheetFormProps) => {
   const navigate = useNavigate();
+  const [isValueCopyOpen, setIsValueCopyOpen] = useState(false);
   const {
     draftSavedAt,
     errorMap,
@@ -114,6 +117,17 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                   <span className="min-w-0 wrap-break-word">提出済み一覧を見る</span>
                 </a>
               )}
+              {!isSubmissionClosed ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setIsValueCopyOpen(true)}
+                >
+                  <History className="size-4" />
+                  前回の入力を取り込む
+                </Button>
+              ) : null}
               <div className="flex gap-2 items-center justify-between rounded-2xl border border-dashed p-2 text-sm">
                 <p className="text-sm text-muted-foreground">
                   {draftSavedAt ? `下書きを自動保存: ${new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(draftSavedAt))}` : 'まだ下書き保存はありません。'}
@@ -215,6 +229,14 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
         onSelect={selectMergeChoice}
         onConfirm={confirmMerge}
         isSubmitting={isSubmitting}
+      />
+
+      <SubmissionValueCopyDialog
+        open={isValueCopyOpen}
+        onOpenChange={setIsValueCopyOpen}
+        config={settingSheetConfig}
+        currentValues={formValues}
+        onApply={setFormValues}
       />
     </div>
   );
