@@ -13,9 +13,36 @@ export function buildDraftStorageKey(publicToken: string, submissionId?: string)
     : `tuneboard:setting-sheet:${publicToken}`;
 }
 
+// Safari のプライベートブラウズなど、localStorage が使えない環境では例外が飛ぶ。
+// 下書きは補助機能なので、失敗しても入力自体は続けられるように握りつぶす。
+function readRaw(storageKey: string) {
+  try {
+    return window.localStorage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
+function writeRaw(storageKey: string, value: string) {
+  try {
+    window.localStorage.setItem(storageKey, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function removeRaw(storageKey: string) {
+  try {
+    window.localStorage.removeItem(storageKey);
+  } catch {
+    // 消せなくても画面側の状態は戻すので、ここでは何もしない
+  }
+}
+
 /** フォーム state の初期化に使うため、フック化せず素の関数として提供する。 */
 export function readSettingSheetDraft(storageKey: string, blocks: SettingSheetBlock[]) {
-  const raw = window.localStorage.getItem(storageKey);
+  const raw = readRaw(storageKey);
   return raw ? parseSettingSheetDraft(raw, blocks) : null;
 }
 
@@ -31,15 +58,16 @@ export function useSettingSheetDraft({ storageKey, formValues, initialSavedAt }:
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const nextSavedAt = new Date().toISOString();
-      window.localStorage.setItem(storageKey, JSON.stringify({ savedAt: nextSavedAt, values: formValues }));
-      setDraftSavedAt(nextSavedAt);
+      if (writeRaw(storageKey, JSON.stringify({ savedAt: nextSavedAt, values: formValues }))) {
+        setDraftSavedAt(nextSavedAt);
+      }
     }, AUTOSAVE_DELAY_MS);
 
     return () => window.clearTimeout(timer);
   }, [formValues, storageKey]);
 
   const clearDraft = () => {
-    window.localStorage.removeItem(storageKey);
+    removeRaw(storageKey);
     setDraftSavedAt(null);
   };
 

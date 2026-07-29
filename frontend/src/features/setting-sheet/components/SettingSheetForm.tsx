@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, ExternalLink, History, Send } from 'lucide-react';
+import { Copy, ExternalLink, History, RefreshCw, Send } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -24,8 +24,10 @@ import {
 } from '../types';
 import { SettingSheetFieldRenderer } from './SettingSheetFieldRenderer';
 import { useSettingSheetForm } from '../hooks/useSettingSheetForm';
+import { useDraftReset } from '../hooks/useDraftReset';
 import { MergeConflictDialog } from '../merge/components/MergeConflictDialog';
 import { SubmissionValueCopyDialog } from '../copy/SubmissionValueCopyDialog';
+import { DraftResetDialog } from '../reset/DraftResetDialog';
 
 interface SettingSheetFormProps {
   publicToken: string;
@@ -58,11 +60,20 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
     selectMergeChoice,
     closeMerge,
     confirmMerge,
+    applyLatestFromServer,
   } = useSettingSheetForm({
     publicToken,
     live,
     submission,
     onSubmitted: (submissionId) => navigate(`/public/lives/${publicToken}/submissions/${submissionId}`, { replace: true }),
+  });
+
+  const draftReset = useDraftReset({
+    publicToken,
+    submissionId: submission?.id,
+    config: settingSheetConfig,
+    formValues,
+    onApply: applyLatestFromServer,
   });
 
   const resolveOptions = (block: SettingSheetBlock) => {
@@ -211,7 +222,19 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
             </CardContent>
           </Card>
 
-          <div className="sticky bottom-4 flex justify-end">
+          <div className="sticky bottom-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            {draftReset.isAvailable ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void draftReset.open()}
+                disabled={draftReset.isLoading || isSubmitting}
+                className="w-full px-6 sm:w-auto"
+              >
+                <RefreshCw className={`size-4 ${draftReset.isLoading ? 'animate-spin' : ''}`} />
+                最新の内容に戻す
+              </Button>
+            ) : null}
             <Button type="button" onClick={handleSubmit} disabled={isSubmitting || isSubmissionClosed} className="w-full px-6 sm:w-auto">
               <Send className="size-4" />
               {isSubmitting ? (submission ? '更新中...' : '送信中...') : (submission ? '更新する' : settingSheetConfig.submitButtonLabel)}
@@ -237,6 +260,13 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
         config={settingSheetConfig}
         currentValues={formValues}
         onApply={setFormValues}
+      />
+
+      <DraftResetDialog
+        open={draftReset.isOpen}
+        onOpenChange={(open) => { if (!open) draftReset.close(); }}
+        rows={draftReset.rows}
+        onConfirm={draftReset.confirm}
       />
     </div>
   );
