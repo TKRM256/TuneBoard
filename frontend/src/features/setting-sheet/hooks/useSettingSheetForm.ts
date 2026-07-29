@@ -129,6 +129,15 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
     }
   };
 
+  /** 下書きを捨て、サーバの最新内容を編集の出発点にし直す。 */
+  const applyLatestFromServer = (values: SettingSheetFormValues, version: number | null) => {
+    clearDraft();
+    setFormValues(values);
+    setIssues([]);
+    baseValuesRef.current = values;
+    setBaseVersion(version);
+  };
+
   const updateScopedAnswers = (
     answers: Record<string, SettingSheetFieldValue>,
     blockId: string,
@@ -257,6 +266,7 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
   };
 
   return {
+    applyLatestFromServer,
     errorMap,
     focusIssue,
     formValues,

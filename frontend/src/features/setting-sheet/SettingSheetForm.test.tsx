@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,7 +7,8 @@ import { ApiClientError } from '@/lib/api/type';
 
 import { SettingSheetForm } from './components/SettingSheetForm';
 
-const { mockNavigate, mockPost, mockPut } = vi.hoisted(() => ({
+const { mockGet, mockNavigate, mockPost, mockPut } = vi.hoisted(() => ({
+  mockGet: vi.fn(),
   mockNavigate: vi.fn(),
   mockPost: vi.fn(),
   mockPut: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('@/lib/api/client', () => ({
   apiClient: {
+    get: mockGet,
     post: mockPost,
     put: mockPut,
   },
@@ -78,6 +80,7 @@ const baseLive: PublicLiveResponse = {
 describe('SettingSheetForm', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    mockGet.mockReset();
     mockNavigate.mockReset();
     mockPost.mockReset();
     mockPut.mockReset();
@@ -414,6 +417,48 @@ describe('SettingSheetForm', () => {
           itunesLinks: null,
         },
       );
+    });
+  });
+
+  it('「最新の内容に戻す」で上書きされる項目を確認してから下書きを破棄できる', async () => {
+    const submission: PublicSettingSheetSubmissionDetailResponse = {
+      id: 'submission-9',
+      recordLabel: 'Saved Band',
+      submissionStatus: 'SUBMITTED',
+      submittedAt: '2026-03-11T20:00:00',
+      version: 2,
+      itunesLinks: [],
+      answers: [{ fieldId: 'band-name', values: ['Saved Band'], items: [] }],
+    };
+    // この端末に残っている古い下書き
+    window.localStorage.setItem('tuneboard:setting-sheet:public-token:submission:submission-9', JSON.stringify({
+      savedAt: '2026-03-01T10:00:00.000Z',
+      values: { answers: { 'band-name': { values: ['古い下書き'], items: [] } }, itunesLinks: {} },
+    }));
+    mockGet.mockResolvedValue(submission);
+
+    render(<SettingSheetForm publicToken="public-token" live={baseLive} submission={submission} />);
+
+    const input = screen.getByRole('textbox', { name: /バンド名/ });
+    expect(input).toHaveValue('古い下書き');
+
+    await userEvent.click(screen.getByRole('button', { name: '下書きを破棄して最新に戻す' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(mockGet).toHaveBeenCalledWith('/public/lives/public-token/setting-sheet/submissions/submission-9');
+    expect(within(dialog).getByText('バンド名')).toBeInTheDocument();
+    expect(within(dialog).getByText('古い下書き')).toBeInTheDocument();
+    expect(within(dialog).getByText('Saved Band')).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: '下書きを破棄して戻す' }));
+
+    await waitFor(() => expect(screen.getByRole('textbox', { name: /バンド名/ })).toHaveValue('Saved Band'));
+
+    // 端末に残る下書きもサーバの最新内容に揃う
+    await waitFor(() => {
+      const raw = window.localStorage.getItem('tuneboard:setting-sheet:public-token:submission:submission-9');
+      expect(raw).not.toBeNull();
+      expect(JSON.parse(raw!).values.answers['band-name'].values).toEqual(['Saved Band']);
     });
   });
 
