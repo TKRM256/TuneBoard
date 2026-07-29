@@ -442,7 +442,7 @@ describe('SettingSheetForm', () => {
     const input = screen.getByRole('textbox', { name: /バンド名/ });
     expect(input).toHaveValue('古い下書き');
 
-    await userEvent.click(screen.getByRole('button', { name: '最新の内容に戻す' }));
+    await userEvent.click(screen.getByRole('button', { name: '下書きを破棄して最新に戻す' }));
 
     const dialog = await screen.findByRole('dialog');
     expect(mockGet).toHaveBeenCalledWith('/public/lives/public-token/setting-sheet/submissions/submission-9');

@@ -139,19 +139,33 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                   前回の入力を取り込む
                 </Button>
               ) : null}
-              <div className="flex gap-2 items-center justify-between rounded-2xl border border-dashed p-2 text-sm">
+              {/* 下書きにまつわる操作をこのパネルにまとめると、ボタンの意味が文脈で分かる */}
+              <div className="space-y-2 rounded-2xl border border-dashed p-2 text-sm">
                 <p className="text-sm text-muted-foreground">
                   {draftSavedAt ? `下書きを自動保存: ${new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(draftSavedAt))}` : 'まだ下書き保存はありません。'}
                 </p>
-              {submission && submittedFormUrl ? (
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={copySubmittedFormUrl}>
-                    編集用リンクをコピー
-                    <Copy className="size-4" />
-                  </Button>
-                </div>
-              ) : null}
-
+                {submission ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {draftReset.isAvailable ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void draftReset.open()}
+                        disabled={draftReset.isLoading || isSubmitting}
+                      >
+                        <RefreshCw className={`size-4 ${draftReset.isLoading ? 'animate-spin' : ''}`} />
+                        下書きを破棄して最新に戻す
+                      </Button>
+                    ) : null}
+                    {submittedFormUrl ? (
+                      <Button type="button" variant="outline" size="sm" onClick={copySubmittedFormUrl}>
+                        編集用リンクをコピー
+                        <Copy className="size-4" />
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
 
 
@@ -222,19 +236,7 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
             </CardContent>
           </Card>
 
-          <div className="sticky bottom-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-            {draftReset.isAvailable ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void draftReset.open()}
-                disabled={draftReset.isLoading || isSubmitting}
-                className="w-full px-6 sm:w-auto"
-              >
-                <RefreshCw className={`size-4 ${draftReset.isLoading ? 'animate-spin' : ''}`} />
-                最新の内容に戻す
-              </Button>
-            ) : null}
+          <div className="sticky bottom-4 flex justify-end">
             <Button type="button" onClick={handleSubmit} disabled={isSubmitting || isSubmissionClosed} className="w-full px-6 sm:w-auto">
               <Send className="size-4" />
               {isSubmitting ? (submission ? '更新中...' : '送信中...') : (submission ? '更新する' : settingSheetConfig.submitButtonLabel)}
