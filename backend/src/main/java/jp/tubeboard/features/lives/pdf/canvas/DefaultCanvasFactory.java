@@ -65,11 +65,11 @@ public class DefaultCanvasFactory {
                         .map(b -> new TableSource.FieldRef(b.id(), b.label()))
                         .toList();
                 List<TableColumn> cols = List.of(
-                        new TableColumn(uuid(), "項目", "__label__", 0.3f, "left", null),
-                        new TableColumn(uuid(), "内容", null, 0.7f, "left", null));
+                        new TableColumn(uuid(), "項目", "__label__", 0.3f, "left", null, null, null),
+                        new TableColumn(uuid(), "内容", null, 0.7f, "left", null, null, null));
                 elements.add(new CanvasElement.TableElement(uuid(), 8f, y,
                         firstGroup != null ? halfW : contentW, TOP_ROW_HEIGHT_MM,
-                        new TableSource.FieldsSource(refs), cols, true, 9f, "#e5edf6", "#d1d5db", false));
+                        new TableSource.FieldsSource(refs), cols, true, 9f, "#e5edf6", "#d1d5db", false, true));
             }
 
             if (firstGroup != null) {
@@ -99,7 +99,7 @@ public class DefaultCanvasFactory {
         }
         return new CanvasElement.TableElement(uuid(), xMm, yMm, wMm, hMm,
                 new TableSource.GroupSource(group.id(), group.label()), columns, true, 9f,
-                "#e5edf6", "#d1d5db", false);
+                "#e5edf6", "#d1d5db", false, true);
     }
 
     private List<TableColumn> genericGroupColumns(FormBlockResponse group) {
@@ -108,7 +108,7 @@ public class DefaultCanvasFactory {
         columns.add(DefaultCanvasColumns.indexColumn(0.08f));
         float colWidth = 0.92f / leafFields.size();
         for (FormBlockResponse field : leafFields) {
-            columns.add(new TableColumn(uuid(), field.label(), field.id(), colWidth, "left", null));
+            columns.add(new TableColumn(uuid(), field.label(), field.id(), colWidth, "left", null, null, null));
         }
         return columns;
     }

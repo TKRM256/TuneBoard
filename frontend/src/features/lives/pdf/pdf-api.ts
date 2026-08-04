@@ -23,6 +23,29 @@ export async function saveLivePdfCanvas(liveId: string, canvas: CanvasDocument):
   await apiClient.post<PdfCanvasResponse>(`/lives/${liveId}/pdf-canvas`, { canvas });
 }
 
+export interface TableMeasurement {
+  elementId: string;
+  /** 見出しと全行を出し切るのに必要な高さ。PDF と同じフォント幅計算で求めた値。 */
+  requiredHeightMm: number;
+}
+
+interface PdfCanvasMeasureResponse {
+  tables: TableMeasurement[];
+}
+
+/** 各表が指定の提出を出し切るのに必要な高さを、バックエンドの実測で取得する。 */
+export async function measurePdfCanvasTables(
+  liveId: string,
+  canvas: CanvasDocument,
+  submissionId: string,
+): Promise<TableMeasurement[]> {
+  const response = await apiClient.post<PdfCanvasMeasureResponse>(
+    `/lives/${liveId}/pdf-canvas/measure`,
+    { canvas, submissionId },
+  );
+  return response?.tables ?? [];
+}
+
 interface FetchOptions {
   signal?: AbortSignal;
 }

@@ -23,6 +23,7 @@ import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
 import jp.tubeboard.features.lives.dto.request.LivePurgeRequest;
 import jp.tubeboard.features.lives.dto.request.LiveRestoreRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.PdfCanvasMeasureRequest;
 import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PdfGenerateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
@@ -30,6 +31,7 @@ import jp.tubeboard.features.lives.dto.request.SongDuplicateDismissRequest;
 import jp.tubeboard.features.lives.dto.request.SubmissionsZipRequest;
 import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
+import jp.tubeboard.features.lives.dto.response.PdfCanvasMeasureResponse;
 import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
@@ -130,6 +132,13 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid PdfCanvasUpdateRequest request) {
         return ResponseEntity.ok(livesService.updatePdfCanvas(id, request));
+    }
+
+    @PostMapping("/{id}/pdf-canvas/measure")
+    public ResponseEntity<PdfCanvasMeasureResponse> measurePdfCanvas(
+            @PathVariable(name = "id") UUID id,
+            @RequestBody @Valid PdfCanvasMeasureRequest request) {
+        return ResponseEntity.ok(livesService.measurePdfCanvas(id, request));
     }
 
     @GetMapping("/{id}/setting-sheet/submissions")

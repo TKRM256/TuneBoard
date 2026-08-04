@@ -115,6 +115,7 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
       headerFill: '#e5edf6',
       borderColor: '#d1d5db',
       zebra: false,
+      autoGrow: true,
     });
   }
 
@@ -156,6 +157,7 @@ function groupTable(group: CatalogGroup, xMm: number, yMm: number, wMm: number, 
     headerFill: '#e5edf6',
     borderColor: '#d1d5db',
     zebra: false,
+    autoGrow: true,
   };
 }
 

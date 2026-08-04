@@ -109,7 +109,11 @@ function TablePreview({ element, catalog, selected }: { element: TableElement; c
       <div style={{ flex: 1, padding: '4px 6px', color: '#64748b', fontSize: 10, lineHeight: 1.3 }}>
         <div>{sourceLabel}</div>
         <div style={{ marginTop: 2 }}>列: {element.columns.map((c) => c.header || '?').join(' / ')}</div>
-        <div style={{ marginTop: 2 }}>※ 実際の行はコンパイル後にレンダリングされます</div>
+        <div style={{ marginTop: 2 }}>
+          {element.autoGrow !== false
+            ? '※ この枠は最低の高さです。行が増えると下へ伸びます'
+            : '※ 実際の行はコンパイル後にレンダリングされます'}
+        </div>
       </div>
     </div>
   );

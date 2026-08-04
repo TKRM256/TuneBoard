@@ -36,6 +36,7 @@ import { buildFieldCatalog } from './field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
 import { persistCanvas } from './canvas-storage';
 import { useLiveCanvasSync } from './useLiveCanvasSync';
+import { useTableHeightFit } from './useTableHeightFit';
 import { PdfCanvasCopyDialog } from '../copy/PdfCanvasCopyDialog';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
@@ -82,6 +83,13 @@ export const PdfPreviewPageMobile = () => {
   const catalog = useMemo(() => buildFieldCatalog(config), [config]);
   const canvasSync = useLiveCanvasSync(liveId);
   const leaveGuard = useUnsavedChangesWarning(canvasSync.isDirty(editor.doc));
+  const previewSubmissionId = submissionIds[previewIndex] ?? submissionIds[0];
+  const tableFit = useTableHeightFit({
+    liveId,
+    submissionId: previewSubmissionId,
+    doc: editor.doc,
+    onUpdateElement: editor.updateElement,
+  });
 
   useEffect(() => {
     if (!liveId) return;
@@ -229,7 +237,7 @@ export const PdfPreviewPageMobile = () => {
   return (
     <ExpressionPreviewProvider
       liveId={liveId}
-      submissionId={submissionIds[previewIndex] ?? submissionIds[0]}
+      submissionId={previewSubmissionId}
       submissionLabel={isBulk ? `${previewIndex + 1}件目の提出` : 'この提出'}
     >
       <div className="flex h-full w-full flex-col">
@@ -379,6 +387,9 @@ export const PdfPreviewPageMobile = () => {
               onMoveColumn={(columnId, direction) =>
                 editor.selectedElement && editor.moveColumn(editor.selectedElement.id, columnId, direction)
               }
+              onFitHeight={(elementId) => void tableFit.fitHeight(elementId)}
+              isFittingHeight={tableFit.isFitting}
+              fitDisabledReason={tableFit.disabledReason}
             />
           </TabsContent>
 

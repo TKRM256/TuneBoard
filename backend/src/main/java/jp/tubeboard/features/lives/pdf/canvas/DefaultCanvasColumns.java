@@ -36,7 +36,7 @@ final class DefaultCanvasColumns {
     }
 
     static TableColumn indexColumn(float widthRatio) {
-        return new TableColumn(uuid(), "No", "__index__", widthRatio, "center", null);
+        return new TableColumn(uuid(), "No", "__index__", widthRatio, "center", null, null, null);
     }
 
     /** 既定フォームの構成に当てはまるときだけ、専用の列構成を返す。 */
@@ -65,8 +65,8 @@ final class DefaultCanvasColumns {
 
         return List.of(
                 indexColumn(0.1f),
-                new TableColumn(uuid(), name.label(), name.id(), 0.4f, "left", nameFormat),
-                new TableColumn(uuid(), parts.label(), parts.id(), 0.5f, "left", null));
+                new TableColumn(uuid(), name.label(), name.id(), 0.4f, "left", nameFormat, null, null),
+                new TableColumn(uuid(), parts.label(), parts.id(), 0.5f, "left", null, null, null));
     }
 
     private static List<TableColumn> setlistColumns(FormBlockResponse group) {
@@ -78,22 +78,22 @@ final class DefaultCanvasColumns {
 
         List<TableColumn> columns = new ArrayList<>();
         columns.add(indexColumn(0.05f));
-        columns.add(new TableColumn(uuid(), "曲 / MC", song.id(), 0.2f, "left", songOrMcExpression(group, song)));
+        columns.add(new TableColumn(uuid(), "曲 / MC", song.id(), 0.2f, "left", songOrMcExpression(group, song), null, null));
 
         FormBlockResponse parts = fields.get(SONG_PARTS);
         if (parts != null) {
-            columns.add(new TableColumn(uuid(), parts.label(), parts.id(), 0.17f, "left", null));
+            columns.add(new TableColumn(uuid(), parts.label(), parts.id(), 0.17f, "left", null, null, null));
         }
 
         String micFormat = micExpression(group);
         if (micFormat != null) {
-            columns.add(new TableColumn(uuid(), "使うマイク", "", 0.16f, "left", micFormat));
+            columns.add(new TableColumn(uuid(), "使うマイク", "", 0.16f, "left", micFormat, null, null));
         }
 
         for (String noteId : SONG_NOTES) {
             FormBlockResponse note = fields.get(noteId);
             if (note != null) {
-                columns.add(new TableColumn(uuid(), note.label(), note.id(), 0.14f, "left", null));
+                columns.add(new TableColumn(uuid(), note.label(), note.id(), 0.14f, "left", null, null, null));
             }
         }
 
@@ -222,7 +222,8 @@ final class DefaultCanvasColumns {
         List<TableColumn> out = new ArrayList<>(columns.size());
         for (TableColumn column : columns) {
             out.add(new TableColumn(column.id(), column.header(), column.fieldId(),
-                    column.widthRatio() / total, column.align(), column.format()));
+                    column.widthRatio() / total, column.align(), column.format(),
+                    column.shrinkToFit(), column.minFontSizePt()));
         }
         return out;
     }

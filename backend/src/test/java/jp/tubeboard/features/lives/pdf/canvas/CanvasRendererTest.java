@@ -82,22 +82,63 @@ class CanvasRendererTest {
 
     @Test
     void renderGroupTableExpandsItemRows() throws IOException {
-        TableColumn no = new TableColumn(uuid(), "No", "__index__", 0.1f, "center", null);
-        TableColumn name = new TableColumn(uuid(), "氏名", "member-name", 0.5f, "left", null);
-        TableColumn parts = new TableColumn(uuid(), "パート", "member-parts", 0.4f, "left", null);
-        CanvasElement.TableElement table = new CanvasElement.TableElement(uuid(),
-                10f, 30f, 200f, 80f,
-                new TableSource.GroupSource("members", "出演者"),
-                List.of(no, name, parts), true, 9f, "#e5edf6", "#d1d5db", false);
-
         CanvasDocument doc = new CanvasDocument(
                 new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 10f),
-                List.of(table));
+                List.of(membersTable(30f, 80f, null)));
         String text = renderToText(doc);
         assertTrue(text.contains("田中"), "row 1 name missing: " + text);
         assertTrue(text.contains("佐藤"), "row 2 name missing: " + text);
         assertTrue(text.contains("Vo / Gt"), "row 1 parts missing: " + text);
         assertTrue(text.contains("氏名"), "header missing: " + text);
+    }
+
+    @Test
+    void 行が入り切らない表は次のページに続きを描く() throws IOException {
+        CanvasDocument doc = new CanvasDocument(
+                new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 10f),
+                List.of(membersTable(30f, 40f, null)));
+        try (PDDocument pdf = renderAndReload(doc, submissionWithMembers(60))) {
+            assertTrue(pdf.getNumberOfPages() > 1,
+                    "60 rows should not fit on one page; got " + pdf.getNumberOfPages());
+            assertTrue(pageText(pdf, 1).contains("メンバー1"), "first rows belong on page 1");
+            assertTrue(pageText(pdf, pdf.getNumberOfPages()).contains("メンバー60"),
+                    "last row should land on the final page");
+        }
+    }
+
+    @Test
+    void 次のページに続いた表にも見出し行を出す() throws IOException {
+        CanvasDocument doc = new CanvasDocument(
+                new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 10f),
+                List.of(membersTable(30f, 40f, null)));
+        try (PDDocument pdf = renderAndReload(doc, submissionWithMembers(60))) {
+            assertTrue(pageText(pdf, 2).contains("氏名"), "the header row should repeat on page 2");
+        }
+    }
+
+    @Test
+    void 自動拡張を切った表はページを増やさない() throws IOException {
+        CanvasDocument doc = new CanvasDocument(
+                new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 10f),
+                List.of(membersTable(30f, 40f, false)));
+        try (PDDocument pdf = render(doc, submissionWithMembers(60))) {
+            assertEquals(1, pdf.getNumberOfPages());
+        }
+    }
+
+    @Test
+    void 伸びた表は下の要素を押し下げる() throws IOException {
+        CanvasElement.TextElement below = text("below", 10, 80, 100, 8, "下の要素", 10f, false);
+        CanvasDocument doc = new CanvasDocument(
+                new CanvasPage(PdfPaperSize.A4, PdfOrientation.LANDSCAPE, 8f, 10f),
+                List.of(membersTable(30f, 40f, null), below));
+        try (PDDocument pdf = renderAndReload(doc, submissionWithMembers(60))) {
+            // The table alone overflows page 1, so the element that used to sit
+            // below it is carried along to the last page instead of being overlapped.
+            assertTrue(pageText(pdf, pdf.getNumberOfPages()).contains("下の要素"),
+                    "the pushed element should follow the table onto the last page");
+            assertTrue(pageText(pdf, 1).contains("メンバー1"), "the table still starts on page 1");
+        }
     }
 
     @Test
@@ -160,27 +201,73 @@ class CanvasRendererTest {
 
     private String renderToText(CanvasDocument doc) throws IOException {
         try (PDDocument pdf = Loader.loadPDF(renderToBytes(doc))) {
-            String raw = new PDFTextStripper().getText(pdf);
-            // PDFBox sometimes extracts CJK glyphs as Kangxi Radicals (U+2F00–U+2FDF)
-            // when reading IPAex Gothic; NFKC folds them to standard ideographs so
-            // assertions on Japanese text aren't flaky.
-            return Normalizer.normalize(raw, Normalizer.Form.NFKC);
+            return normalize(new PDFTextStripper().getText(pdf));
         }
     }
 
+    /** Text of a single 1-based page. */
+    private String pageText(PDDocument pdf, int page) throws IOException {
+        PDFTextStripper stripper = new PDFTextStripper();
+        stripper.setStartPage(page);
+        stripper.setEndPage(page);
+        return normalize(stripper.getText(pdf));
+    }
+
+    /**
+     * PDFBox sometimes extracts CJK glyphs as Kangxi Radicals (U+2F00–U+2FDF)
+     * when reading IPAex Gothic; NFKC folds them to standard ideographs so
+     * assertions on Japanese text aren't flaky.
+     */
+    private String normalize(String raw) {
+        return Normalizer.normalize(raw, Normalizer.Form.NFKC);
+    }
+
     private byte[] renderToBytes(CanvasDocument doc) throws IOException {
-        try (PDDocument pdf = render(doc); java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream()) {
+        return renderToBytes(doc, sampleSubmission());
+    }
+
+    private byte[] renderToBytes(CanvasDocument doc, PublicSettingSheetSubmissionDetailResponse submission)
+            throws IOException {
+        try (PDDocument pdf = render(doc, submission);
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream()) {
             pdf.save(baos);
             return baos.toByteArray();
         }
     }
 
+    /**
+     * Font subsets (and the ToUnicode map text extraction needs) are only written
+     * out on save, so anything asserting on text has to read the saved bytes back.
+     */
+    private PDDocument renderAndReload(CanvasDocument doc,
+            PublicSettingSheetSubmissionDetailResponse submission) throws IOException {
+        return Loader.loadPDF(renderToBytes(doc, submission));
+    }
+
     private PDDocument render(CanvasDocument doc) throws IOException {
+        return render(doc, sampleSubmission());
+    }
+
+    private PDDocument render(CanvasDocument doc, PublicSettingSheetSubmissionDetailResponse submission)
+            throws IOException {
         PDDocument pdf = new PDDocument();
         FontChain fontChain = fontLoader.loadFontChain(pdf);
-        CanvasRenderer renderer = new CanvasRenderer(evaluator, sampleLive(), sampleConfig(), sampleSubmission());
+        CanvasRenderer renderer = new CanvasRenderer(evaluator, sampleLive(), sampleConfig(), submission);
         renderer.render(doc, pdf, fontChain);
         return pdf;
+    }
+
+    private CanvasElement.TableElement membersTable(float yMm, float hMm, Boolean autoGrow) {
+        return new CanvasElement.TableElement(uuid(), 10f, yMm, 200f, hMm,
+                new TableSource.GroupSource("members", "出演者"),
+                List.of(column("No", "__index__", 0.1f, "center"),
+                        column("氏名", "member-name", 0.5f, "left"),
+                        column("パート", "member-parts", 0.4f, "left")),
+                true, 9f, "#e5edf6", "#d1d5db", false, autoGrow);
+    }
+
+    private TableColumn column(String header, String fieldId, float widthRatio, String align) {
+        return new TableColumn(uuid(), header, fieldId, widthRatio, align, null, null, null);
     }
 
     private CanvasElement.TextElement text(String id, float x, float y, float w, float h,
@@ -220,6 +307,18 @@ class CanvasRendererTest {
                         new FieldAnswerResponse("member-parts", List.of("Ba"), List.of())))));
         return new PublicSettingSheetSubmissionDetailResponse(UUID.randomUUID(), "KingGnu", "完成",
                 LocalDateTime.of(2026, 6, 20, 12, 0), 0L, List.of(bandName, memberItems), List.of());
+    }
+
+    private PublicSettingSheetSubmissionDetailResponse submissionWithMembers(int count) {
+        List<GroupItemResponse> items = new java.util.ArrayList<>(count);
+        for (int i = 1; i <= count; i++) {
+            items.add(new GroupItemResponse(null, List.of(
+                    new FieldAnswerResponse("member-name", List.of("メンバー" + i), List.of()),
+                    new FieldAnswerResponse("member-parts", List.of("Vo"), List.of()))));
+        }
+        return new PublicSettingSheetSubmissionDetailResponse(UUID.randomUUID(), "KingGnu", "完成",
+                LocalDateTime.of(2026, 6, 20, 12, 0), 0L,
+                List.of(new FieldAnswerResponse("members", List.of(), items)), List.of());
     }
 
     private FormBlockResponse leaf(String id, String type, String label) {

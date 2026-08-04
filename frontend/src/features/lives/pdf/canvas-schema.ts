@@ -72,6 +72,10 @@ export interface TableColumn {
   widthRatio: number;
   align?: HAlign;
   format?: string;
+  /** 列幅に収まらないセルを折り返す代わりに文字を縮める。 */
+  shrinkToFit?: boolean;
+  /** 上の縮小の下限。既定 6pt。ここまで縮めても収まらない分は折り返す。 */
+  minFontSizePt?: number;
 }
 
 export interface TableElement extends BaseElement {
@@ -83,7 +87,14 @@ export interface TableElement extends BaseElement {
   headerFill?: string;
   borderColor?: string;
   zebra?: boolean;
+  /**
+   * 既定 true。行が入り切らないときに下方向へ伸び、下の要素を押し下げ、
+   * ページに収まらなくなったら次ページに続きを出す。このとき hMm は最低高さになる。
+   */
+  autoGrow?: boolean;
 }
+
+export const DEFAULT_MIN_FONT_SIZE_PT = 6;
 
 export type CanvasElement = TextElement | FieldElement | DividerElement | SpacerElement | TableElement;
 

@@ -7,9 +7,11 @@ import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.PdfCanvasMeasureRequest;
 import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
 import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
+import jp.tubeboard.features.lives.dto.response.PdfCanvasMeasureResponse;
 import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
@@ -54,6 +56,8 @@ public interface ILivesService {
         PdfCanvasResponse getPdfCanvas(UUID id);
 
         PdfCanvasResponse updatePdfCanvas(UUID id, PdfCanvasUpdateRequest request);
+
+        PdfCanvasMeasureResponse measurePdfCanvas(UUID id, PdfCanvasMeasureRequest request);
 
         SettingSheetSubmissionResponse submitPublicSettingSheet(String publicToken,
                         PublicSettingSheetSubmissionRequest request);

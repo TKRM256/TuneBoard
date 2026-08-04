@@ -186,6 +186,49 @@ class LivesControllerIntegrationTest {
                 .andExpect(jsonPath("$[0].error").value(false));
     }
 
+    @Test
+    void 表の必要な高さを測定できる() throws Exception {
+        givenLiveWithMembersGroup();
+
+        mockMvc.perform(post("/api/lives/{id}/pdf-canvas/measure", live.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content(membersTableCanvasRequest()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tables.length()").value(1))
+                .andExpect(jsonPath("$.tables[0].elementId").value("members-table"))
+                // 見出し + 2 行なので、指定した 5mm より高い値が返る
+                .andExpect(jsonPath("$.tables[0].requiredHeightMm",
+                        org.hamcrest.Matchers.greaterThan(5.0)));
+    }
+
+    @Test
+    void メンバーも表の高さを測定できる() throws Exception {
+        // レイアウト編集の補助であり書き込みは伴わないので、閲覧できる人には開いている
+        givenLiveWithMembersGroup();
+
+        mockMvc.perform(post("/api/lives/{id}/pdf-canvas/measure", live.getId())
+                .header("Authorization", "Bearer " + memberToken)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content(membersTableCanvasRequest()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tables.length()").value(1));
+    }
+
+    /** 出演者グループを 1 列で出す、意図的に低すぎる高さの表 1 つだけのレイアウト。 */
+    private String membersTableCanvasRequest() {
+        return """
+                {"canvas":{"page":{"size":"A4","orientation":"LANDSCAPE","marginMm":8,"baseFontSizePt":9},
+                  "elements":[{"kind":"table","id":"members-table","xMm":8,"yMm":20,"wMm":280,"hMm":5,
+                    "source":{"kind":"group","groupId":"members","fallbackLabel":"出演者"},
+                    "columns":[{"id":"c1","header":"氏名","fieldId":"member-name","widthRatio":1.0,
+                      "align":"left","format":null,"shrinkToFit":null,"minFontSizePt":null}],
+                    "showHeader":true,"fontSizePt":9,"headerFill":null,"borderColor":null,
+                    "zebra":false,"autoGrow":true}]},
+                 "submissionId":"%s"}
+                """.formatted(submission.getId());
+    }
+
     /** 出演者グループを 1 つ持つフォーム定義と、2 件回答済みの提出を用意する。 */
     private void givenLiveWithMembersGroup() {
         live.setSettingsJson("""
