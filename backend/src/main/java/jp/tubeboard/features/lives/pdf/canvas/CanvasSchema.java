@@ -70,9 +70,16 @@ public final class CanvasSchema {
                 implements CanvasElement {
         }
 
+        /**
+         * @param autoGrow when not {@code false} the table grows downwards to fit
+         *                 its rows, pushing later elements down and continuing on
+         *                 the next page when it no longer fits. {@code hMm} then
+         *                 acts as a minimum height.
+         */
         record TableElement(String id, Float xMm, Float yMm, Float wMm, Float hMm,
                 TableSource source, List<TableColumn> columns, Boolean showHeader,
-                Float fontSizePt, String headerFill, String borderColor, Boolean zebra)
+                Float fontSizePt, String headerFill, String borderColor, Boolean zebra,
+                Boolean autoGrow)
                 implements CanvasElement {
         }
     }
@@ -94,12 +101,21 @@ public final class CanvasSchema {
         }
     }
 
+    /**
+     * @param shrinkToFit    when {@code true} a cell whose text is too wide for
+     *                       the column is drawn at a reduced font size instead of
+     *                       being wrapped. Text that still does not fit at
+     *                       {@code minFontSizePt} wraps as before.
+     * @param minFontSizePt  lower bound for the shrinking above (defaults to 6pt).
+     */
     public record TableColumn(
             String id,
             String header,
             String fieldId,
             Float widthRatio,
             String align,
-            String format) {
+            String format,
+            Boolean shrinkToFit,
+            Float minFontSizePt) {
     }
 }

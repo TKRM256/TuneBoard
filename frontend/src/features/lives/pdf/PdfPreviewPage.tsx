@@ -28,6 +28,7 @@ import {
   persistPanelVisibility,
 } from './canvas-storage';
 import { useLiveCanvasSync } from './useLiveCanvasSync';
+import { useTableHeightFit } from './useTableHeightFit';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
@@ -73,6 +74,13 @@ export const PdfPreviewPage = () => {
   const canvasSync = useLiveCanvasSync(liveId);
   useCanvasKeyboardShortcuts(editor);
   const leaveGuard = useUnsavedChangesWarning(canvasSync.isDirty(editor.doc));
+  const previewSubmissionId = submissionIds[previewIndex] ?? submissionIds[0];
+  const tableFit = useTableHeightFit({
+    liveId,
+    submissionId: previewSubmissionId,
+    doc: editor.doc,
+    onUpdateElement: editor.updateElement,
+  });
 
   useEffect(() => {
     if (!liveId) return;
@@ -272,7 +280,7 @@ export const PdfPreviewPage = () => {
 
       <ExpressionPreviewProvider
         liveId={liveId}
-        submissionId={submissionIds[previewIndex] ?? submissionIds[0]}
+        submissionId={previewSubmissionId}
         submissionLabel={isBulk ? `${previewIndex + 1}件目の提出` : 'この提出'}
       >
       <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
@@ -320,6 +328,9 @@ export const PdfPreviewPage = () => {
                   onAddColumn={() => editor.selectedElement && editor.addColumn(editor.selectedElement.id)}
                   onRemoveColumn={(columnId) => editor.selectedElement && editor.removeColumn(editor.selectedElement.id, columnId)}
                   onMoveColumn={(columnId, direction) => editor.selectedElement && editor.moveColumn(editor.selectedElement.id, columnId, direction)}
+                  onFitHeight={(elementId) => void tableFit.fitHeight(elementId)}
+                  isFittingHeight={tableFit.isFitting}
+                  fitDisabledReason={tableFit.disabledReason}
                 />
               </SideDrawer>
             </div>

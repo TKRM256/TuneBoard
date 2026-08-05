@@ -15,9 +15,11 @@ import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
+import jp.tubeboard.features.lives.dto.request.PdfCanvasMeasureRequest;
 import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
 import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
+import jp.tubeboard.features.lives.dto.response.PdfCanvasMeasureResponse;
 import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
@@ -30,6 +32,7 @@ import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.exception.SettingSheetSubmissionConflictException;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
+import jp.tubeboard.features.lives.pdf.SettingSheetCanvasMeasurer;
 import jp.tubeboard.features.lives.pdf.SettingSheetPdfService;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
 import jp.tubeboard.features.lives.repository.LiveRepository;
@@ -57,6 +60,7 @@ public class LivesService implements ILivesService {
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
         private final SongDuplicateDetectionService songDuplicateDetectionService;
         private final SettingSheetPdfService settingSheetPdfService;
+        private final SettingSheetCanvasMeasurer canvasMeasurer;
         private final LivePdfCanvasService livePdfCanvasService;
 
         private final LiveServiceHelper helper;
@@ -276,6 +280,21 @@ public class LivesService implements ILivesService {
                 live.setPdfCanvasJson(livePdfCanvasService.writePdfCanvas(request.canvas()));
                 liveRepository.save(live);
                 return new PdfCanvasResponse(request.canvas(), request.canvas() != null);
+        }
+
+        @Override
+        public PdfCanvasMeasureResponse measurePdfCanvas(UUID id, PdfCanvasMeasureRequest request) {
+                Live live = helper.findOwnedLive(id);
+                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
+                PublicSettingSheetSubmissionDetailResponse detail = getOwnedSettingSheetSubmission(id,
+                                request.submissionId());
+                try {
+                        return new PdfCanvasMeasureResponse(canvasMeasurer.measureTables(helper.toResponse(live),
+                                        config, detail, resolveCanvas(live, request.canvas())));
+                } catch (IOException ex) {
+                        log.error("PDFレイアウトの測定に失敗: liveId={}, submissionId={}", id, request.submissionId(), ex);
+                        throw new UncheckedIOException("PDFレイアウトの測定に失敗しました", ex);
+                }
         }
 
         @Override
