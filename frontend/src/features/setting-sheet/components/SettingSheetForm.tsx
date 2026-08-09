@@ -84,11 +84,12 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-      <div className="mx-auto grid min-w-0 max-w-7xl gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+    // overflow-x-hidden はスクロールコンテナを作って送信ボタンの sticky を無効化するため clip を使う
+    <div className="min-h-screen overflow-x-clip px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-10">
+      <div className="mx-auto grid min-w-0 max-w-7xl gap-4 sm:gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
         <aside className="min-w-0 space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <Card className="min-w-0 overflow-hidden text-card-foreground shadow-sm backdrop-blur">
-            <CardHeader className="space-y-5 pb-6">
+          <Card className="min-w-0 gap-4 overflow-hidden py-4 text-card-foreground shadow-sm backdrop-blur sm:gap-6 sm:py-6">
+            <CardHeader className="space-y-4 px-4 pb-0 sm:px-6 sm:pb-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-[0.35em]">TUNEBOARD</p>
                 <div className="flex items-center gap-2">
@@ -99,49 +100,49 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                 </div>
               </div>
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-card-foreground sm:text-4xl">{live.name}</h1>
-                <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">{settingSheetConfig.title}</p>
+                <h1 className="text-2xl font-semibold tracking-tight text-card-foreground sm:text-3xl xl:text-4xl">{live.name}</h1>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground sm:mt-3">{settingSheetConfig.title}</p>
                 {settingSheetConfig.description ? <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{settingSheetConfig.description}</p> : null}
               </div>
-              <div className="grid gap-3 rounded-2xl border p-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">開催日</p>
-                  <p className="mt-1 font-medium text-card-foreground">{formatLiveDate(live.date)}</p>
+              {/* スマホでは横並びに畳んで、フォーム本体が画面に早く現れるようにする */}
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-2xl border p-3 text-sm xl:grid-cols-1 xl:gap-3 xl:p-4">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground xl:text-sm">開催日</p>
+                  <p className="mt-0.5 font-medium wrap-break-word text-card-foreground xl:mt-1">{formatLiveDate(live.date)}</p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">会場</p>
-                  <p className="mt-1 font-medium text-card-foreground">{formatOptionalText(live.location)}</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground xl:text-sm">回答締切</p>
+                  <p className="mt-0.5 font-medium wrap-break-word text-card-foreground xl:mt-1">{formatDeadline(live.deadlineAt)}</p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">回答締切</p>
-                  <p className="mt-1 font-medium text-card-foreground">{formatDeadline(live.deadlineAt)}</p>
+                <div className="col-span-2 min-w-0 xl:col-span-1">
+                  <p className="text-xs text-muted-foreground xl:text-sm">会場</p>
+                  <p className="mt-0.5 font-medium wrap-break-word text-card-foreground xl:mt-1">{formatOptionalText(live.location)}</p>
                 </div>
               </div>
-              {settingSheetConfig.publicSubmissionEnabled && (
-                <a
-                  href={`/public/lives/${publicToken}/submissions/shared`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-2 rounded-2xl border p-4 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
-                >
-                  <ExternalLink className="size-4 shrink-0" />
-                  <span className="min-w-0 wrap-break-word">提出済み一覧を見る</span>
-                </a>
-              )}
-              {!isSubmissionClosed ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setIsValueCopyOpen(true)}
-                >
-                  <History className="size-4" />
-                  前回の入力を取り込む
-                </Button>
-              ) : null}
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                {settingSheetConfig.publicSubmissionEnabled && (
+                  <Button asChild variant="outline" className="w-full justify-start">
+                    <a href={`/public/lives/${publicToken}/submissions/shared`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="size-4 shrink-0" />
+                      <span className="min-w-0 truncate">提出済み一覧を見る</span>
+                    </a>
+                  </Button>
+                )}
+                {!isSubmissionClosed ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setIsValueCopyOpen(true)}
+                  >
+                    <History className="size-4 shrink-0" />
+                    <span className="min-w-0 truncate">前回の入力を取り込む</span>
+                  </Button>
+                ) : null}
+              </div>
               {/* 下書きにまつわる操作をこのパネルにまとめると、ボタンの意味が文脈で分かる */}
               <div className="space-y-2 rounded-2xl border border-dashed p-2 text-sm">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground sm:text-sm">
                   {draftSavedAt ? `下書きを自動保存: ${new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(draftSavedAt))}` : 'まだ下書き保存はありません。'}
                 </p>
                 {submission ? (
@@ -167,13 +168,11 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
                   </div>
                 ) : null}
               </div>
-
-
             </CardHeader>
           </Card>
         </aside>
 
-        <main className="min-w-0 space-y-6">
+        <main className="min-w-0 space-y-4 sm:space-y-6">
 
           {isSubmissionClosed ? (
             <Alert>
@@ -199,15 +198,15 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
             </Alert>
           ) : null}
 
-          <Card>
-            <CardHeader className="border-b pb-5">
+          <Card className="gap-4 py-4 sm:gap-6 sm:py-6">
+            <CardHeader className="border-b px-4 pb-3 sm:px-6 sm:pb-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
-                <h2 className="text-xl font-semibold text-card-foreground">セッティングシート回答</h2>
+                <h2 className="text-lg font-semibold text-card-foreground sm:text-xl">セッティングシート回答</h2>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="grid min-w-0 gap-4 xl:grid-cols-6">
+            <CardContent className="grid min-w-0 gap-3 px-3 sm:gap-4 sm:px-6 xl:grid-cols-6">
               {settingSheetConfig.blocks.map((block) => (
                 <SettingSheetFieldRenderer
                   key={block.id}
@@ -236,8 +235,9 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
             </CardContent>
           </Card>
 
-          <div className="sticky bottom-4 flex justify-end">
-            <Button type="button" onClick={handleSubmit} disabled={isSubmitting || isSubmissionClosed} className="w-full px-6 sm:w-auto">
+          {/* スマホでは画面下に固定したバーにして、長いフォームでもすぐ送信できるようにする */}
+          <div className="sticky bottom-0 z-30 -mx-3 flex justify-end border-t bg-background/90 px-3 py-3 backdrop-blur sm:bottom-4 sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+            <Button type="button" size="lg" onClick={handleSubmit} disabled={isSubmitting || isSubmissionClosed} className="w-full px-6 sm:w-auto">
               <Send className="size-4" />
               {isSubmitting ? (submission ? '更新中...' : '送信中...') : (submission ? '更新する' : settingSheetConfig.submitButtonLabel)}
             </Button>
