@@ -16,6 +16,7 @@ import {
   createDefaultSettingSheetValues,
   createSettingSheetValuesFromSubmissionAnswers,
   fieldIdFromKey,
+  pruneUnknownOptionValues,
   toSettingSheetSubmissionPayload,
   validateSettingSheetForm,
   type SettingSheetFieldValue,
@@ -228,7 +229,13 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
       return;
     }
 
-    const nextIssues = validateSettingSheetForm(formValues, settingSheetConfig);
+    // 設定変更で選択肢から消えた旧値は、画面に出ないまま残るので送信前に落とす
+    const values = pruneUnknownOptionValues(formValues, settingSheetConfig);
+    if (values !== formValues) {
+      setFormValues(values);
+    }
+
+    const nextIssues = validateSettingSheetForm(values, settingSheetConfig);
     setIssues(nextIssues);
 
     if (nextIssues.length > 0) {
@@ -237,17 +244,18 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
       return;
     }
 
-    void submitValues(formValues, baseVersion);
+    void submitValues(values, baseVersion);
   };
 
   /** マージ画面での選択を確定し、相手の最新版を base として保存し直す。 */
   const confirmMerge = () => {
     const conflict = merge.conflict;
-    const merged = merge.buildMergedValues();
-    if (!conflict || !merged) {
+    const built = merge.buildMergedValues();
+    if (!conflict || !built) {
       return;
     }
 
+    const merged = pruneUnknownOptionValues(built, settingSheetConfig);
     setFormValues(merged);
 
     const nextIssues = validateSettingSheetForm(merged, settingSheetConfig);
