@@ -7,7 +7,8 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PageScrollTable } from '@/components/original/PageScrollTable';
 import { apiClient } from '@/lib/api/client';
 import { ApiClientError } from '@/lib/api/type';
 import {
@@ -150,9 +151,10 @@ export const PublicSubmissionSharedPage = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* テーブル幅までカードを広げて、横方向はブラウザのスクロールに任せる */}
+        <Card className="w-fit min-w-full">
           <CardHeader>
-            <h2 className="text-lg font-semibold">公開項目</h2>
+            <h2 className="sticky left-0 max-w-[calc(100vw-2rem)] text-lg font-semibold">公開項目</h2>
           </CardHeader>
           <CardContent className="space-y-3">
             {submissionId && submissions.length === 0 ? (
@@ -165,7 +167,7 @@ export const PublicSubmissionSharedPage = () => {
               <p className="text-sm text-muted-foreground">検索条件に一致する提出がありません。</p>
             ) : (
               <div className="rounded-lg border">
-                  <Table>
+                  <PageScrollTable>
                     <TableHeader className="sticky top-0 z-20 bg-background">
                       <TableRow>
                         {columns.map((column) => (
@@ -184,7 +186,7 @@ export const PublicSubmissionSharedPage = () => {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
+                  </PageScrollTable>
               </div>
             )}
           </CardContent>
