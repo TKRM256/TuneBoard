@@ -13,6 +13,8 @@ export {
   type SettingSheetGroupItemValue,
 } from './helpers/form-state';
 
+export { pruneUnknownOptionValues } from './helpers/prune-options';
+
 export {
   moveArrayItem,
   normalizeValuesForConfig,
