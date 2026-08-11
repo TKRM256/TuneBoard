@@ -18,7 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PageScrollTable } from '@/components/original/PageScrollTable';
 import { apiClient } from '@/lib/api/client';
 import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import {
@@ -372,9 +373,11 @@ export const LiveSubmissionsPage = () => {
 
       <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={isAdmin ? handleDismiss : undefined} isDismissing={(normalizedTitle) => isDuplicateDismissRunning(getDuplicateActionKey(normalizedTitle))} isAdmin={isAdmin} />
 
-      <Card>
+      {/* テーブル幅までカードを広げて、横方向はブラウザのスクロールに任せる */}
+      <Card className="w-fit min-w-full">
         <CardHeader>
-          <div className="space-y-3">
+          {/* カードが画面より広くなっても操作部は左端に留める */}
+          <div className="sticky left-0 max-w-[calc(100vw-2rem)] space-y-3">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
@@ -397,7 +400,7 @@ export const LiveSubmissionsPage = () => {
             <p className="text-sm text-muted-foreground">該当する提出はありません。</p>
           ) : (
             <div className="rounded-lg border">
-                <Table>
+                <PageScrollTable>
                   <TableHeader className="sticky top-0 z-20 bg-background">
                     <TableRow>
                       <TableHead className="bg-background w-10">
@@ -460,7 +463,7 @@ export const LiveSubmissionsPage = () => {
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>
+                </PageScrollTable>
             </div>
           )}
         </CardContent>
