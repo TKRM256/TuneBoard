@@ -17,7 +17,7 @@ export function newId(): string {
   return crypto.randomUUID();
 }
 
-const DEFAULT_PAGE = { size: 'A4' as PaperSize, orientation: 'LANDSCAPE' as Orientation, marginMm: 8, baseFontSizePt: 9 };
+const DEFAULT_PAGE = { size: 'B4' as PaperSize, orientation: 'LANDSCAPE' as Orientation, marginMm: 8, baseFontSizePt: 9 };
 
 const PAGE_HEIGHT_MM = 210; // A4 landscape
 /** 上段（単発項目のKV表・最初の繰り返しグループ）の高さ。 */

@@ -50,10 +50,6 @@ export function MergeConflictDialog({
             <AlertTriangle className="size-5 text-destructive" />
             他の人がこのシートを更新しました
           </DialogTitle>
-          <DialogDescription>
-            自動では統合しません。フォームの並びのまま自分と相手の内容を並べています。
-            食い違っている項目だけ、どちらを残すか選んでください。
-          </DialogDescription>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <Badge variant={unresolved > 0 ? 'destructive' : 'secondary'}>要選択 {unresolved}件</Badge>
             <Badge variant="outline">相手の変更 {theirChanges}件</Badge>
