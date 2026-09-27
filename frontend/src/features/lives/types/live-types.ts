@@ -409,6 +409,36 @@ export function createLiveFormFromResponse(live: LiveResponse): LiveFormValues {
   };
 }
 
+export type LiveFormErrors = Partial<Record<keyof LiveFormValues, string>>;
+
+/** 送信前の入力チェック。文言はバックエンドの制約（LiveCreateRequest / LiveUpdateRequest）に合わせている。 */
+export function validateLiveForm(formValues: LiveFormValues): LiveFormErrors {
+  const errors: LiveFormErrors = {};
+  const name = formValues.name.value.trim();
+
+  if (!name) {
+    errors.name = 'ライブ名は必須です';
+  } else if (name.length > 255) {
+    errors.name = 'ライブ名は255文字以内で入力してください';
+  }
+
+  if (formValues.location.value.trim().length > 255) {
+    errors.location = '会場は255文字以内で入力してください';
+  }
+
+  return errors;
+}
+
+export function applyLiveFormErrors(formValues: LiveFormValues, errors: LiveFormErrors): LiveFormValues {
+  const next = { ...formValues } as LiveFormValues;
+  const mutableFields = next as Record<keyof LiveFormValues, { value: string; error?: string }>;
+  for (const [key, message] of Object.entries(errors)) {
+    const fieldKey = key as keyof LiveFormValues;
+    mutableFields[fieldKey] = { ...mutableFields[fieldKey], error: message };
+  }
+  return next;
+}
+
 export function toLiveCreatePayload(tenantId: string, formValues: LiveFormValues) {
   return {
     tenantId,
