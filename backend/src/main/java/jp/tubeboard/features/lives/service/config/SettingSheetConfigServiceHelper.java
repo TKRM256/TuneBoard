@@ -54,6 +54,10 @@ public class SettingSheetConfigServiceHelper {
                                 formBuilderHelper.safeText(block.description()),
                                 Boolean.TRUE.equals(block.hidden()),
                                 Boolean.TRUE.equals(block.publicVisible()),
+                                // adminVisible が無い旧データは共有設定(publicVisible)をそのまま引き継ぐ
+                                block.adminVisible() == null
+                                                ? Boolean.TRUE.equals(block.publicVisible())
+                                                : block.adminVisible(),
                                 (valueBlock || repeatableGroup) && Boolean.TRUE.equals(block.required()),
                                 repeatableGroup && Boolean.TRUE.equals(block.collapsible()),
                                 formBuilderHelper.normalizeAppearance(block.appearance(),
@@ -106,6 +110,7 @@ public class SettingSheetConfigServiceHelper {
                                 block.description(),
                                 block.hidden(),
                                 block.publicVisible(),
+                                block.adminVisible(),
                                 block.required(),
                                 block.collapsible(),
                                 block.appearance(),

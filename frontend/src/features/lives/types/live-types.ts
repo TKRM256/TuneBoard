@@ -41,7 +41,10 @@ export interface SettingSheetBlock {
   label: string;
   description: string;
   hidden: boolean;
+  /** 共有フォーム（公開の提出一覧）に表示するか */
   publicVisible?: boolean;
+  /** 管理者画面の提出一覧に表示するか。旧データには存在しないため publicVisible を引き継ぐ */
+  adminVisible?: boolean;
   required: boolean;
   collapsible: boolean;
   appearance: SettingSheetBlockAppearance;
@@ -228,21 +231,21 @@ function createId() {
 export function createBlockTemplate(type: SettingSheetBlockType): SettingSheetBlock {
   switch (type) {
     case 'SECTION':
-      return { id: createId(), type, label: 'セクション見出し', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'plain', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: 'セクション見出し', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'plain', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'SHORT_TEXT':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'LONG_TEXT':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'SINGLE_SELECT':
     case 'MULTI_SELECT':
     case 'CHECKBOX':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: ['選択肢1'], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', type === 'SINGLE_SELECT' ? 1 : 2, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: ['選択肢1'], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', type === 'SINGLE_SELECT' ? 1 : 2, false), optionSource: null, duplicateDetectionRole: '' };
     case 'BOOLEAN':
-      return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'REPEATABLE_GROUP':
-      return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '', variants: [] };
+      return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '', variants: [] };
     case 'SONG':
-      return { id: createId(), type, label: '楽曲', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '楽曲', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
   }
 }
 
@@ -337,6 +340,8 @@ function normalizeBlock(block: SettingSheetBlock, fallbackId: string): SettingSh
     description: block.description?.trim() ?? '',
     hidden: block.hidden === true,
     publicVisible: block.publicVisible === true,
+    // adminVisible が無い旧データは共有設定をそのまま引き継ぐ
+    adminVisible: block.adminVisible === undefined ? block.publicVisible === true : block.adminVisible === true,
     required,
     collapsible: isRepeatableGroupBlock(type) ? block.collapsible === true : false,
     appearance: block.appearance === 'plain' || block.appearance === 'subtle' || block.appearance === 'outline' ? block.appearance : template.appearance,

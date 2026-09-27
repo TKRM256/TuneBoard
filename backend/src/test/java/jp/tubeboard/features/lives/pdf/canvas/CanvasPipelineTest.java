@@ -217,12 +217,12 @@ class CanvasPipelineTest {
     }
 
     private FormBlockResponse leaf(String id, String type, String label) {
-        return new FormBlockResponse(id, type, label, "", false, true, false, false,
+        return new FormBlockResponse(id, type, label, "", false, true, true, false, false,
                 "outline", "plain", List.of(), 0, "", "", "", List.of(), LAYOUT_HALF, null, "", List.of());
     }
 
     private FormBlockResponse group(String id, String label, List<FormBlockResponse> children) {
-        return new FormBlockResponse(id, "REPEATABLE_GROUP", label, "", false, true, false, true,
+        return new FormBlockResponse(id, "REPEATABLE_GROUP", label, "", false, true, true, false, true,
                 "subtle", "outline", List.of(), 1, "追加", "項目", "", children, LAYOUT_HALF, null, "",
                 List.of(new VariantResponse("default", "default", children)));
     }
