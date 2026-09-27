@@ -1,7 +1,9 @@
 package jp.tubeboard.features.lives.service.crud;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -56,6 +58,14 @@ public class LiveServiceHelper {
                 Tenants tenant = findTenant(tenantId, userId);
                 requireAdminTenantAccess(tenantId, userId);
                 return tenant;
+        }
+
+        /** 回答締切は開催日当日までにする。エラーは編集フォームの締切欄に出る。 */
+        public void assertDeadlineNotAfterDate(LocalDate date, LocalDateTime deadlineAt) {
+                if (date != null && deadlineAt != null && deadlineAt.toLocalDate().isAfter(date)) {
+                        String message = "回答締切は開催日以前にしてください";
+                        throw new BadRequestException(message, Map.of("deadlineAt", message));
+                }
         }
 
         public LiveStatus resolveStatus(LiveStatus status) {
@@ -149,7 +159,7 @@ public class LiveServiceHelper {
 
                 // レスポンスに更新後の version を載せるため、ここでフラッシュしてインクリメントを確定させる
                 SettingSheetSubmission saved = settingSheetSubmissionRepository.saveAndFlush(target);
-                saveItunesLinks(saved, request.itunesLinks());
+                saveItunesLinks(saved, normalizedRequest.itunesLinks());
                 return toSubmissionResponse(saved);
         }
 

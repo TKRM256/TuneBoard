@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,19 +23,24 @@ import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDeta
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.OptionSourceResponse;
-import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
 
 @Service
 public class SettingSheetSubmissionService {
 
     private static final Logger log = LoggerFactory.getLogger(SettingSheetSubmissionService.class);
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+    private static final int RECORD_LABEL_MAX_LENGTH = 255;
 
     public PublicSettingSheetSubmissionRequest normalizeSubmissionRequest(PublicSettingSheetSubmissionRequest request) {
         return new PublicSettingSheetSubmissionRequest(
-                request.answers() == null ? List.of()
-                        : request.answers().stream().map(this::normalizeFieldAnswer).toList(),
-                request.itunesLinks());
+                normalizeFieldAnswers(request.answers()),
+                request.itunesLinks() == null ? null
+                        : request.itunesLinks().stream().filter(Objects::nonNull).toList());
+    }
+
+    private List<FieldAnswerRequest> normalizeFieldAnswers(List<FieldAnswerRequest> answers) {
+        return answers == null ? List.of()
+                : answers.stream().filter(Objects::nonNull).map(this::normalizeFieldAnswer).toList();
     }
 
     public void validateSubmission(PublicSettingSheetSubmissionRequest request, SettingSheetConfigResponse config) {
@@ -51,7 +57,16 @@ public class SettingSheetSubmissionService {
             PublicSettingSheetSubmissionRequest request,
             String fallback) {
         String firstAnswer = findFirstSubmittedValue(config.blocks(), request.answers());
-        return firstAnswer.isBlank() ? fallback + " の回答" : firstAnswer;
+        String summary = firstAnswer.isBlank() ? fallback + " の回答" : firstAnswer;
+        // record_label は VARCHAR(255)。先頭の回答が長文欄でも保存できるよう切り詰める
+        if (summary.length() <= RECORD_LABEL_MAX_LENGTH) {
+            return summary;
+        }
+        // 絵文字などのサロゲートペアを途中で切らない
+        int end = Character.isHighSurrogate(summary.charAt(RECORD_LABEL_MAX_LENGTH - 1))
+                ? RECORD_LABEL_MAX_LENGTH - 1
+                : RECORD_LABEL_MAX_LENGTH;
+        return summary.substring(0, end);
     }
 
     public String writeSubmissionPayload(PublicSettingSheetSubmissionRequest request) {
@@ -118,7 +133,7 @@ public class SettingSheetSubmissionService {
             if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
                 List<GroupItemRequest> items = answer.items().stream()
                         .map(item -> new GroupItemRequest(item.variantId(),
-                                filterAnswers(resolveItemFields(block, item.variantId()), item.answers())))
+                                filterAnswers(block.itemFields(item.variantId()), item.answers())))
                         .toList();
                 filtered.add(new FieldAnswerRequest(block.id(), List.of(), items));
                 continue;
@@ -167,7 +182,7 @@ public class SettingSheetSubmissionService {
                 }
                 for (int index = 0; index < answer.items().size(); index++) {
                     GroupItemRequest item = answer.items().get(index);
-                    validateAnswers(resolveItemFields(block, item.variantId()), item.answers(),
+                    validateAnswers(block.itemFields(item.variantId()), item.answers(),
                             key + ".items[" + index + "].answers.",
                             rootBlocks, rootAnswers, fieldErrors, true);
                 }
@@ -219,10 +234,9 @@ public class SettingSheetSubmissionService {
                         : answer.values().stream().map(this::safeText).filter(value -> !value.isBlank()).distinct()
                                 .toList(),
                 answer.items() == null ? List.of()
-                        : answer.items().stream().map(item -> new GroupItemRequest(
+                        : answer.items().stream().filter(Objects::nonNull).map(item -> new GroupItemRequest(
                                 safeText(item.variantId()),
-                                item.answers() == null ? List.of()
-                                        : item.answers().stream().map(this::normalizeFieldAnswer).toList()))
+                                normalizeFieldAnswers(item.answers())))
                                 .toList());
     }
 
@@ -287,7 +301,7 @@ public class SettingSheetSubmissionService {
             }
             for (GroupItemRequest item : answer.items()) {
                 values.addAll(
-                        collectReferencedValues(resolveItemFields(block, item.variantId()), item.answers(), source));
+                        collectReferencedValues(block.itemFields(item.variantId()), item.answers(), source));
             }
         }
         return List.copyOf(values);
@@ -314,7 +328,7 @@ public class SettingSheetSubmissionService {
             }
             if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
                 for (GroupItemRequest item : answer.items()) {
-                    String nested = findFirstSubmittedValue(resolveItemFields(block, item.variantId()), item.answers());
+                    String nested = findFirstSubmittedValue(block.itemFields(item.variantId()), item.answers());
                     if (!nested.isBlank()) {
                         return nested;
                     }
@@ -326,16 +340,5 @@ public class SettingSheetSubmissionService {
 
     private String safeText(String value) {
         return value == null ? "" : value.trim();
-    }
-
-    private List<FormBlockResponse> resolveItemFields(FormBlockResponse block, String variantId) {
-        if (block.variants() != null && variantId != null && !variantId.isBlank()) {
-            for (VariantResponse v : block.variants()) {
-                if (v.id().equals(variantId)) {
-                    return v.fields();
-                }
-            }
-        }
-        return block.fields();
     }
 }

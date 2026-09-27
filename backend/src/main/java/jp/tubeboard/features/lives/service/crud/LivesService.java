@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jp.tubeboard.common.exception.BadRequestException;
 import jp.tubeboard.features.auth.User;
 import jp.tubeboard.features.auth.UserService;
 import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
@@ -70,6 +71,7 @@ public class LivesService implements ILivesService {
         public LiveResponse create(LiveCreateRequest request) {
                 User currentUser = userService.getCurrentUser();
                 Tenants tenant = helper.findAdminTenant(request.tenantId(), currentUser.getId());
+                helper.assertDeadlineNotAfterDate(request.date(), request.deadlineAt());
 
                 Live live = Live.builder()
                                 .tenant(tenant)
@@ -140,6 +142,7 @@ public class LivesService implements ILivesService {
         @Transactional
         public LiveResponse update(LiveUpdateRequest request) {
                 Live live = helper.findAdminLive(request.id());
+                helper.assertDeadlineNotAfterDate(request.date(), request.deadlineAt());
 
                 live.setName(request.name());
                 live.setDate(request.date());
@@ -276,6 +279,10 @@ public class LivesService implements ILivesService {
         @Transactional
         public PdfCanvasResponse updatePdfCanvas(UUID id, PdfCanvasUpdateRequest request) {
                 Live live = helper.findAdminLive(id);
+                // page / elements が欠けたレイアウトは読み込み時に「未保存」と同じ扱いになり、保存済みの形が消えてしまう
+                if (request.canvas().page() == null || request.canvas().elements() == null) {
+                        throw new BadRequestException("PDFレイアウトの形式が正しくありません");
+                }
 
                 live.setPdfCanvasJson(livePdfCanvasService.writePdfCanvas(request.canvas()));
                 liveRepository.save(live);

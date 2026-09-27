@@ -35,7 +35,10 @@ export const CreateTenantsCard = ({ onCreateSuccess }: { onCreateSuccess: (newTe
     } catch (error: unknown) {
       const apiError = error as ApiClientError;
       const serverFieldErrors = apiError.apiError?.fieldErrors;
-      if(!serverFieldErrors) return;
+      if(!serverFieldErrors) {
+        toast.error(apiError.apiError?.message ?? "テナントの作成に失敗しました", { position: "top-center" });
+        return;
+      }
       for(const key in serverFieldErrors){
         if(key in formValues){
           setFormValues((prev) => ({

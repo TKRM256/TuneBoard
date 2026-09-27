@@ -23,6 +23,9 @@ public interface UserTenantRepository extends JpaRepository<UserTenant, UUID> {
 
     boolean existsByTenantIdAndUserIdAndDeletedAtIsNull(UUID tenantId, Long userId);
 
+    /** (user_id, tenant_id) は一意なので、脱退済みの行も含めて1件だけ引ける。 */
+    Optional<UserTenant> findByTenantIdAndUserId(UUID tenantId, Long userId);
+
     Optional<UserTenant> findByTenantIdAndUserIdAndRoleAndDeletedAtIsNull(
             UUID tenantId, Long userId, TenantRole role);
 }

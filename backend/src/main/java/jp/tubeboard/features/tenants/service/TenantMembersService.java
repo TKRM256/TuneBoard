@@ -44,6 +44,9 @@ public class TenantMembersService {
         requireAdmin(tenantId);
 
         TenantRole role = parseRole(request.role());
+        if (role == TenantRole.OWNER) {
+            throw new BadRequestException("OWNERロールのメンバーは追加できません");
+        }
         Tenants tenant = tenantsRepository.findById(tenantId)
                 .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
 
@@ -54,13 +57,13 @@ public class TenantMembersService {
             throw new BadRequestException("このユーザーは既にメンバーです");
         }
 
-        UserTenant userTenant = userTenantRepository.save(UserTenant.builder()
-                .user(targetUser)
-                .tenant(tenant)
-                .role(role)
-                .build());
+        // 脱退済みの行が残っていると (user_id, tenant_id) の一意制約に当たるため、その行を復活させる
+        UserTenant userTenant = userTenantRepository.findByTenantIdAndUserId(tenantId, targetUser.getId())
+                .orElseGet(() -> UserTenant.builder().user(targetUser).tenant(tenant).build());
+        userTenant.restore();
+        userTenant.setRole(role);
 
-        return toResponse(userTenant);
+        return toResponse(userTenantRepository.save(userTenant));
     }
 
     @Transactional

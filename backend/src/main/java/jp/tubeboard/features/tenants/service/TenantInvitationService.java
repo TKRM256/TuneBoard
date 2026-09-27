@@ -93,11 +93,12 @@ public class TenantInvitationService {
             throw new BadRequestException("既にこのテナントのメンバーです");
         }
 
-        userTenantRepository.save(UserTenant.builder()
-                .user(currentUser)
-                .tenant(invitation.getTenant())
-                .role(invitation.getRole())
-                .build());
+        // 脱退済みの行が残っていると (user_id, tenant_id) の一意制約に当たるため、その行を復活させる
+        UserTenant userTenant = userTenantRepository.findByTenantIdAndUserId(tenantId, currentUser.getId())
+                .orElseGet(() -> UserTenant.builder().user(currentUser).tenant(invitation.getTenant()).build());
+        userTenant.restore();
+        userTenant.setRole(invitation.getRole());
+        userTenantRepository.save(userTenant);
     }
 
     private void requireAdmin(UUID tenantId) {

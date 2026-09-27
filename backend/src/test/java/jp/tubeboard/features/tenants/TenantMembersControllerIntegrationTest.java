@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.tenants.model.TenantRole;
 import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.model.UserTenant;
+import jp.tubeboard.features.tenants.repository.TenantInvitationRepository;
 import jp.tubeboard.features.tenants.repository.TenantsRepository;
 import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 
@@ -57,6 +59,9 @@ class TenantMembersControllerIntegrationTest {
     @Autowired
     private JwtTokenService jwtTokenService;
 
+    @Autowired
+    private TenantInvitationRepository tenantInvitationRepository;
+
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
     private User adminUser;
@@ -69,6 +74,7 @@ class TenantMembersControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        tenantInvitationRepository.deleteAll();
         settingSheetSubmissionRepository.deleteAll();
         liveRepository.deleteAll();
         userTenantRepository.deleteAll();
@@ -116,6 +122,12 @@ class TenantMembersControllerIntegrationTest {
         adminToken = jwtTokenService.generateToken("admin-sub", "Admin", "admin@example.com", "");
         memberToken = jwtTokenService.generateToken("member-sub", "Member", "member@example.com", "");
         outsiderToken = jwtTokenService.generateToken("outsider-sub", "Outsider", "outsider@example.com", "");
+    }
+
+    // 招待が残ると他のテストクラスの tenantsRepository.deleteAll() が外部キーで失敗する
+    @AfterEach
+    void tearDown() {
+        tenantInvitationRepository.deleteAll();
     }
 
     // ==================== 一覧 ====================
@@ -178,6 +190,70 @@ class TenantMembersControllerIntegrationTest {
                         {"email":"member@example.com","role":"MEMBER"}
                         """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 管理者でもOWNERロールのメンバーは追加できない() throws Exception {
+        mockMvc.perform(post("/api/tenants/{tenantId}/members", tenant.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"email":"outsider@example.com","role":"owner"}
+                        """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 削除したメンバーを再追加できる() throws Exception {
+        mockMvc.perform(delete("/api/tenants/{tenantId}/members/{userId}", tenant.getId(), memberUser.getId())
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/tenants/{tenantId}/members", tenant.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"email":"member@example.com","role":"ADMIN"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+
+        mockMvc.perform(get("/api/tenants/{tenantId}/members", tenant.getId())
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void 削除したメンバーは招待リンクで再参加できる() throws Exception {
+        mockMvc.perform(delete("/api/tenants/{tenantId}/members/{userId}", tenant.getId(), memberUser.getId())
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+
+        MvcResult created = mockMvc.perform(post("/api/tenants/{tenantId}/invitations", tenant.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content("""
+                        {"role":"MEMBER"}
+                        """))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = objectMapper.readTree(created.getResponse().getContentAsString()).get("token").asText();
+
+        mockMvc.perform(post("/api/invitations/{token}/accept", token)
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/tenants/{tenantId}/members", tenant.getId())
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void 未ログインは401になる() throws Exception {
+        mockMvc.perform(get("/api/tenants/{tenantId}/members", tenant.getId()))
+                .andExpect(status().isUnauthorized());
     }
 
     // ==================== 削除 ====================

@@ -50,7 +50,10 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
       } catch (error: unknown) {
         const apiError = error as ApiClientError;
         const serverFieldErrors = apiError.apiError?.fieldErrors;
-        if(!serverFieldErrors) return;
+        if(!serverFieldErrors) {
+          toast.error(apiError.apiError?.message ?? "テナントの更新に失敗しました", { position: "top-center" });
+          return;
+        }
         for(const key in serverFieldErrors){
           if(key in formValues){
             setFormValues((prev) => ({

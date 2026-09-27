@@ -2,6 +2,7 @@ package jp.tubeboard.features.lives.service.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -28,9 +29,20 @@ public class SettingSheetConfigServiceHelper {
                 if (values == null) {
                         return defaultConfig.blocks();
                 }
+                return normalizeChildBlocks(values, defaultConfig);
+        }
+
+        /** 子ブロックの null は「子なし」。既定フォームで補うのはトップレベルだけにする。 */
+        private List<FormBlockResponse> normalizeChildBlocks(List<FormBlockRequest> values,
+                        SettingSheetConfigResponse defaultConfig) {
+                if (values == null) {
+                        return List.of();
+                }
                 List<FormBlockResponse> normalizedBlocks = new ArrayList<>();
                 for (FormBlockRequest block : values) {
-                        normalizedBlocks.add(normalizeBlock(block, defaultConfig));
+                        if (block != null) {
+                                normalizedBlocks.add(normalizeBlock(block, defaultConfig));
+                        }
                 }
                 return List.copyOf(normalizedBlocks);
         }
@@ -74,7 +86,7 @@ public class SettingSheetConfigServiceHelper {
                                                 : "",
                                 repeatableGroup ? formBuilderHelper.safeTextOrDefault(block.entryTitle(), "項目") : "",
                                 repeatableGroup ? formBuilderHelper.safeText(block.titleSourceFieldId()) : "",
-                                (repeatableGroup || sectionBlock) ? normalizeBlocks(block.fields(), defaultConfig)
+                                (repeatableGroup || sectionBlock) ? normalizeChildBlocks(block.fields(), defaultConfig)
                                                 : List.of(),
                                 formBuilderHelper.normalizeLayout(block.layout()),
                                 optionSource,
@@ -91,11 +103,12 @@ public class SettingSheetConfigServiceHelper {
                         return List.of();
                 }
                 return variants.stream()
+                                .filter(Objects::nonNull)
                                 .map(v -> new VariantResponse(
                                                 formBuilderHelper.safeTextOrDefault(v.id(),
                                                                 UUID.randomUUID().toString()),
                                                 formBuilderHelper.safeTextOrDefault(v.label(), "バリアント"),
-                                                normalizeBlocks(v.fields(), defaultConfig)))
+                                                normalizeChildBlocks(v.fields(), defaultConfig)))
                                 .toList();
         }
 

@@ -43,6 +43,7 @@ export const CreateLiveCard = ({ tenantId, onCreateSuccess }: CreateLiveCardProp
   const applyServerErrors = (error: ApiClientError) => {
     const serverFieldErrors = error.apiError?.fieldErrors;
     if (!serverFieldErrors) {
+      toast.error(error.apiError?.message ?? 'ライブの作成に失敗しました', { position: 'top-center' });
       return;
     }
 

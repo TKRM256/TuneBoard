@@ -455,7 +455,7 @@ public class SongDuplicateDetectionService {
                 FieldAnswerRequest answer = answerMap.get(block.id());
                 if (answer != null) {
                     for (GroupItemRequest item : answer.items()) {
-                        List<FormBlockResponse> itemFields = resolveItemFields(block, item.variantId());
+                        List<FormBlockResponse> itemFields = block.itemFields(item.variantId());
                         songs.addAll(extractSongs(submissionId, recordLabel, itemFields, item.answers()));
                     }
                 }
@@ -468,7 +468,7 @@ public class SongDuplicateDetectionService {
             }
 
             for (GroupItemRequest item : answer.items()) {
-                List<FormBlockResponse> itemFields = resolveItemFields(block, item.variantId());
+                List<FormBlockResponse> itemFields = block.itemFields(item.variantId());
                 String itemSongBlockId = detectSongBlockId(itemFields);
                 SongFieldIds itemSongFieldIds = itemSongBlockId == null ? detectSongFields(itemFields) : null;
                 if (itemSongBlockId == null && itemSongFieldIds == null) {
@@ -570,17 +570,6 @@ public class SongDuplicateDetectionService {
             }
         }
         return null;
-    }
-
-    private List<FormBlockResponse> resolveItemFields(FormBlockResponse block, String variantId) {
-        if (block.variants() != null && variantId != null && !variantId.isBlank()) {
-            for (VariantResponse v : block.variants()) {
-                if (v.id().equals(variantId)) {
-                    return v.fields();
-                }
-            }
-        }
-        return block.fields();
     }
 
     private Map<String, FieldAnswerRequest> toAnswerMap(List<FieldAnswerRequest> answers) {
