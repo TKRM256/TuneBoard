@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { SettingSheetBlock, SettingSheetConfigResponse } from '../types/live-types';
+import { getPaperDimensions } from './canvas-schema';
 import { buildDefaultCanvas } from './default-canvas';
 
 const baseLayout = { width: 'half' as const, optionColumns: 1, optionFitContent: false };
@@ -42,7 +43,7 @@ function configOf(blocks: SettingSheetBlock[]): SettingSheetConfigResponse {
 describe('buildDefaultCanvas', () => {
   it('produces a non-empty document even without form config', () => {
     const doc = buildDefaultCanvas(null);
-    expect(doc.page.size).toBe('A4');
+    expect(doc.page.size).toBe('B4');
     expect(doc.page.orientation).toBe('LANDSCAPE');
     expect(doc.elements.length).toBeGreaterThan(0);
     // Always include the live-name title as the first element.
@@ -64,6 +65,27 @@ describe('buildDefaultCanvas', () => {
     expect(table).toBeDefined();
     if (table && table.kind === 'table' && table.source.kind === 'fields') {
       expect(table.source.fields).toEqual([{ fieldId: 'band-name', fallbackLabel: 'バンド名' }]);
+    }
+  });
+
+  it('keeps every element inside the page margins', () => {
+    // 単発項目 + 上段グループ + 下段グループ2つ、という一番はみ出しやすい構成で確認する
+    const config = configOf([
+      leaf('band-name', 'バンド名'),
+      group('members', '出演者', [leaf('member-name', '氏名')]),
+      group('setlist', 'セットリスト', [leaf('song', '曲')]),
+      group('gear', '機材', [leaf('gear-name', '機材名')]),
+    ]);
+    const doc = buildDefaultCanvas(config);
+    const { widthMm, heightMm } = getPaperDimensions(doc.page.size, doc.page.orientation);
+    const margin = doc.page.marginMm;
+
+    expect(doc.elements.length).toBeGreaterThan(0);
+    for (const element of doc.elements) {
+      expect(element.xMm).toBeGreaterThanOrEqual(margin);
+      expect(element.yMm).toBeGreaterThanOrEqual(margin);
+      expect(element.xMm + element.wMm).toBeLessThanOrEqual(widthMm - margin);
+      expect(element.yMm + element.hMm).toBeLessThanOrEqual(heightMm - margin);
     }
   });
 

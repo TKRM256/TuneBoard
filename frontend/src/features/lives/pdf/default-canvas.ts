@@ -10,6 +10,7 @@ import type {
   TableColumn,
   TableElement,
 } from './canvas-schema';
+import { getPaperDimensions } from './canvas-schema';
 import { buildStandardGroupColumns, indexColumn } from './default-canvas-columns';
 import { buildFieldCatalog, type CatalogGroup } from './field-catalog';
 
@@ -19,21 +20,26 @@ export function newId(): string {
 
 const DEFAULT_PAGE = { size: 'B4' as PaperSize, orientation: 'LANDSCAPE' as Orientation, marginMm: 8, baseFontSizePt: 9 };
 
-const PAGE_HEIGHT_MM = 210; // A4 landscape
-/** 上段（単発項目のKV表・最初の繰り返しグループ）の高さ。 */
-const TOP_ROW_HEIGHT_MM = 46;
+/** 用紙を変えてもレイアウトが追従するよう、寸法は DEFAULT_PAGE から導出する。 */
+const MARGIN_MM = DEFAULT_PAGE.marginMm;
+const { widthMm: PAGE_WIDTH_MM, heightMm: PAGE_HEIGHT_MM } = getPaperDimensions(
+  DEFAULT_PAGE.size,
+  DEFAULT_PAGE.orientation,
+);
+/** 上段（単発項目のKV表・最初の繰り返しグループ）が本文領域に占める割合。 */
+const TOP_ROW_RATIO = 0.3;
 
 export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): CanvasDocument {
   const elements: CanvasElement[] = [];
-  const pageWidthMm = 297; // A4 landscape
-  let y = 8;
+  const pageWidthMm = PAGE_WIDTH_MM;
+  let y = MARGIN_MM;
 
   elements.push({
     id: newId(),
     kind: 'text',
-    xMm: 8,
+    xMm: MARGIN_MM,
     yMm: y,
-    wMm: pageWidthMm - 16,
+    wMm: pageWidthMm - MARGIN_MM * 2,
     hMm: 12,
     content: '${live.name}',
     fontSizePt: 18,
@@ -47,9 +53,9 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
   elements.push({
     id: newId(),
     kind: 'text',
-    xMm: 8,
+    xMm: MARGIN_MM,
     yMm: y,
-    wMm: pageWidthMm - 16,
+    wMm: pageWidthMm - MARGIN_MM * 2,
     hMm: 6,
     content: "${formatDate(live.date, 'yyyy/M/d')}  /  ${live.location}  /  ${live.tenantName}",
     fontSizePt: 9,
@@ -62,9 +68,9 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
   elements.push({
     id: newId(),
     kind: 'text',
-    xMm: 8,
+    xMm: MARGIN_MM,
     yMm: y,
-    wMm: pageWidthMm - 16,
+    wMm: pageWidthMm - MARGIN_MM * 2,
     hMm: 5,
     content: "提出日時: ${formatDate(submission.submittedAt, 'yyyy/M/d HH:mm')}",
     fontSizePt: 9,
@@ -77,9 +83,9 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
   elements.push({
     id: newId(),
     kind: 'divider',
-    xMm: 8,
+    xMm: MARGIN_MM,
     yMm: y,
-    wMm: pageWidthMm - 16,
+    wMm: pageWidthMm - MARGIN_MM * 2,
     hMm: 4,
     color: '#d1d5db',
     thicknessPt: 0.6,
@@ -87,8 +93,10 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
   y += 6;
 
   const catalog = buildFieldCatalog(config);
-  const contentW = pageWidthMm - 16;
+  const contentW = pageWidthMm - MARGIN_MM * 2;
   const halfW = contentW * 0.5 - 2;
+  // ヘッダーを描き終えた位置から下が本文領域。その一部を上段に割り当てる
+  const topRowHeightMm = Math.round((PAGE_HEIGHT_MM - MARGIN_MM - y) * TOP_ROW_RATIO);
   const hasFields = catalog.fields.length > 0;
   const [firstGroup, ...restGroups] = catalog.groups.filter((group) => group.fields.length > 0);
 
@@ -98,10 +106,10 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
     elements.push({
       id: newId(),
       kind: 'table',
-      xMm: 8,
+      xMm: MARGIN_MM,
       yMm: y,
       wMm: firstGroup ? halfW : contentW,
-      hMm: TOP_ROW_HEIGHT_MM,
+      hMm: topRowHeightMm,
       source: {
         kind: 'fields',
         fields: catalog.fields.map((f) => ({ fieldId: f.id, fallbackLabel: f.label })),
@@ -114,7 +122,7 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
       fontSizePt: 9,
       headerFill: '#e5edf6',
       borderColor: '#d1d5db',
-      zebra: false,
+      zebra: true,
       autoGrow: true,
     });
   }
@@ -122,18 +130,18 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
   if (firstGroup) {
     elements.push(groupTable(
       firstGroup,
-      hasFields ? 8 + contentW * 0.5 + 2 : 8,
+      hasFields ? MARGIN_MM + contentW * 0.5 + 2 : MARGIN_MM,
       y,
       hasFields ? halfW : contentW,
-      TOP_ROW_HEIGHT_MM,
+      topRowHeightMm,
     ));
   }
 
-  const bottomTop = y + TOP_ROW_HEIGHT_MM + 4;
-  const bottomHeight = PAGE_HEIGHT_MM - 8 - bottomTop;
+  const bottomTop = y + topRowHeightMm + 4;
+  const bottomHeight = PAGE_HEIGHT_MM - MARGIN_MM - bottomTop;
   restGroups.forEach((group, index) => {
     const each = bottomHeight / restGroups.length;
-    elements.push(groupTable(group, 8, bottomTop + each * index, contentW, each - 4));
+    elements.push(groupTable(group, MARGIN_MM, bottomTop + each * index, contentW, each - 4));
   });
 
   return {
@@ -156,7 +164,7 @@ function groupTable(group: CatalogGroup, xMm: number, yMm: number, wMm: number, 
     fontSizePt: 9,
     headerFill: '#e5edf6',
     borderColor: '#d1d5db',
-    zebra: false,
+    zebra: true,
     autoGrow: true,
   };
 }
