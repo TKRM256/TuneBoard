@@ -1,6 +1,6 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, ChevronLeft, Clock, Copy, ExternalLink, FileCheck2, MapPin, Settings2, Wrench } from 'lucide-react';
+import { ChevronLeft, Copy, ExternalLink, FileCheck2, Settings2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -14,12 +14,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiClient } from '@/lib/api/client';
 import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import {
   buildPublicLiveUrl,
-  formatDeadline,
   formatLiveDate,
   formatOptionalText,
   LIVE_STATUS_LABELS,
@@ -29,8 +27,9 @@ import {
   type SettingSheetConfigResponse,
   type SongDuplicateResponse,
 } from '../types/live-types';
+import { LiveInfoCard } from '../components/LiveInfoCard';
+import { LiveSummaryCard } from '../components/LiveSummaryCard';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
-import { collectColumns, extractCellValue } from '../helpers/submission-table-helpers';
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -68,8 +67,6 @@ export const LiveManagementPage = () => {
       });
   }, [liveId, tenantId]);
 
-  const tableColumns = useMemo(() => collectColumns(config), [config]);
-
   if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
   if (isLoading) return <div className="py-12 text-center text-sm text-muted-foreground">読み込み中...</div>;
   if (!live) return <Navigate to={`/tenants/${tenantId}/lives`} replace />;
@@ -77,7 +74,6 @@ export const LiveManagementPage = () => {
   const publicUrl = buildPublicLiveUrl(live.publicToken);
   const sharedListUrl = `${window.location.origin}/public/lives/${live.publicToken}/submissions/shared`;
   const badgeVariant = live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary';
-  const hasDuplicates = (duplicates?.totalDuplicateGroups ?? 0) > 0;
   const selectedDetail = details.find((d) => d.id === selectedSubmissionId) ?? null;
   const buildEditFormUrl = (submissionId: string) => `${window.location.origin}/public/lives/${live.publicToken}/submissions/${submissionId}`;
 
@@ -171,114 +167,18 @@ export const LiveManagementPage = () => {
       </div>
 
       {/* Live Info */}
-      <Card className="col-span-2">
-        <CardHeader>
-          <h2 className="text-base font-semibold">ライブ情報</h2>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <InfoRow icon={CalendarDays} label="開催日" value={formatLiveDate(live.date)} />
-            <InfoRow icon={MapPin} label="会場" value={formatOptionalText(live.location)} />
-            <InfoRow icon={Clock} label="回答締切" value={formatDeadline(live.deadlineAt)} />
-          </div>
-        </CardContent>
-      </Card>
+      <LiveInfoCard live={live} isAdmin={isAdmin} onUpdated={setLive} />
 
-      {/* Submissions */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold">提出一覧</h2>
-              <p>提出: {details.length} 件</p>
-            </div>
-            <Button asChild variant="outline" size="sm">
-              <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>
-                <FileCheck2 className="size-4" />
-                詳細ページへ
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {details.length === 0 ? (
-            <p className="text-sm text-muted-foreground">まだ提出はありません。</p>
-          ) : tableColumns.length === 0 ? (
-            <p className="text-sm text-muted-foreground">「表示設定」で共有に表示をONにしてください</p>
-          ) : (
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  <TableRow>
-                    {tableColumns.map((col) => (
-                      <TableHead key={col.id} className="min-w-[150px] whitespace-normal bg-background">{col.label}</TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {details.map((detail) => (
-                    <TableRow
-                      key={detail.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => { setSelectedSubmissionId(detail.id); setIsDetailDialogOpen(true); }}
-                    >
-                      {tableColumns.map((col) => (
-                        <TableCell key={`${detail.id}-${col.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">
-                          {extractCellValue(detail.answers, col.path, col.type)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Duplicate Summary */}
-      {hasDuplicates && duplicates && (
-        <Card className="border-amber-300 dark:border-amber-700">
-          <CardHeader>
-            <div className="flex flex-wrap items-center gap-2">
-              <AlertTriangle className="size-5 text-amber-500" />
-              <h2 className="text-base font-semibold">曲かぶり検出</h2>
-              <Badge variant="destructive">{duplicates.totalDuplicateGroups}件の重複</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {duplicates.groups.filter((g) => !g.dismissed).map((group, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
-                    重複 {i + 1}
-                  </Badge>
-                  <span className="font-medium">{group.normalizedTitle}</span>
-                  {group.normalizedArtist && (
-                    <span className="text-muted-foreground">— {group.normalizedArtist}</span>
-                  )}
-                  <Badge
-                    variant="outline"
-                    className={
-                      group.confidence === 'HIGH'
-                        ? 'border-green-300 text-green-700 dark:border-green-700 dark:text-green-400'
-                        : group.confidence === 'MEDIUM'
-                          ? 'border-yellow-300 text-yellow-700 dark:border-yellow-700 dark:text-yellow-400'
-                          : 'text-muted-foreground'
-                    }
-                  >
-                    {group.confidence === 'HIGH' ? '高確信' : group.confidence === 'MEDIUM' ? '中確信' : '低確信'}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">({group.entries.length}件)</span>
-                </div>
-              ))}
-            </div>
-            <Button asChild variant="link" size="sm" className="mt-3 h-auto p-0">
-              <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>詳細を見る →</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Summary */}
+      <LiveSummaryCard
+        details={details}
+        duplicates={duplicates}
+        submissionsPath={`/tenants/${tenantId}/lives/${liveId}/submissions`}
+        onSelectSubmission={(submissionId) => {
+          setSelectedSubmissionId(submissionId);
+          setIsDetailDialogOpen(true);
+        }}
+      />
 
       <SubmissionDetailDialog
         open={isDetailDialogOpen}
@@ -321,14 +221,3 @@ function LinkRow({ label, url, onCopy }: { label: string; url: string; onCopy: (
   );
 }
 
-function InfoRow({ icon: Icon, label, value, truncate }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; truncate?: boolean }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg bg-muted/40 px-4 py-3 overflow-hidden">
-      <Icon className="size-5 shrink-0 text-muted-foreground" />
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={`text-sm font-medium ${truncate ? 'truncate' : ''}`}>{value}</p>
-      </div>
-    </div>
-  );
-}
