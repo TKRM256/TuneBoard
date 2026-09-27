@@ -9,28 +9,16 @@ import { InlineEditPanel } from '@/components/original/InlineEditPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { apiClient } from '@/lib/api/client';
-import type { ApiClientError } from '@/lib/api/type';
 import { useSingleFlight } from '@/hooks/use-single-flight';
 
+import { LiveEditFields } from './LiveEditFields';
+import { useLiveEditForm } from '../hooks/use-live-edit-form';
 import {
-  createLiveFormFromResponse,
   formatLiveDate,
   formatOptionalText,
   LIVE_STATUS_LABELS,
-  LIVE_STATUS_OPTIONS,
-  type LiveFormValues,
   type LiveResponse,
-  toLiveUpdatePayload,
 } from '../types/live-types';
 
 interface LiveCardProps {
@@ -44,52 +32,12 @@ interface LiveCardProps {
 
 export const LiveCard = ({ live, tenantId, isAdmin, onUpdateSuccess, onDelete, onRestore }: LiveCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [formValues, setFormValues] = useState<LiveFormValues>(() => createLiveFormFromResponse(live));
+  const { formValues, setFieldValue, submit, validate } = useLiveEditForm(live, onUpdateSuccess);
   const { run: runRestoreLive } = useSingleFlight();
 
-  const setFieldValue = (field: keyof LiveFormValues, value: string) => {
-    setFormValues((prev) => ({
-      ...prev,
-      [field]: { ...prev[field], value, error: undefined },
-    }));
-  };
-
-  const applyServerErrors = (error: ApiClientError) => {
-    const serverFieldErrors = error.apiError?.fieldErrors;
-    if (!serverFieldErrors) {
-      return;
-    }
-
-    setFormValues((prev) => {
-      const next = { ...prev } as LiveFormValues;
-      const mutableFields = next as Record<keyof LiveFormValues, { value: string; error?: string }>;
-      for (const [key, value] of Object.entries(serverFieldErrors)) {
-        if (key in next) {
-          const fieldKey = key as keyof LiveFormValues;
-          mutableFields[fieldKey] = { ...mutableFields[fieldKey], error: value };
-        }
-      }
-      return next;
-    });
-  };
-
   const onSubmit = async () => {
-    try {
-      const response = await apiClient.post<LiveResponse>('/lives/update', {
-        id: live.id,
-        ...toLiveUpdatePayload(formValues),
-      });
-
-      if (!response) {
-        return;
-      }
-
-      onUpdateSuccess(response);
-      setFormValues(createLiveFormFromResponse(response));
+    if (await submit()) {
       setIsEditing(false);
-      toast.success('ライブを更新しました', { position: 'top-center' });
-    } catch (error: unknown) {
-      applyServerErrors(error as ApiClientError);
     }
   };
 
@@ -153,60 +101,10 @@ export const LiveCard = ({ live, tenantId, isAdmin, onUpdateSuccess, onDelete, o
 
       <InlineEditPanel open={isEditing} >
           <motion.div layout className="space-y-4">
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor={`name-${live.id}`}>ライブ名<span className="text-red-500">*</span></FieldLabel>
-                <Input id={`name-${live.id}`} value={formValues.name.value} onChange={(event) => setFieldValue('name', event.target.value)} />
-                {formValues.name.error ? <FieldError>{formValues.name.error}</FieldError> : null}
-              </Field>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor={`date-${live.id}`}>開催日</FieldLabel>
-                  <Input id={`date-${live.id}`} type="date" value={formValues.date.value} onChange={(event) => setFieldValue('date', event.target.value)} />
-                  {formValues.date.error ? <FieldError>{formValues.date.error}</FieldError> : null}
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor={`deadline-${live.id}`}>回答締切</FieldLabel>
-                  <Input
-                    id={`deadline-${live.id}`}
-                    type="datetime-local"
-                    value={formValues.deadlineAt.value}
-                    onChange={(event) => setFieldValue('deadlineAt', event.target.value)}
-                  />
-                  {formValues.deadlineAt.error ? <FieldError>{formValues.deadlineAt.error}</FieldError> : null}
-                </Field>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-                <Field>
-                  <FieldLabel htmlFor={`location-${live.id}`}>会場</FieldLabel>
-                  <Input id={`location-${live.id}`} value={formValues.location.value} onChange={(event) => setFieldValue('location', event.target.value)} />
-                  {formValues.location.error ? <FieldError>{formValues.location.error}</FieldError> : null}
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor={`status-${live.id}`}>公開状態</FieldLabel>
-                  <Select value={formValues.status.value} onValueChange={(value) => setFieldValue('status', value)}>
-                    <SelectTrigger id={`status-${live.id}`} className="w-full">
-                      <SelectValue placeholder="状態を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LIVE_STATUS_OPTIONS.map((status) => (
-                        <SelectItem key={status.value} value={status.value}>
-                          {status.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {formValues.status.error ? <FieldError>{formValues.status.error}</FieldError> : null}
-                </Field>
-              </div>
-            </FieldGroup>
+            <LiveEditFields idPrefix={live.id} formValues={formValues} onChange={setFieldValue} />
 
             <div className="flex border-t pt-2 gap-2 justify-end">
-              <ConfirmButton onClick={onSubmit}>更新</ConfirmButton>
+              <ConfirmButton onClick={onSubmit} validate={validate}>更新</ConfirmButton>
               <ConfirmButton onClick={handleDelete} defaultVariant="outline" confirmVariant="destructive">
                 削除
               </ConfirmButton>

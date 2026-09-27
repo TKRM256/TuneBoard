@@ -333,6 +333,7 @@ public class LivesService implements ILivesService {
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
+                                submission.getUpdatedAt(),
                                 submission.getVersion(),
                                 settingSheetSubmissionService.mapFieldAnswers(payload.answers()),
                                 helper.mapItunesLinks(submission.getId()));
@@ -355,6 +356,7 @@ public class LivesService implements ILivesService {
                                                         submission.getRecordLabel(),
                                                         submission.getSubmissionStatus(),
                                                         submission.getCreatedAt(),
+                                                        submission.getUpdatedAt(),
                                                         submission.getVersion(),
                                                         settingSheetSubmissionService
                                                                         .mapFieldAnswers(payload.answers()),
@@ -374,6 +376,7 @@ public class LivesService implements ILivesService {
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
+                                submission.getUpdatedAt(),
                                 submission.getVersion(),
                                 settingSheetSubmissionService.mapFieldAnswers(payload.answers()),
                                 helper.mapItunesLinks(submission.getId()));
@@ -400,6 +403,7 @@ public class LivesService implements ILivesService {
                                 settingSheetSubmissionService.resolveSharedRecordLabel(config, sharedPayload),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
+                                submission.getUpdatedAt(),
                                 submission.getVersion(),
                                 settingSheetSubmissionService.mapFieldAnswers(sharedPayload.answers()),
                                 List.of());
@@ -431,6 +435,7 @@ public class LivesService implements ILivesService {
                                                                         sharedPayload),
                                                         submission.getSubmissionStatus(),
                                                         submission.getCreatedAt(),
+                                                        submission.getUpdatedAt(),
                                                         submission.getVersion(),
                                                         settingSheetSubmissionService
                                                                         .mapFieldAnswers(sharedPayload.answers()),

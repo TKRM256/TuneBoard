@@ -77,7 +77,8 @@ export const FullWidthLayout = () => {
                     </div>
                 </div>
             </header>
-            <main className="mx-auto flex-1 w-full">
+            {/* min-h-0 が無いと中身の高さで main が伸び、子の h-full / 内部スクロールが効かなくなる */}
+            <main className="mx-auto min-h-0 w-full flex-1">
                 <Outlet />
             </main>
         </div>

@@ -41,7 +41,10 @@ export interface SettingSheetBlock {
   label: string;
   description: string;
   hidden: boolean;
+  /** 共有フォーム（公開の提出一覧）に表示するか */
   publicVisible?: boolean;
+  /** 管理者画面の提出一覧に表示するか。旧データには存在しないため publicVisible を引き継ぐ */
+  adminVisible?: boolean;
   required: boolean;
   collapsible: boolean;
   appearance: SettingSheetBlockAppearance;
@@ -118,6 +121,8 @@ export interface SettingSheetSubmissionResponse {
   recordLabel: string;
   submissionStatus: string;
   submittedAt: string;
+  /** 提出内容が最後に更新された日時。新規提出直後は submittedAt と同じ。 */
+  updatedAt: string;
   /** 楽観ロック用の版番号。更新時に baseVersion として送り返す。 */
   version: number;
 }
@@ -226,21 +231,21 @@ function createId() {
 export function createBlockTemplate(type: SettingSheetBlockType): SettingSheetBlock {
   switch (type) {
     case 'SECTION':
-      return { id: createId(), type, label: 'セクション見出し', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'plain', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: 'セクション見出し', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'plain', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'SHORT_TEXT':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'LONG_TEXT':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'SINGLE_SELECT':
     case 'MULTI_SELECT':
     case 'CHECKBOX':
-      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: ['選択肢1'], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', type === 'SINGLE_SELECT' ? 1 : 2, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '質問', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: ['選択肢1'], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', type === 'SINGLE_SELECT' ? 1 : 2, false), optionSource: null, duplicateDetectionRole: '' };
     case 'BOOLEAN':
-      return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'REPEATABLE_GROUP':
-      return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '', variants: [] };
+      return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '', variants: [] };
     case 'SONG':
-      return { id: createId(), type, label: '楽曲', description: '', hidden: false, publicVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
+      return { id: createId(), type, label: '楽曲', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
   }
 }
 
@@ -335,6 +340,8 @@ function normalizeBlock(block: SettingSheetBlock, fallbackId: string): SettingSh
     description: block.description?.trim() ?? '',
     hidden: block.hidden === true,
     publicVisible: block.publicVisible === true,
+    // adminVisible が無い旧データは共有設定をそのまま引き継ぐ
+    adminVisible: block.adminVisible === undefined ? block.publicVisible === true : block.adminVisible === true,
     required,
     collapsible: isRepeatableGroupBlock(type) ? block.collapsible === true : false,
     appearance: block.appearance === 'plain' || block.appearance === 'subtle' || block.appearance === 'outline' ? block.appearance : template.appearance,
@@ -400,6 +407,36 @@ export function createLiveFormFromResponse(live: LiveResponse): LiveFormValues {
     deadlineAt: { value: live.deadlineAt ? live.deadlineAt.slice(0, 16) : '' },
     status: { value: live.status },
   };
+}
+
+export type LiveFormErrors = Partial<Record<keyof LiveFormValues, string>>;
+
+/** 送信前の入力チェック。文言はバックエンドの制約（LiveCreateRequest / LiveUpdateRequest）に合わせている。 */
+export function validateLiveForm(formValues: LiveFormValues): LiveFormErrors {
+  const errors: LiveFormErrors = {};
+  const name = formValues.name.value.trim();
+
+  if (!name) {
+    errors.name = 'ライブ名は必須です';
+  } else if (name.length > 255) {
+    errors.name = 'ライブ名は255文字以内で入力してください';
+  }
+
+  if (formValues.location.value.trim().length > 255) {
+    errors.location = '会場は255文字以内で入力してください';
+  }
+
+  return errors;
+}
+
+export function applyLiveFormErrors(formValues: LiveFormValues, errors: LiveFormErrors): LiveFormValues {
+  const next = { ...formValues } as LiveFormValues;
+  const mutableFields = next as Record<keyof LiveFormValues, { value: string; error?: string }>;
+  for (const [key, message] of Object.entries(errors)) {
+    const fieldKey = key as keyof LiveFormValues;
+    mutableFields[fieldKey] = { ...mutableFields[fieldKey], error: message };
+  }
+  return next;
 }
 
 export function toLiveCreatePayload(tenantId: string, formValues: LiveFormValues) {

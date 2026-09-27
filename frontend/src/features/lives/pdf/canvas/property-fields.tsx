@@ -30,6 +30,7 @@ export function NumberField({
   unit?: string;
   onChange: (v: number) => void;
 }) {
+  // スマホ(md未満)ではタップしやすく、iOSの自動ズームも起きない大きさにする
   const input = (
     <Input
       type="number"
@@ -40,7 +41,7 @@ export function NumberField({
         if (!Number.isFinite(n)) return;
         onChange(n);
       }}
-      className={inline ? 'h-7 text-xs' : 'h-8 text-xs'}
+      className={inline ? 'h-9 text-base md:h-7 md:text-xs' : 'h-9 text-base md:h-8 md:text-xs'}
     />
   );
 
@@ -68,9 +69,9 @@ export function ColorInput({ value, onChange }: { value: string; onChange: (v: s
         type="color"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-7 w-9 cursor-pointer rounded border"
+        className="h-9 w-11 cursor-pointer rounded border md:h-7 md:w-9"
       />
-      <Input value={value} onChange={(e) => onChange(e.target.value)} className="h-7 font-mono text-xs" />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} className="h-9 font-mono text-base md:h-7 md:text-xs" />
     </div>
   );
 }
@@ -82,13 +83,13 @@ export function ColorInputWithClear({ value, onChange }: { value?: string; onCha
         type="color"
         value={value ?? '#ffffff'}
         onChange={(e) => onChange(e.target.value)}
-        className="h-7 w-9 cursor-pointer rounded border"
+        className="h-9 w-11 cursor-pointer rounded border md:h-7 md:w-9"
       />
       <Input
         value={value ?? ''}
         placeholder="(なし)"
         onChange={(e) => onChange(e.target.value || undefined)}
-        className="h-7 font-mono text-xs"
+        className="h-9 font-mono text-base md:h-7 md:text-xs"
       />
       {value && (
         <Button variant="ghost" size="icon" className="size-7" onClick={() => onChange(undefined)}>

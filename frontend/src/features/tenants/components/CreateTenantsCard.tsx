@@ -12,6 +12,15 @@ import { CreateAccordionCard } from "@/components/original/CreateAccordionCard";
 export const CreateTenantsCard = ({ onCreateSuccess }: { onCreateSuccess: (newTenant: TenantsResponse) => void }) => {
   const [formValues, setFormValues] = useState<TenantsFormValues>({ name: { value: "" } });
   
+  /** 入力チェック。問題があれば項目にエラーを表示して false を返す。 */
+  const validate = (): boolean => {
+    if (formValues.name.value.trim()) {
+      return true;
+    }
+    setFormValues((prev) => ({ ...prev, name: { ...prev.name, error: "テナント名は必須です" } }));
+    return false;
+  };
+
   const onSubmit = async () => {
     try {
       const response = await apiClient.post<TenantsResponse>("/tenants/create", {
@@ -65,7 +74,7 @@ export const CreateTenantsCard = ({ onCreateSuccess }: { onCreateSuccess: (newTe
               </Field>
             </FieldGroup>
             <div className="flex justify-end">
-              <ConfirmButton onClick={onSubmit}>
+              <ConfirmButton onClick={onSubmit} validate={validate}>
                 作成
               </ConfirmButton>
             </div>

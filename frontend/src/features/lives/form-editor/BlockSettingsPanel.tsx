@@ -145,20 +145,28 @@ export const BlockSettingsPanel = ({
                   </div>
                 </div>
               ) : null}
-              <div className="lg:col-span-2 rounded-xl border bg-muted/30 p-3">
+              <div className="lg:col-span-2 space-y-2.5 rounded-xl border bg-muted/30 p-3">
+                <p className="text-xs font-medium text-muted-foreground">表示先</p>
                 <div className="flex items-center gap-3 text-sm">
-                  <Checkbox checked={block.hidden} onCheckedChange={(checked) => onUpdateBlock(block.id, { hidden: checked === true })} />
-                  今はこのブロックを公開フォームで非表示にする
+                  <Checkbox checked={!block.hidden} onCheckedChange={(checked) => onUpdateBlock(block.id, { hidden: checked !== true })} />
+                  公開フォーム（出演者が入力する欄として表示）
                 </div>
+                {!canContainBlocks(block.type) ? (
+                  <>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Checkbox checked={block.publicVisible === true} onCheckedChange={(checked) => onUpdateBlock(block.id, { publicVisible: checked === true })} />
+                      共有フォーム（出演者に配る提出一覧に表示）
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Checkbox
+                        checked={block.adminVisible ?? block.publicVisible === true}
+                        onCheckedChange={(checked) => onUpdateBlock(block.id, { adminVisible: checked === true })}
+                      />
+                      管理者画面（管理者の提出一覧に表示）
+                    </div>
+                  </>
+                ) : null}
               </div>
-              {!canContainBlocks(block.type) ? (
-                <div className="lg:col-span-2 rounded-xl border bg-muted/30 p-3">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Checkbox checked={block.publicVisible === true} onCheckedChange={(checked) => onUpdateBlock(block.id, { publicVisible: checked === true })} />
-                    共有・提出一覧でこの項目を表示する
-                  </div>
-                </div>
-              ) : null}
               {isInputBlock(block.type) && !isSongBlock(block.type) ? (
                 <div>
                   <p className="text-xs text-muted-foreground">曲かぶり検知の役割</p>

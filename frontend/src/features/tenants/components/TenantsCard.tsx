@@ -26,6 +26,15 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
     const isAdmin = tenant.role === "ADMIN" || tenant.role === "OWNER";
     const { run: runRestoreTenant } = useSingleFlight();
 
+    /** 入力チェック。問題があれば項目にエラーを表示して false を返す。 */
+    const validate = (): boolean => {
+      if (formValues.name.value.trim()) {
+        return true;
+      }
+      setFormValues((prev) => ({ ...prev, name: { ...prev.name, error: "テナント名は必須です" } }));
+      return false;
+    };
+
     const onSubmit = async () => {
       try {
         const response = await apiClient.post<TenantsResponse>("/tenants/update", {
@@ -135,7 +144,7 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
                         </Field>
                       </FieldGroup>
                       <div className="flex gap-2 border-t pt-2 justify-end">
-                        <ConfirmButton onClick={onSubmit}>更新</ConfirmButton>
+                        <ConfirmButton onClick={onSubmit} validate={validate}>更新</ConfirmButton>
                         <ConfirmButton onClick={handleDelete} defaultVariant="outline" confirmVariant="destructive">
                           削除
                         </ConfirmButton>

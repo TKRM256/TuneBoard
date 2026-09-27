@@ -16,6 +16,7 @@ public record SettingSheetConfigUpdateRequest(
                         String description,
                         Boolean hidden,
                         Boolean publicVisible,
+                        Boolean adminVisible,
                         Boolean required,
                         Boolean collapsible,
                         String appearance,
