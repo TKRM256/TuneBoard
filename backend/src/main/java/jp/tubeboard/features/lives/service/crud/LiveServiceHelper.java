@@ -181,6 +181,7 @@ public class LiveServiceHelper {
                                 submission.getRecordLabel(),
                                 submission.getSubmissionStatus(),
                                 submission.getCreatedAt(),
+                                submission.getUpdatedAt(),
                                 submission.getVersion());
         }
 

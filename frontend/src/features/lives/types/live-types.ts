@@ -118,6 +118,8 @@ export interface SettingSheetSubmissionResponse {
   recordLabel: string;
   submissionStatus: string;
   submittedAt: string;
+  /** 提出内容が最後に更新された日時。新規提出直後は submittedAt と同じ。 */
+  updatedAt: string;
   /** 楽観ロック用の版番号。更新時に baseVersion として送り返す。 */
   version: number;
 }
