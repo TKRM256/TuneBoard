@@ -6,6 +6,9 @@ import {
   type SettingSheetSubmissionAnswerResponse,
 } from '../types/live-types';
 
+/** 回答が無いセルの表示値。検索・ソートでも同じ値を空扱いの判定に使う。 */
+export const EMPTY_CELL_VALUE = '未入力';
+
 export interface ColumnDef {
   id: string;
   label: string;
@@ -13,7 +16,22 @@ export interface ColumnDef {
   type: SettingSheetBlock['type'];
 }
 
-export function collectColumns(config: SettingSheetConfigResponse | null): ColumnDef[] {
+/**
+ * 列を出す画面。
+ * - admin: 管理者画面の提出一覧（adminVisible）
+ * - shared: 共有フォーム＝公開の提出一覧（publicVisible）
+ */
+export type ColumnScope = 'admin' | 'shared';
+
+function isVisibleInScope(block: SettingSheetBlock, scope: ColumnScope): boolean {
+  if (scope === 'shared') {
+    return block.publicVisible === true;
+  }
+  // adminVisible が無い旧データは共有設定を引き継ぐ
+  return block.adminVisible === undefined ? block.publicVisible === true : block.adminVisible === true;
+}
+
+export function collectColumns(config: SettingSheetConfigResponse | null, scope: ColumnScope): ColumnDef[] {
   if (!config) {
     return [];
   }
@@ -24,7 +42,7 @@ export function collectColumns(config: SettingSheetConfigResponse | null): Colum
       const nextLabelTrail = isSectionBlock(block.type) ? [...labelTrail, block.label] : labelTrail;
       const nextAnswerPath = isSectionBlock(block.type) ? answerPath : [...answerPath, block.id];
 
-      if (block.publicVisible && !isSectionBlock(block.type)) {
+      if (isVisibleInScope(block, scope) && !isSectionBlock(block.type)) {
         columns.push({
           id: block.id,
           label: [...labelTrail, block.label].join(' / '),
@@ -61,31 +79,31 @@ export function extractCellValue(
   blockType: SettingSheetBlock['type'],
 ): string {
   if (path.length === 0) {
-    return '未入力';
+    return EMPTY_CELL_VALUE;
   }
 
   const [currentId, ...restPath] = path;
   const answer = answers.find((entry) => entry.fieldId === currentId);
   if (!answer) {
-    return '未入力';
+    return EMPTY_CELL_VALUE;
   }
 
   if (restPath.length === 0) {
     if (blockType === 'REPEATABLE_GROUP') {
-      return answer.items.length === 0 ? '未入力' : `${answer.items.length}件`;
+      return answer.items.length === 0 ? EMPTY_CELL_VALUE : `${answer.items.length}件`;
     }
     return answer.values.length > 0 ? answer.values.map(
       (value) => {
         return blockType === 'BOOLEAN' ? formatBooleanValue(value) : value;
       }
-    ).join(' / ') : '未入力';
+    ).join(' / ') : EMPTY_CELL_VALUE;
   }
 
   const nestedValues = answer.items
     .map((item) => extractCellValue(item.answers, restPath, blockType))
-    .filter((value) => value !== '未入力');
+    .filter((value) => value !== EMPTY_CELL_VALUE);
 
-  return nestedValues.length === 0 ? '未入力' : nestedValues.map(
+  return nestedValues.length === 0 ? EMPTY_CELL_VALUE : nestedValues.map(
     (value) => {
       return blockType === 'BOOLEAN' ? formatBooleanValue(value) : value;
     }

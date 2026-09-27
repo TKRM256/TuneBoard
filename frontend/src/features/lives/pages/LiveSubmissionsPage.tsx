@@ -1,7 +1,7 @@
 /** Live submissions list with detail dialog and song duplicate detection. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, FileDown, Search, Trash2 } from 'lucide-react';
+import { ChevronLeft, FileDown, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -12,13 +12,11 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiClient } from '@/lib/api/client';
 import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import {
@@ -30,7 +28,9 @@ import {
 } from '../types/live-types';
 import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
-import { collectColumns, extractCellValue } from '../helpers/submission-table-helpers';
+import { SubmissionsTable } from '../components/SubmissionsTable';
+import { collectColumns } from '../helpers/submission-table-helpers';
+import { ALL_COLUMNS_VALUE, useSubmissionTableView } from '../hooks/use-submission-table-view';
 import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
 import { useKeyedSingleFlight, useSingleFlight } from '@/hooks/use-single-flight';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -46,7 +46,6 @@ export const LiveSubmissionsPage = () => {
   const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('');
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -109,8 +108,19 @@ export const LiveSubmissionsPage = () => {
   }, [liveId, tenantId]);
 
   const recordLabel = '回答';
-  const tableColumns = useMemo(() => collectColumns(config), [config]);
+  const tableColumns = useMemo(() => collectColumns(config, 'admin'), [config]);
   const hasVisibleColumns = tableColumns.length > 0;
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchColumnId,
+    setSearchColumnId,
+    searchColumn,
+    sort,
+    toggleSort,
+    visibleDetails,
+    isHighlightColumn,
+  } = useSubmissionTableView(details, tableColumns);
 
   const duplicateMap = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -250,42 +260,34 @@ export const LiveSubmissionsPage = () => {
     });
   }, [liveId, runSubmissionAction]);
 
-  const filteredDetails = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) {
-      return details;
-    }
-    return details.filter((detail) => {
-      return tableColumns.some((column) => {
-        const value = extractCellValue(detail.answers, column.path, column.type);
-        return value.toLowerCase().includes(query);
-      });
-    });
-  }, [searchQuery, details, tableColumns]);
-
-  const filteredSelectedCount = useMemo(
-    () => filteredDetails.reduce((acc, d) => (selectedIds.has(d.id) ? acc + 1 : acc), 0),
-    [filteredDetails, selectedIds],
+  const visibleSelectedCount = useMemo(
+    () => visibleDetails.reduce((acc, d) => (selectedIds.has(d.id) ? acc + 1 : acc), 0),
+    [visibleDetails, selectedIds],
   );
-  const allFilteredSelected = filteredDetails.length > 0 && filteredSelectedCount === filteredDetails.length;
-  const toggleSelectAllFiltered = useCallback(() => {
+  const allVisibleSelected = visibleDetails.length > 0 && visibleSelectedCount === visibleDetails.length;
+  const toggleSelectAllVisible = useCallback(() => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (allFilteredSelected) {
-        for (const d of filteredDetails) next.delete(d.id);
+      if (allVisibleSelected) {
+        for (const d of visibleDetails) next.delete(d.id);
       } else {
-        for (const d of filteredDetails) next.add(d.id);
+        for (const d of visibleDetails) next.add(d.id);
       }
       return next;
     });
-  }, [allFilteredSelected, filteredDetails]);
+  }, [allVisibleSelected, visibleDetails]);
 
   const handleClickBulkPdf = useCallback(() => {
-    const ids = filteredSelectedCount > 0
-      ? filteredDetails.filter((d) => selectedIds.has(d.id)).map((d) => d.id)
-      : filteredDetails.map((d) => d.id);
+    const ids = visibleSelectedCount > 0
+      ? visibleDetails.filter((d) => selectedIds.has(d.id)).map((d) => d.id)
+      : visibleDetails.map((d) => d.id);
     openBulkPdfPreview(ids);
-  }, [filteredDetails, filteredSelectedCount, selectedIds, openBulkPdfPreview]);
+  }, [visibleDetails, visibleSelectedCount, selectedIds, openBulkPdfPreview]);
+
+  const openSubmissionDetail = useCallback((id: string) => {
+    setSelectedSubmissionId(id);
+    setIsDetailDialogOpen(true);
+  }, []);
 
   if (!tenantId || !liveId) {
     return <Navigate to="/tenants" replace />;
@@ -351,13 +353,13 @@ export const LiveSubmissionsPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleClickBulkPdf}
-                disabled={filteredDetails.length === 0}
-                title={filteredSelectedCount > 0
-                  ? `選択中の${filteredSelectedCount}件をPDFで出力します`
+                disabled={visibleDetails.length === 0}
+                title={visibleSelectedCount > 0
+                  ? `選択中の${visibleSelectedCount}件をPDFで出力します`
                   : '一覧の全件をPDFで出力します'}
               >
                 <FileDown className="size-4" />
-                {filteredSelectedCount > 0 ? `選択 ${filteredSelectedCount}件をPDF` : 'PDF一括出力'}
+                {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF` : 'PDF一括出力'}
               </Button>
               <Button asChild variant="outline" size="sm">
                 <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
@@ -372,8 +374,9 @@ export const LiveSubmissionsPage = () => {
 
       <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={isAdmin ? handleDismiss : undefined} isDismissing={(normalizedTitle) => isDuplicateDismissRunning(getDuplicateActionKey(normalizedTitle))} isAdmin={isAdmin} />
 
+      {/* テーブルの表示幅を稼ぐため、このカードだけ左右の余白を詰める */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
@@ -381,91 +384,60 @@ export const LiveSubmissionsPage = () => {
               </div>
               {isAdmin && <TrashButton onClick={handleOpenTrash} count={trashedDetails.length} />}
             </div>
-            <div className="relative w-full sm:max-w-sm">
-              <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
-              <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="pl-8" disabled={!hasVisibleColumns} />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative w-full sm:max-w-sm">
+                <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="pl-8"
+                  placeholder={searchColumn ? `${searchColumn.label}から検索` : 'すべての項目から検索'}
+                  disabled={!hasVisibleColumns}
+                />
+              </div>
+              <Select value={searchColumnId} onValueChange={setSearchColumnId} disabled={!hasVisibleColumns}>
+                <SelectTrigger className="w-full sm:w-64" aria-label="検索対象の項目">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_COLUMNS_VALUE}>すべての項目</SelectItem>
+                  {tableColumns.map((column) => (
+                    <SelectItem key={column.id} value={column.id}>{column.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <p>提出: {filteredDetails.length}件</p>
+              <p>提出: {visibleDetails.length}件</p>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-4">
           {!hasVisibleColumns ? (
-            <p className="text-sm text-muted-foreground">「共有に表示」をONにした項目だけがここに表示されます</p>
-          ) : filteredDetails.length === 0 ? (
+            <p className="text-sm text-muted-foreground">「表示設定」で「管理」をONにした項目だけがここに表示されます</p>
+          ) : visibleDetails.length === 0 ? (
             <p className="text-sm text-muted-foreground">該当する提出はありません。</p>
           ) : (
-            <div className="rounded-lg border">
-                <Table>
-                  <TableHeader className="sticky top-0 z-20 bg-background">
-                    <TableRow>
-                      <TableHead className="bg-background w-10">
-                        <Checkbox
-                          checked={allFilteredSelected}
-                          onCheckedChange={() => toggleSelectAllFiltered()}
-                          aria-label="表示中の全提出を選択"
-                        />
-                      </TableHead>
-                      {tableColumns.map((column) => (
-                        <TableHead key={column.id} className="min-w-[150px] whitespace-normal bg-background">{column.label}</TableHead>
-                      ))}
-                      {duplicateMap.size > 0 && (
-                        <TableHead className="whitespace-nowrap bg-background text-center">曲かぶり</TableHead>
-                      )}
-                      {isAdmin && <TableHead className="bg-background w-10"></TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredDetails.map((detail) => (
-                      <TableRow
-                        key={detail.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => { setSelectedSubmissionId(detail.id); setIsDetailDialogOpen(true); }}
-                      >
-                        <TableCell className="align-top" onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedIds.has(detail.id)}
-                            onCheckedChange={() => toggleSelectOne(detail.id)}
-                            aria-label="この提出を選択"
-                          />
-                        </TableCell>
-                        {tableColumns.map((column) => (
-                          <TableCell key={`${detail.id}-${column.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">
-                            {extractCellValue(detail.answers, column.path, column.type)}
-                          </TableCell>
-                        ))}
-                        {duplicateMap.size > 0 && (
-                          <TableCell className="whitespace-nowrap text-center align-top">
-                            {duplicateMap.has(detail.id) && (
-                              <Badge variant="destructive" className="text-xs">
-                                {duplicateMap.get(detail.id)!.length}曲
-                              </Badge>
-                            )}
-                          </TableCell>
-                        )}
-                        {isAdmin && (
-                          <TableCell className="align-top">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-7"
-                              onClick={(e) => { e.stopPropagation(); handleDeleteSubmission(detail.id); }}
-                              disabled={isSubmissionActionRunning(getSubmissionActionKey(detail.id))}
-                            >
-                              <Trash2 className="size-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-            </div>
+            <SubmissionsTable
+              columns={tableColumns}
+              details={visibleDetails}
+              selectedIds={selectedIds}
+              allSelected={allVisibleSelected}
+              onToggleSelectAll={toggleSelectAllVisible}
+              onToggleSelect={toggleSelectOne}
+              onRowClick={openSubmissionDetail}
+              duplicateMap={duplicateMap}
+              isAdmin={isAdmin}
+              onDelete={handleDeleteSubmission}
+              isDeleting={(id) => isSubmissionActionRunning(getSubmissionActionKey(id))}
+              sort={sort}
+              onToggleSort={toggleSort}
+              searchQuery={searchQuery}
+              isHighlightColumn={isHighlightColumn}
+            />
           )}
         </CardContent>
       </Card>
-
       <SubmissionDetailDialog
         open={isDetailDialogOpen}
         onOpenChange={setIsDetailDialogOpen}

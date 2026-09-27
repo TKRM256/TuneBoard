@@ -12,22 +12,11 @@ import { PageScrollTable } from '@/components/original/PageScrollTable';
 import { apiClient } from '@/lib/api/client';
 import { ApiClientError } from '@/lib/api/type';
 import {
-  isSectionBlock,
   type PublicLiveResponse,
   type PublicSettingSheetSubmissionDetailResponse,
-  type SettingSheetBlock,
-  type SettingSheetConfigResponse,
 } from '@/features/lives/types/live-types';
 
-import { extractCellValue } from '../../lives/helpers/submission-table-helpers';
-
-
-interface ColumnDef {
-  id: string;
-  label: string;
-  path: string[];
-  type: SettingSheetBlock['type'];
-}
+import { collectColumns, extractCellValue } from '../../lives/helpers/submission-table-helpers';
 
 export const PublicSubmissionSharedPage = () => {
   const { publicToken, submissionId } = useParams<{ publicToken: string; submissionId?: string }>();
@@ -81,7 +70,7 @@ export const PublicSubmissionSharedPage = () => {
   }, [publicToken, submissionId]);
 
   const config = live?.settingSheetConfig ?? null;
-  const columns = useMemo(() => collectColumns(config), [config]);
+  const columns = useMemo(() => collectColumns(config, 'shared'), [config]);
   const hasVisibleColumns = columns.length > 0;
 
   const filteredSubmissions = useMemo(() => {
@@ -123,9 +112,10 @@ export const PublicSubmissionSharedPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-6">
-      <div className="mx-auto max-w-7xl space-y-4">
-        <Card>
+    <div className="min-h-screen w-fit min-w-full bg-background px-4 py-6">
+      <div className="w-fit min-w-full space-y-4">
+        {/* テーブル以外は画面幅までに収めて、横に間延びしないようにする */}
+        <Card className="max-w-[calc(100vw-2rem)]">
           <CardHeader className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -154,7 +144,7 @@ export const PublicSubmissionSharedPage = () => {
         {/* テーブル幅までカードを広げて、横方向はブラウザのスクロールに任せる */}
         <Card className="w-fit min-w-full">
           <CardHeader>
-            <h2 className="sticky left-0 max-w-[calc(100vw-2rem)] text-lg font-semibold">公開項目</h2>
+            <h2 className="max-w-[calc(100vw-2rem)] text-lg font-semibold">公開項目</h2>
           </CardHeader>
           <CardContent className="space-y-3">
             {submissionId && submissions.length === 0 ? (
@@ -196,40 +186,3 @@ export const PublicSubmissionSharedPage = () => {
   );
 };
 
-function collectColumns(config: SettingSheetConfigResponse | null): ColumnDef[] {
-  if (!config) {
-    return [];
-  }
-  const columns: ColumnDef[] = [];
-
-  const visit = (blocks: SettingSheetConfigResponse['blocks'], labelTrail: string[], answerPath: string[]) => {
-    for (const block of blocks) {
-      const nextLabelTrail = isSectionBlock(block.type) ? [...labelTrail, block.label] : labelTrail;
-      const nextAnswerPath = isSectionBlock(block.type) ? answerPath : [...answerPath, block.id];
-
-      if (block.publicVisible && !isSectionBlock(block.type)) {
-        columns.push({
-          id: block.id,
-          label: [...labelTrail, block.label].join(' / '),
-          path: [...answerPath, block.id],
-          type: block.type,
-        });
-      }
-
-      if (block.fields.length > 0) {
-        visit(block.fields, nextLabelTrail, nextAnswerPath);
-      }
-
-      if (block.variants && block.variants.length > 0) {
-        const baseVariantLabelTrail = isSectionBlock(block.type) ? nextLabelTrail : [...labelTrail, block.label];
-        for (const variant of block.variants) {
-          const variantLabelTrail = [...baseVariantLabelTrail, variant.label];
-          visit(variant.fields, variantLabelTrail, nextAnswerPath);
-        }
-      }
-    }
-  };
-
-  visit(config.blocks, [], []);
-  return columns;
-}
