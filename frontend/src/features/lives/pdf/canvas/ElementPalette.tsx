@@ -22,12 +22,12 @@ interface Props {
 
 export function ElementPalette({ catalog, onInsert }: Props) {
   return (
-    <aside className="flex h-full w-full flex-col border-r bg-background overflow-y-scroll">
-      <div className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <aside className="flex h-full w-full flex-col overflow-hidden border-r bg-background">
+      <div className="shrink-0 border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         部品を挿入
       </div>
-      <ScrollArea className="flex-1">
-        <div className="space-y-3 p-3">
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="space-y-3 p-3 pb-16 md:pb-3">
           <Section title="基本パーツ" icon={<Square className="size-3.5" />} defaultOpen>
             <PaletteButton icon={<Type className="size-3.5" />} label="テキストボックス" hint="自由文" onClick={() => onInsert({ kind: 'text', content: 'テキスト', title: 'テキスト' })} />
             <PaletteButton icon={<Heading1 className="size-3.5" />} label="見出しテキスト" hint="サイズ大" onClick={() => onInsert({ kind: 'text', content: 'タイトル', title: '見出し' })} />
