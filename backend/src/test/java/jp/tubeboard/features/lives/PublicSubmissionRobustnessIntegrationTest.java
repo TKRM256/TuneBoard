@@ -89,6 +89,17 @@ class PublicSubmissionRobustnessIntegrationTest {
     }
 
     @Test
+    void 自由入力欄の文字数上限を超えると項目にエラーが出る() throws Exception {
+        Live live = createLive(List.of(form.textBlock("band-name", "バンド名", true, form.layoutFull(1))));
+
+        mockMvc.perform(submit(live, """
+                {"answers":[{"fieldId":"band-name","values":["%s"]}]}
+                """.formatted("a".repeat(256))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['answers.band-name']").value("バンド名 は255文字以内で入力してください。"));
+    }
+
+    @Test
     void 一覧名の切り詰めで絵文字を途中で切らない() throws Exception {
         Live live = createLive(List.of(form.longTextBlock("detail", "備考", true, form.layoutFull(1))));
 

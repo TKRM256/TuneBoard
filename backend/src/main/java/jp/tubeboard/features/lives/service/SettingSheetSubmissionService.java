@@ -30,6 +30,8 @@ public class SettingSheetSubmissionService {
     private static final Logger log = LoggerFactory.getLogger(SettingSheetSubmissionService.class);
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
     private static final int RECORD_LABEL_MAX_LENGTH = 255;
+    private static final int SHORT_TEXT_MAX_LENGTH = 255;
+    private static final int LONG_TEXT_MAX_LENGTH = 5000;
 
     public PublicSettingSheetSubmissionRequest normalizeSubmissionRequest(PublicSettingSheetSubmissionRequest request) {
         return new PublicSettingSheetSubmissionRequest(
@@ -195,6 +197,7 @@ public class SettingSheetSubmissionService {
                 if (answer.values().size() > 2) {
                     fieldErrors.putIfAbsent(key, block.label() + " の入力形式が不正です。");
                 }
+                putTooLongError(block, answer.values(), key, fieldErrors);
                 continue;
             }
             if (!answer.items().isEmpty()) {
@@ -204,6 +207,9 @@ public class SettingSheetSubmissionService {
             List<String> values = answer.values();
             if (Boolean.TRUE.equals(block.required()) && values.isEmpty()) {
                 fieldErrors.putIfAbsent(key, block.label() + " は必須です。");
+                continue;
+            }
+            if (putTooLongError(block, values, key, fieldErrors)) {
                 continue;
             }
             if ((SettingSheetConstants.BLOCK_SHORT_TEXT.equals(block.type())
@@ -225,6 +231,28 @@ public class SettingSheetSubmissionService {
                 }
             }
         }
+    }
+
+    /**
+     * 自由入力欄の文字数上限。公開 API から巨大な値を保存されないようにする。
+     * 選択肢系は管理者が決めた選択肢との一致で検証するので対象外。フロントの validation.ts と同じ値にする。
+     */
+    private boolean putTooLongError(FormBlockResponse block, List<String> values, String key,
+            Map<String, String> fieldErrors) {
+        int maxLength;
+        if (SettingSheetConstants.BLOCK_LONG_TEXT.equals(block.type())) {
+            maxLength = LONG_TEXT_MAX_LENGTH;
+        } else if (SettingSheetConstants.BLOCK_SHORT_TEXT.equals(block.type())
+                || SettingSheetConstants.BLOCK_SONG.equals(block.type())) {
+            maxLength = SHORT_TEXT_MAX_LENGTH;
+        } else {
+            return false;
+        }
+        if (values.stream().noneMatch(value -> value.length() > maxLength)) {
+            return false;
+        }
+        fieldErrors.putIfAbsent(key, block.label() + " は" + maxLength + "文字以内で入力してください。");
+        return true;
     }
 
     private FieldAnswerRequest normalizeFieldAnswer(FieldAnswerRequest answer) {

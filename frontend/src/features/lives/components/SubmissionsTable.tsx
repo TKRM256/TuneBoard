@@ -117,7 +117,10 @@ export const SubmissionsTable = ({
                 const value = extractCellValue(detail.answers, column.path, column.type);
                 return (
                   <TableCell key={`${detail.id}-${column.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">
-                    {isHighlightColumn(column.id) ? highlightKeyword(value, keyword) : value}
+                    {/* 空白の無い長い文字列でも列が際限なく広がらないよう、幅を抑えて折り返す */}
+                    <div className="max-w-md wrap-anywhere">
+                      {isHighlightColumn(column.id) ? highlightKeyword(value, keyword) : value}
+                    </div>
                   </TableCell>
                 );
               })}
