@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import jp.tubeboard.common.exception.BadRequestException;
@@ -193,16 +194,14 @@ public class LivesService implements ILivesService {
         @Transactional
         public void deleteSubmission(UUID liveId, UUID submissionId) {
                 SettingSheetSubmission submission = helper.findAdminSubmission(liveId, submissionId);
-                submission.markDeleted();
-                settingSheetSubmissionRepository.save(submission);
+                settingSheetSubmissionRepository.updateDeletedAt(submission.getId(), LocalDateTime.now());
         }
 
         @Override
         @Transactional
         public void restoreSubmission(UUID liveId, UUID submissionId) {
                 SettingSheetSubmission submission = helper.findAdminTrashedSubmission(liveId, submissionId);
-                submission.restore();
-                settingSheetSubmissionRepository.save(submission);
+                settingSheetSubmissionRepository.updateDeletedAt(submission.getId(), null);
         }
 
         @Override
@@ -480,16 +479,19 @@ public class LivesService implements ILivesService {
                                 getPublicSettingSheetSubmission(publicToken, submissionId));
         }
 
+        // 曲かぶり計算は自前のトランザクションで行い、同時作成の衝突時にやり直す。
+        // クラスの readOnly トランザクションに合流すると結果が保存されず、やり直しもできないので、ここでは張らない
         @Override
-        @Transactional
+        @Transactional(propagation = Propagation.NOT_SUPPORTED)
         public SongDuplicateResponse detectSongDuplicates(UUID liveId) {
                 helper.findOwnedLive(liveId);
-                return songDuplicateDetectionService.getCachedResult(liveId)
-                                .orElseGet(() -> songDuplicateDetectionService.computeAndStoreSync(liveId));
+                // 保存済みの結果をそのまま返すと、同時に走った非同期計算のうち古い時点のものが後から
+                // 書き込んだ場合に古い結果を出し続ける。今の提出内容の指紋と一致するときだけ保存済みを返す
+                return songDuplicateDetectionService.computeAndStoreSync(liveId);
         }
 
         @Override
-        @Transactional
+        @Transactional(propagation = Propagation.NOT_SUPPORTED)
         public SongDuplicateResponse refreshSongDuplicates(UUID liveId) {
                 helper.findAdminLive(liveId);
                 return songDuplicateDetectionService.forceComputeAndStoreSync(liveId);

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,7 +99,12 @@ public class TenantInvitationService {
                 .orElseGet(() -> UserTenant.builder().user(currentUser).tenant(invitation.getTenant()).build());
         userTenant.restore();
         userTenant.setRole(invitation.getRole());
-        userTenantRepository.save(userTenant);
+        try {
+            userTenantRepository.saveAndFlush(userTenant);
+        } catch (DataIntegrityViolationException ex) {
+            // 参加ボタンの二度押しなどで同時に受け入れると、先に入った方の行と一意制約で衝突する
+            throw new BadRequestException("既にこのテナントのメンバーです");
+        }
     }
 
     private void requireAdmin(UUID tenantId) {

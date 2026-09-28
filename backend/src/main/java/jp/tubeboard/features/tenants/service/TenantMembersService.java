@@ -3,6 +3,7 @@ package jp.tubeboard.features.tenants.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,7 +64,12 @@ public class TenantMembersService {
         userTenant.restore();
         userTenant.setRole(role);
 
-        return toResponse(userTenantRepository.save(userTenant));
+        try {
+            return toResponse(userTenantRepository.saveAndFlush(userTenant));
+        } catch (DataIntegrityViolationException ex) {
+            // 招待の受け入れと同時に追加されると、先に入った方の行と一意制約で衝突する
+            throw new BadRequestException("このユーザーは既にメンバーです");
+        }
     }
 
     @Transactional
