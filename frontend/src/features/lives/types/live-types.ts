@@ -414,16 +414,24 @@ export type LiveFormErrors = Partial<Record<keyof LiveFormValues, string>>;
 /** 送信前の入力チェック。文言はバックエンドの制約（LiveCreateRequest / LiveUpdateRequest）に合わせている。 */
 export function validateLiveForm(formValues: LiveFormValues): LiveFormErrors {
   const errors: LiveFormErrors = {};
-  const name = formValues.name.value.trim();
+  const name = formValues.name.value;
 
-  if (!name) {
+  // 入力値はそのまま送信され、サーバーは前後の空白込みで長さを数える
+  if (!name.trim()) {
     errors.name = 'ライブ名は必須です';
   } else if (name.length > 255) {
     errors.name = 'ライブ名は255文字以内で入力してください';
   }
 
-  if (formValues.location.value.trim().length > 255) {
+  if (formValues.location.value.length > 255) {
     errors.location = '会場は255文字以内で入力してください';
+  }
+
+  // date は YYYY-MM-DD、deadlineAt は YYYY-MM-DDTHH:mm なので日付部分の文字列比較で前後が分かる
+  const date = formValues.date.value;
+  const deadlineDate = formValues.deadlineAt.value.slice(0, 10);
+  if (date && deadlineDate && deadlineDate > date) {
+    errors.deadlineAt = '回答締切は開催日以前にしてください';
   }
 
   return errors;

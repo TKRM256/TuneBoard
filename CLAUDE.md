@@ -61,18 +61,19 @@ Routes are lazy-loaded. Public submission pages use a share token in the URL, no
 
 ### Backend Structure (`backend/src/main/java/jp/tubeboard/`)
 
-Feature-based organization mirroring the frontend:
+Feature-based organization under `features/`, mirroring the frontend:
 
-- `auth/` — JWT issuance, Google OAuth2, user entity, login filter
-- `lives/` — Main business domain: REST controllers (admin + public), services, JPA entities, Flyway-managed schema
-- `tenants/` — Tenant/org entities, membership, invitation flow
-- `health/` — Health check endpoint
-- `config/` — Spring Security config, CORS, request logging filter
+- `features/auth/` — JWT issuance, Google OAuth2, user entity, login filter
+- `features/lives/` — Main business domain: REST controllers (admin + public), services, JPA entities, PDF canvas rendering (JEXL expressions)
+- `features/tenants/` — Tenant/org entities, membership (OWNER / ADMIN / MEMBER), invitation flow
+- `features/health/` — Health check endpoint
+- `config/` — Spring Security config, CORS, request logging filter, CSRF header filter
+- `common/` — Global exception handler, audit base entity, trash cleanup scheduler
 
 Database:
-- Dev: H2 in PostgreSQL-compatible mode with seed data
-- Production: PostgreSQL on Railway
-- Migrations: Flyway, 12 versions in `backend/src/main/resources/db/migration/`
+- Dev: H2 in PostgreSQL-compatible mode with seed data (`app.dev.seed-dummy`)
+- Production: PostgreSQL on Supabase; backend runs on Cloud Run (`application-prod.properties`)
+- Migrations: Flyway, 14 versions in `backend/src/main/resources/db/migration/`
 
 Song duplicate detection uses Kuromoji (Japanese morphological analyzer) to normalize song titles before comparison.
 

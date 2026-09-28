@@ -3,7 +3,7 @@
  * 
 */
 import { Card, CardHeader } from "@/components/ui/card"
-import type { TenantsFormValues, TenantsResponse } from "../types/tenant-types";
+import { validateTenantName, type TenantsFormValues, type TenantsResponse } from "../types/tenant-types";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -28,10 +28,11 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
 
     /** 入力チェック。問題があれば項目にエラーを表示して false を返す。 */
     const validate = (): boolean => {
-      if (formValues.name.value.trim()) {
+      const error = validateTenantName(formValues.name.value);
+      if (!error) {
         return true;
       }
-      setFormValues((prev) => ({ ...prev, name: { ...prev.name, error: "テナント名は必須です" } }));
+      setFormValues((prev) => ({ ...prev, name: { ...prev.name, error } }));
       return false;
     };
 
@@ -50,7 +51,10 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
       } catch (error: unknown) {
         const apiError = error as ApiClientError;
         const serverFieldErrors = apiError.apiError?.fieldErrors;
-        if(!serverFieldErrors) return;
+        if(!serverFieldErrors) {
+          toast.error(apiError.apiError?.message ?? "テナントの更新に失敗しました", { position: "top-center" });
+          return;
+        }
         for(const key in serverFieldErrors){
           if(key in formValues){
             setFormValues((prev) => ({

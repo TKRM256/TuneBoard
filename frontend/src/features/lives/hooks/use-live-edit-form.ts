@@ -31,6 +31,7 @@ export function useLiveEditForm(live: LiveResponse, onUpdated: (live: LiveRespon
   const applyServerErrors = useCallback((error: ApiClientError) => {
     const serverFieldErrors = error.apiError?.fieldErrors;
     if (!serverFieldErrors) {
+      toast.error(error.apiError?.message ?? 'ライブの更新に失敗しました', { position: 'top-center' });
       return;
     }
 

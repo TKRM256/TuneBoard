@@ -2,6 +2,8 @@ package jp.tubeboard.features.lives.model;
 
 import java.util.UUID;
 
+import org.hibernate.annotations.DynamicUpdate;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -19,6 +21,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+// 変更した列だけを UPDATE する。出演者の保存が、読み込み後にゴミ箱へ移された deleted_at を書き戻さないようにするため
+@DynamicUpdate
 @Table(name = "setting_sheet_submissions")
 @Entity
 @Getter

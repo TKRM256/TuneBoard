@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -60,6 +62,16 @@ public class GlobalExceptionHandler {
 
         log.warn("バリデーションエラー: {} fields={}", message, fieldErrors);
         return buildResponse(HttpStatus.BAD_REQUEST, message, fieldErrors);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "パラメータ「" + ex.getName() + "」の形式が正しくありません");
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingParameter(MissingServletRequestParameterException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "パラメータ「" + ex.getParameterName() + "」は必須です");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

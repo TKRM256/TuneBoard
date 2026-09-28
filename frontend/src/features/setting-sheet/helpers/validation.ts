@@ -53,6 +53,11 @@ export function validateSettingSheetForm(values: SettingSheetFormValues, config:
         issues.push({ key, label: block.label, message: '必須項目です。' });
         continue;
       }
+      const maxLength = resolveTextMaxLength(block);
+      if (maxLength !== null && answerValues.some((value) => value.trim().length > maxLength)) {
+        issues.push({ key, label: block.label, message: `${maxLength}文字以内で入力してください。` });
+        continue;
+      }
       if (['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'BOOLEAN'].includes(block.type) && answerValues.length > 1) {
         issues.push({ key, label: block.label, message: '回答は1つだけにしてください。' });
         continue;
@@ -71,6 +76,16 @@ export function validateSettingSheetForm(values: SettingSheetFormValues, config:
 
   validateBlocks(config.blocks, values.answers, 'answers.');
   return issues;
+}
+
+/** 自由入力欄の文字数上限。バックエンドの SettingSheetSubmissionService と同じ値にする。選択肢系は対象外。 */
+export const SHORT_TEXT_MAX_LENGTH = 255;
+export const LONG_TEXT_MAX_LENGTH = 5000;
+
+export function resolveTextMaxLength(block: SettingSheetBlock): number | null {
+  if (block.type === 'LONG_TEXT') return LONG_TEXT_MAX_LENGTH;
+  if (block.type === 'SHORT_TEXT' || block.type === 'SONG') return SHORT_TEXT_MAX_LENGTH;
+  return null;
 }
 
 function resolveBlockOptions(blocks: SettingSheetBlock[], answers: Record<string, SettingSheetFieldValue>, block: SettingSheetBlock) {

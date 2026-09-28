@@ -170,7 +170,10 @@ export const PublicSubmissionSharedPage = () => {
                         <TableRow key={submission.id}>
                           {columns.map((column) => (
                             <TableCell key={`${submission.id}-${column.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">
-                              {extractCellValue(submission.answers, column.path, column.type)}
+                              {/* 空白の無い長い文字列でも列が際限なく広がらないよう、幅を抑えて折り返す */}
+                              <div className="max-w-md wrap-anywhere">
+                                {extractCellValue(submission.answers, column.path, column.type)}
+                              </div>
                             </TableCell>
                           ))}
                         </TableRow>
