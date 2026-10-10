@@ -12,6 +12,7 @@ import org.apache.commons.jexl3.JexlException;
 import org.apache.commons.jexl3.JexlExpression;
 import org.apache.commons.jexl3.MapContext;
 import org.apache.commons.jexl3.introspection.JexlPermissions;
+import org.apache.commons.jexl3.introspection.JexlSandbox;
 import org.springframework.stereotype.Component;
 
 import jp.tubeboard.features.lives.pdf.canvas.CanvasContext.Helpers;
@@ -24,6 +25,8 @@ import jp.tubeboard.features.lives.pdf.canvas.CanvasContext.Helpers;
 @Component
 public class ExpressionEvaluator {
 
+    /** 1 つのテキスト要素に出す文字数の上限。PDF 1 ページに収まる量を大きく超える値は切り詰める。 */
+    private static final int MAX_OUTPUT_LENGTH = 10_000;
     private static final Pattern INTERPOLATION = Pattern.compile("\\$\\{([^}]*)\\}");
 
     private final JexlEngine engine;
@@ -35,8 +38,13 @@ public class ExpressionEvaluator {
 
         JexlPermissions perms = JexlPermissions.RESTRICTED.compose("jp.tubeboard.features.lives.pdf.canvas.*");
 
+        // 短い式から巨大な文字列を作れるメソッドは、メンバー権限でもメモリを食い潰せるので塞ぐ
+        JexlSandbox sandbox = new JexlSandbox(true);
+        sandbox.block(String.class.getName()).execute("repeat", "formatted", "indent");
+
         this.engine = new JexlBuilder()
                 .permissions(perms)
+                .sandbox(sandbox)
                 .namespaces(namespaces)
                 .strict(false)
                 .silent(false)
@@ -61,7 +69,7 @@ public class ExpressionEvaluator {
             matcher.appendReplacement(sb, Matcher.quoteReplacement(formatValue(value)));
         }
         matcher.appendTail(sb);
-        return sb.toString();
+        return sb.length() > MAX_OUTPUT_LENGTH ? sb.substring(0, MAX_OUTPUT_LENGTH) + "…" : sb.toString();
     }
 
     public Object evaluate(String expression, Map<String, Object> namespace) {

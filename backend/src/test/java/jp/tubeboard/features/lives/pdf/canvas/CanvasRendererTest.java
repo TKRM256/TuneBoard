@@ -306,7 +306,7 @@ class CanvasRendererTest {
                         new FieldAnswerResponse("member-name", List.of("佐藤"), List.of()),
                         new FieldAnswerResponse("member-parts", List.of("Ba"), List.of())))));
         return new PublicSettingSheetSubmissionDetailResponse(UUID.randomUUID(), "KingGnu", "完成",
-                LocalDateTime.of(2026, 6, 20, 12, 0), 0L, List.of(bandName, memberItems), List.of());
+                LocalDateTime.of(2026, 6, 20, 12, 0), LocalDateTime.of(2026, 6, 20, 12, 0), 0L, List.of(bandName, memberItems), List.of());
     }
 
     private PublicSettingSheetSubmissionDetailResponse submissionWithMembers(int count) {
@@ -317,17 +317,17 @@ class CanvasRendererTest {
                     new FieldAnswerResponse("member-parts", List.of("Vo"), List.of()))));
         }
         return new PublicSettingSheetSubmissionDetailResponse(UUID.randomUUID(), "KingGnu", "完成",
-                LocalDateTime.of(2026, 6, 20, 12, 0), 0L,
+                LocalDateTime.of(2026, 6, 20, 12, 0), LocalDateTime.of(2026, 6, 20, 12, 0), 0L,
                 List.of(new FieldAnswerResponse("members", List.of(), items)), List.of());
     }
 
     private FormBlockResponse leaf(String id, String type, String label) {
-        return new FormBlockResponse(id, type, label, "", false, true, false, false,
+        return new FormBlockResponse(id, type, label, "", false, true, true, false, false,
                 "outline", "plain", List.of(), 0, "", "", "", List.of(), LAYOUT_HALF, null, "", List.of());
     }
 
     private FormBlockResponse group(String id, String label, List<FormBlockResponse> children) {
-        return new FormBlockResponse(id, "REPEATABLE_GROUP", label, "", false, true, false, true,
+        return new FormBlockResponse(id, "REPEATABLE_GROUP", label, "", false, true, true, false, true,
                 "subtle", "outline", List.of(), 1, "追加", "項目", "", children, LAYOUT_HALF, null, "",
                 List.of(new VariantResponse("default", "default", children)));
     }

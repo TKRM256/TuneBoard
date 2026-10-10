@@ -30,24 +30,25 @@ export const appearanceClass = (
   appearance: SettingSheetBlock['appearance'],
   kind: 'section' | 'field' | 'group' | 'group-item',
 ) => {
+  // スマホでは入れ子ごとの余白が積み重なって入力欄が細くなるため、狭い画面では余白を絞る
   if (kind === 'section') {
     if (appearance === 'subtle') {
-      return 'min-w-0 rounded-xl border bg-muted/50 px-4 py-4 sm:px-6 sm:py-6';
+      return 'min-w-0 rounded-xl border bg-muted/50 px-3 py-4 sm:px-6 sm:py-6';
     }
     if (appearance === 'outline') {
-      return 'min-w-0 rounded-xl border bg-card px-4 py-4 sm:px-6 sm:py-6';
+      return 'min-w-0 rounded-xl border bg-card px-3 py-4 sm:px-6 sm:py-6';
     }
-    return 'min-w-0 px-1 py-3';
+    return 'min-w-0 py-3 sm:px-1';
   }
 
   if (kind === 'field') {
     if (appearance === 'subtle') {
-      return 'min-w-0 rounded-xl border bg-muted/40 p-4 sm:p-5';
+      return 'min-w-0 rounded-xl border bg-muted/40 p-3 sm:p-5';
     }
     if (appearance === 'plain') {
-      return 'min-w-0 p-1';
+      return 'min-w-0 sm:p-1';
     }
-    return 'min-w-0 rounded-xl border bg-card p-4 sm:p-5';
+    return 'min-w-0 rounded-xl border bg-card p-3 sm:p-5';
   }
 
   if (kind === 'group-item') {

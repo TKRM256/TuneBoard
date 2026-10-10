@@ -3,6 +3,7 @@ package jp.tubeboard.features.tenants.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +45,9 @@ public class TenantMembersService {
         requireAdmin(tenantId);
 
         TenantRole role = parseRole(request.role());
+        if (role == TenantRole.OWNER) {
+            throw new BadRequestException("OWNERロールのメンバーは追加できません");
+        }
         Tenants tenant = tenantsRepository.findById(tenantId)
                 .orElseThrow(() -> new TenantsNotFoundException("テナントが見つかりません"));
 
@@ -54,13 +58,18 @@ public class TenantMembersService {
             throw new BadRequestException("このユーザーは既にメンバーです");
         }
 
-        UserTenant userTenant = userTenantRepository.save(UserTenant.builder()
-                .user(targetUser)
-                .tenant(tenant)
-                .role(role)
-                .build());
+        // 脱退済みの行が残っていると (user_id, tenant_id) の一意制約に当たるため、その行を復活させる
+        UserTenant userTenant = userTenantRepository.findByTenantIdAndUserId(tenantId, targetUser.getId())
+                .orElseGet(() -> UserTenant.builder().user(targetUser).tenant(tenant).build());
+        userTenant.restore();
+        userTenant.setRole(role);
 
-        return toResponse(userTenant);
+        try {
+            return toResponse(userTenantRepository.saveAndFlush(userTenant));
+        } catch (DataIntegrityViolationException ex) {
+            // 招待の受け入れと同時に追加されると、先に入った方の行と一意制約で衝突する
+            throw new BadRequestException("このユーザーは既にメンバーです");
+        }
     }
 
     @Transactional

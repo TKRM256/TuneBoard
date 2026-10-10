@@ -203,7 +203,7 @@ public final class CanvasContext {
      *  recursively descending through SECTION nodes so nested groups are
      *  visible at the same level. */
     private static List<FormBlockResponse> flattenItemBlocks(FormBlockResponse block, String variantId) {
-        List<FormBlockResponse> raw = resolveItemFields(block, variantId);
+        List<FormBlockResponse> raw = block.itemFields(variantId);
         List<FormBlockResponse> out = new ArrayList<>();
         flattenSections(raw, out);
         return out;
@@ -218,19 +218,6 @@ public final class CanvasContext {
                 out.add(b);
             }
         }
-    }
-
-    private static List<FormBlockResponse> resolveItemFields(FormBlockResponse block, String variantId) {
-        List<VariantResponse> variants = block.variants();
-        if (variants == null || variants.isEmpty()) {
-            return block.fields() != null ? block.fields() : List.of();
-        }
-        if (variantId != null) {
-            for (VariantResponse v : variants) {
-                if (variantId.equals(v.id())) return v.fields();
-            }
-        }
-        return variants.get(0).fields();
     }
 
     private static Map<String, FieldAnswerResponse> indexAnswers(List<FieldAnswerResponse> answers) {

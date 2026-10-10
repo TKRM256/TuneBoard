@@ -8,6 +8,8 @@ type ThemeToggleProps = Omit<ComponentProps<typeof Button>, 'children'> & {
   lightLabel?: string;
   darkLabel?: string;
   showLabel?: boolean;
+  /** 文言部分のクラス。"hidden sm:inline" でスマホだけアイコンのみにできる */
+  labelClassName?: string;
 };
 
 export const ThemeToggle = ({
@@ -17,6 +19,7 @@ export const ThemeToggle = ({
   lightLabel = 'Light',
   darkLabel = 'Dark',
   showLabel = true,
+  labelClassName,
   onClick,
   ...props
 }: ThemeToggleProps) => {
@@ -41,7 +44,7 @@ export const ThemeToggle = ({
       {...props}
     >
       {isDarkMode ? <Sun /> : <Moon />}
-      {showLabel ? <span>{isDarkMode ? lightLabel : darkLabel}</span> : null}
+      {showLabel ? <span className={labelClassName}>{isDarkMode ? lightLabel : darkLabel}</span> : null}
     </Button>
   );
 };

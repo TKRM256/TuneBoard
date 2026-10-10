@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -76,9 +77,7 @@ public class SongDuplicateDetectionService {
     @Async
     public void computeAndStoreAsync(UUID liveId) {
         try {
-            new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-                doComputeAndStore(liveId, false);
-            });
+            computeWithRetry(liveId, false);
         } catch (Exception ex) {
             log.error("曲かぶり検出の非同期処理に失敗: liveId={}", liveId, ex);
         }
@@ -89,31 +88,29 @@ public class SongDuplicateDetectionService {
      * 提出データに変更がなければキャッシュを返す。
      */
     public SongDuplicateResponse computeAndStoreSync(UUID liveId) {
-        return new TransactionTemplate(transactionManager).execute(status -> {
-            return doComputeAndStore(liveId, false);
-        });
+        return computeWithRetry(liveId, false);
     }
 
     /**
      * 強制的に再計算する（明示的なリフレッシュ用）。
      */
     public SongDuplicateResponse forceComputeAndStoreSync(UUID liveId) {
-        return new TransactionTemplate(transactionManager).execute(status -> {
-            return doComputeAndStore(liveId, true);
-        });
+        return computeWithRetry(liveId, true);
     }
 
-    public Optional<SongDuplicateResponse> getCachedResult(UUID liveId) {
-        final Optional<SongDuplicateResponse> response = songDuplicateResultRepository.findByLiveId(liveId)
-                .map(stored -> {
-                    try {
-                        return objectMapper.readValue(stored.getResultJson(), SongDuplicateResponse.class);
-                    } catch (Exception ex) {
-                        log.warn("キャッシュ結果のデシリアライズに失敗: liveId={}", liveId, ex);
-                        return null;
-                    }
-                });
-        return response;
+    /**
+     * ライブで最初の計算が同時に走ると、どちらも結果行を新規作成しようとして live_id の一意制約に当たる。
+     * その時点で相手の行はコミット済みなので、新しいトランザクションでやり直せば更新として通る。
+     * 呼び出し元がトランザクション外であること（外側に合流するとコミット時に例外が出てやり直せない）。
+     */
+    private SongDuplicateResponse computeWithRetry(UUID liveId, boolean force) {
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        try {
+            return tx.execute(status -> doComputeAndStore(liveId, force));
+        } catch (DataIntegrityViolationException ex) {
+            log.info("曲かぶり結果の同時作成を検出、再計算します: liveId={}", liveId);
+            return tx.execute(status -> doComputeAndStore(liveId, force));
+        }
     }
 
     /**
@@ -455,7 +452,7 @@ public class SongDuplicateDetectionService {
                 FieldAnswerRequest answer = answerMap.get(block.id());
                 if (answer != null) {
                     for (GroupItemRequest item : answer.items()) {
-                        List<FormBlockResponse> itemFields = resolveItemFields(block, item.variantId());
+                        List<FormBlockResponse> itemFields = block.itemFields(item.variantId());
                         songs.addAll(extractSongs(submissionId, recordLabel, itemFields, item.answers()));
                     }
                 }
@@ -468,7 +465,7 @@ public class SongDuplicateDetectionService {
             }
 
             for (GroupItemRequest item : answer.items()) {
-                List<FormBlockResponse> itemFields = resolveItemFields(block, item.variantId());
+                List<FormBlockResponse> itemFields = block.itemFields(item.variantId());
                 String itemSongBlockId = detectSongBlockId(itemFields);
                 SongFieldIds itemSongFieldIds = itemSongBlockId == null ? detectSongFields(itemFields) : null;
                 if (itemSongBlockId == null && itemSongFieldIds == null) {
@@ -570,17 +567,6 @@ public class SongDuplicateDetectionService {
             }
         }
         return null;
-    }
-
-    private List<FormBlockResponse> resolveItemFields(FormBlockResponse block, String variantId) {
-        if (block.variants() != null && variantId != null && !variantId.isBlank()) {
-            for (VariantResponse v : block.variants()) {
-                if (v.id().equals(variantId)) {
-                    return v.fields();
-                }
-            }
-        }
-        return block.fields();
     }
 
     private Map<String, FieldAnswerRequest> toAnswerMap(List<FieldAnswerRequest> answers) {

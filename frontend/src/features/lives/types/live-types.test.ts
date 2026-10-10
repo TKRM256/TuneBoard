@@ -9,6 +9,7 @@ import {
   normalizeSettingSheetConfig,
   toLiveCreatePayload,
   toLiveUpdatePayload,
+  validateLiveForm,
   type LiveResponse,
   type LiveFormValues,
 } from './live-types';
@@ -115,5 +116,30 @@ describe('lives type utilities', () => {
     });
 
     expect(normalized.blocks[0].publicVisible).toBe(true);
+  });
+});
+describe('validateLiveForm', () => {
+  const form = (date: string, deadlineAt: string): LiveFormValues => ({
+    tenantId: { value: 't' },
+    name: { value: 'ライブ' },
+    date: { value: date },
+    location: { value: '' },
+    deadlineAt: { value: deadlineAt },
+    status: { value: 'DRAFT' },
+  });
+
+  it('rejects a deadline after the live date', () => {
+    expect(validateLiveForm(form('2026-08-01', '2026-08-02T00:00')).deadlineAt).toBe('回答締切は開催日以前にしてください');
+  });
+
+  it('counts surrounding spaces in the name length like the server does', () => {
+    const values = { ...form('', ''), name: { value: `${'a'.repeat(255)} ` } };
+    expect(validateLiveForm(values).name).toBe('ライブ名は255文字以内で入力してください');
+  });
+
+  it('accepts a deadline on the live date or when either is empty', () => {
+    expect(validateLiveForm(form('2026-08-01', '2026-08-01T23:59')).deadlineAt).toBeUndefined();
+    expect(validateLiveForm(form('', '2026-08-02T00:00')).deadlineAt).toBeUndefined();
+    expect(validateLiveForm(form('2026-08-01', '')).deadlineAt).toBeUndefined();
   });
 });

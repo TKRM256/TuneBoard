@@ -3,7 +3,7 @@
  * 
 */
 import { Card, CardHeader } from "@/components/ui/card"
-import type { TenantsFormValues, TenantsResponse } from "../types/tenant-types";
+import { validateTenantName, type TenantsFormValues, type TenantsResponse } from "../types/tenant-types";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -26,6 +26,16 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
     const isAdmin = tenant.role === "ADMIN" || tenant.role === "OWNER";
     const { run: runRestoreTenant } = useSingleFlight();
 
+    /** 入力チェック。問題があれば項目にエラーを表示して false を返す。 */
+    const validate = (): boolean => {
+      const error = validateTenantName(formValues.name.value);
+      if (!error) {
+        return true;
+      }
+      setFormValues((prev) => ({ ...prev, name: { ...prev.name, error } }));
+      return false;
+    };
+
     const onSubmit = async () => {
       try {
         const response = await apiClient.post<TenantsResponse>("/tenants/update", {
@@ -41,7 +51,10 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
       } catch (error: unknown) {
         const apiError = error as ApiClientError;
         const serverFieldErrors = apiError.apiError?.fieldErrors;
-        if(!serverFieldErrors) return;
+        if(!serverFieldErrors) {
+          toast.error(apiError.apiError?.message ?? "テナントの更新に失敗しました", { position: "top-center" });
+          return;
+        }
         for(const key in serverFieldErrors){
           if(key in formValues){
             setFormValues((prev) => ({
@@ -135,7 +148,7 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
                         </Field>
                       </FieldGroup>
                       <div className="flex gap-2 border-t pt-2 justify-end">
-                        <ConfirmButton onClick={onSubmit}>更新</ConfirmButton>
+                        <ConfirmButton onClick={onSubmit} validate={validate}>更新</ConfirmButton>
                         <ConfirmButton onClick={handleDelete} defaultVariant="outline" confirmVariant="destructive">
                           削除
                         </ConfirmButton>

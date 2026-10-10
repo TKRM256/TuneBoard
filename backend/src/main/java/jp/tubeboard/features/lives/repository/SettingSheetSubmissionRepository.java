@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -60,4 +61,12 @@ public interface SettingSheetSubmissionRepository extends JpaRepository<SettingS
 			+ "AND s.live.deletedAt IS NULL AND ut.deletedAt IS NULL AND s.deletedAt IS NOT NULL")
 	Optional<SettingSheetSubmission> findTrashedByIdAndLiveIdAndAccessibleByUserId(
 			@Param("id") UUID id, @Param("liveId") UUID liveId, @Param("userId") Long userId);
+
+	/**
+	 * ゴミ箱への移動・復元。内容は変わらないので version も updated_at も進めない。
+	 * エンティティを save すると version が上がり、編集中の出演者の保存が偽の競合(409)になるため一括更新で行う。
+	 */
+	@Modifying(flushAutomatically = true, clearAutomatically = true)
+	@Query("UPDATE SettingSheetSubmission s SET s.deletedAt = :deletedAt WHERE s.id = :id")
+	int updateDeletedAt(@Param("id") UUID id, @Param("deletedAt") LocalDateTime deletedAt);
 }

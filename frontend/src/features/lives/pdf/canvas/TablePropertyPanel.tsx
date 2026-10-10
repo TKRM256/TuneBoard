@@ -280,11 +280,6 @@ export function TablePropertyPanel({
           />
           内容に合わせて高さを自動拡張
         </label>
-        <p className="text-[10px] text-muted-foreground">
-          {element.autoGrow !== false
-            ? '上の高さは最低値として扱われます。下の要素は押し下げられ、ページに収まらない行は次のページに続きます。'
-            : '高さは固定です。入り切らない行は出力されません。'}
-        </p>
         {onFitHeight && (
           <Button
             variant="outline"

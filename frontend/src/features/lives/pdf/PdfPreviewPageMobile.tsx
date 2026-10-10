@@ -242,7 +242,7 @@ export const PdfPreviewPageMobile = () => {
     >
       <div className="flex h-full w-full flex-col">
         {/* Compact header */}
-        <header className="flex items-center justify-between gap-2 border-b bg-background px-2 py-1.5">
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b bg-background px-2 py-1.5">
           <Button asChild variant="ghost" size="sm" className="px-2">
             <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`} aria-label="戻る">
               <ChevronLeft className="size-4" />
@@ -264,7 +264,7 @@ export const PdfPreviewPageMobile = () => {
         </header>
 
         {/* Action bar (compile + download + reset + paper) */}
-        <div className="flex flex-wrap items-center gap-1 border-b bg-background/95 px-2 py-1.5">
+        <div className="flex shrink-0 flex-wrap items-center gap-1 border-b bg-background/95 px-2 py-1.5">
           <PageSettings
             size={editor.doc.page.size}
             orientation={editor.doc.page.orientation}
@@ -330,7 +330,7 @@ export const PdfPreviewPageMobile = () => {
           onValueChange={(v) => setTab(v as MobileTab)}
           className="flex min-h-0 flex-1 flex-col gap-0"
         >
-          <TabsList className="h-9 w-full justify-stretch rounded-none border-b">
+          <TabsList className="h-9 w-full shrink-0 justify-stretch rounded-none border-b">
             <TabsTrigger value="canvas" className="text-xs">
               キャンバス
             </TabsTrigger>
@@ -345,7 +345,7 @@ export const PdfPreviewPageMobile = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="canvas" className="m-0 flex min-h-0 flex-1 flex-col">
+          <TabsContent value="canvas" className="m-0 flex min-h-0 flex-1 flex-col overflow-hidden">
             <CanvasMiniToolbar editor={editor} />
             <div className="flex-1 overflow-auto bg-muted/20 p-2">
               <div className="flex justify-center">

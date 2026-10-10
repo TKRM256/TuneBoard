@@ -96,6 +96,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'The Testers',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      updatedAt: '2026-03-11T20:00:00',
     });
 
     render(<SettingSheetForm publicToken="public-token" live={baseLive} submission={null} />);
@@ -129,6 +130,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Saved Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      updatedAt: '2026-03-11T20:00:00',
       version: 3,
       itunesLinks: [],
       answers: [
@@ -144,6 +146,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Updated Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      updatedAt: '2026-03-11T20:00:00',
       version: 4,
     });
 
@@ -267,6 +270,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Section Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      updatedAt: '2026-03-11T20:00:00',
       version: 0,
       itunesLinks: [],
       answers: [
@@ -333,6 +337,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'The Testers',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      updatedAt: '2026-03-11T20:00:00',
     });
 
     render(<SettingSheetForm publicToken="public-token" live={live} submission={null} />);
@@ -368,6 +373,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Base Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      updatedAt: '2026-03-11T20:00:00',
       version: 3,
       itunesLinks: [],
       answers: [{ fieldId: 'band-name', values: ['Base Band'], items: [] }],
@@ -390,6 +396,7 @@ describe('SettingSheetForm', () => {
         recordLabel: 'Their Band',
         submissionStatus: 'SUBMITTED',
         submittedAt: '2026-03-11T20:00:00',
+        updatedAt: '2026-03-11T20:00:00',
         version: 5,
       });
 
@@ -426,6 +433,7 @@ describe('SettingSheetForm', () => {
       recordLabel: 'Saved Band',
       submissionStatus: 'SUBMITTED',
       submittedAt: '2026-03-11T20:00:00',
+      updatedAt: '2026-03-11T20:00:00',
       version: 2,
       itunesLinks: [],
       answers: [{ fieldId: 'band-name', values: ['Saved Band'], items: [] }],

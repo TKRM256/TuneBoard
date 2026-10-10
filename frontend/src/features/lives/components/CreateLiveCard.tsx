@@ -9,11 +9,13 @@ import { apiClient } from '@/lib/api/client';
 import type { ApiClientError } from '@/lib/api/type';
 
 import {
+  applyLiveFormErrors,
   createTenantScopedLiveForm,
   LIVE_STATUS_OPTIONS,
   type LiveFormValues,
   type LiveResponse,
   toLiveCreatePayload,
+  validateLiveForm,
 } from '../types/live-types';
 import {
   Select,
@@ -41,6 +43,7 @@ export const CreateLiveCard = ({ tenantId, onCreateSuccess }: CreateLiveCardProp
   const applyServerErrors = (error: ApiClientError) => {
     const serverFieldErrors = error.apiError?.fieldErrors;
     if (!serverFieldErrors) {
+      toast.error(error.apiError?.message ?? 'ライブの作成に失敗しました', { position: 'top-center' });
       return;
     }
 
@@ -55,6 +58,16 @@ export const CreateLiveCard = ({ tenantId, onCreateSuccess }: CreateLiveCardProp
       }
       return next;
     });
+  };
+
+  /** 入力チェック。問題があれば各項目にエラーを表示して false を返す。 */
+  const validate = (): boolean => {
+    const errors = validateLiveForm(formValues);
+    if (Object.keys(errors).length === 0) {
+      return true;
+    }
+    setFormValues((prev) => applyLiveFormErrors(prev, errors));
+    return false;
   };
 
   const onSubmit = async () => {
@@ -131,7 +144,7 @@ export const CreateLiveCard = ({ tenantId, onCreateSuccess }: CreateLiveCardProp
         </FieldGroup>
 
         <div className="flex justify-end">
-          <ConfirmButton onClick={onSubmit}>
+          <ConfirmButton onClick={onSubmit} validate={validate}>
             作成
           </ConfirmButton>
         </div>

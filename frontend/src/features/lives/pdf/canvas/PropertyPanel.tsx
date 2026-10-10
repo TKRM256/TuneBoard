@@ -51,14 +51,15 @@ export function PropertyPanel({
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-l bg-background overflow-y-scroll">
-      <div className="border-b px-3 py-2">
+    <aside className="flex h-full w-full flex-col overflow-hidden border-l bg-background">
+      <div className="shrink-0 border-b px-3 py-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           プロパティ — {kindLabel(element.kind)}
         </span>
       </div>
-      <ScrollArea className="flex-1">
-        <div className="space-y-4 p-3">
+      <ScrollArea className="min-h-0 flex-1">
+        {/* スマホでは最後の項目が画面下端に貼り付かないよう余白を多めに取る */}
+        <div className="space-y-4 p-3 pb-16 md:pb-3">
           <PositionFields element={element} onUpdate={onUpdate} />
           <Separator />
           {element.kind === 'text' && <TextProperties element={element} catalog={catalog} onUpdate={onUpdate as (p: Partial<TextElement>) => void} />}

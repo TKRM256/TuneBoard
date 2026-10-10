@@ -106,7 +106,7 @@ export const ItunesTrackSelector = ({ selected, onSelect }: ItunesTrackSelectorP
         onCompositionStart={() => { composingRef.current = true; }}
         onCompositionEnd={handleCompositionEnd}
         placeholder="曲名やアーティスト名で検索..."
-        className="h-8 text-sm"
+        className="h-9 text-base sm:h-8 sm:text-sm"
       />
       <TrackList tracks={results} isSearching={isSearching} hasQuery={!!query.trim()} onSelect={handleSelect} />
     </div>

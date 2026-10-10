@@ -190,7 +190,7 @@ export const SettingSheetFieldRenderer = ({
             const checked = values.includes(option);
             return (
               <Label key={option} className={cn(
-                'flex min-w-0 max-w-full items-center gap-3 rounded-md border border-border bg-muted/50 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
+                'flex min-w-0 max-w-full items-center gap-3 rounded-md border border-border bg-muted/50 px-3 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:px-4',
                 block.layout.optionFitContent ? 'w-fit min-w-0' : '',
               )}>
                 <Checkbox
@@ -267,7 +267,7 @@ const SettingSheetGroupBlock = ({
 
   return (
     <section className={`${appearanceClass(block.appearance, 'group')} ${fieldWidthClass(block.layout.width)}`}>
-      <div className="flex min-w-0 flex-col gap-3 px-4 pt-4 sm:px-5 sm:pt-5 md:flex-row md:items-start md:justify-between">
+      <div className="flex min-w-0 flex-col gap-3 px-3 pt-3 sm:px-5 sm:pt-5 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <h2 className="text-sm font-medium text-foreground">
             {block.label}
@@ -293,7 +293,7 @@ const SettingSheetGroupBlock = ({
       </div>
 
     <AnimatePresence initial={false}>
-      <motion.div layout className="space-y-4 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+      <motion.div layout className="space-y-3 px-3 pb-3 pt-3 sm:space-y-4 sm:px-5 sm:pb-5 sm:pt-4">
         {fieldValue.items.map((item, itemIndex) => (
           <SettingSheetGroupItem
             key={item.id}
@@ -312,7 +312,7 @@ const SettingSheetGroupBlock = ({
         ))}
       </motion.div>
     </AnimatePresence>
-    {fieldValue.items.length === 0 ? <p className="mx-4 mb-4 rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground sm:mx-5 sm:mb-5">まだ入力項目がありません。追加ボタンから作成してください。</p> : null}
+    {fieldValue.items.length === 0 ? <p className="mx-3 mb-3 rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground sm:mx-5 sm:mb-5">まだ入力項目がありません。追加ボタンから作成してください。</p> : null}
     {errorMap[`${pathKey}.items`] ? <p className="mt-3 text-sm text-destructive">{errorMap[`${pathKey}.items`]}</p> : null}
   </section>
   );
@@ -352,7 +352,7 @@ const SettingSheetGroupItem = ({
   const selectedLink = itunesLinks?.[item.id] ?? null;
 
   const content = (
-    <div className="grid min-w-0 gap-4 px-4 py-4 sm:px-5 xl:grid-cols-6">
+    <div className="grid min-w-0 gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 xl:grid-cols-6">
       {itemFields.map((child) => (
         <SettingSheetFieldRenderer
           key={child.id}
@@ -387,9 +387,9 @@ const SettingSheetGroupItem = ({
       {block.collapsible ? (
         <Accordion type="single" collapsible className="w-full" defaultValue={undefined}>
           <AccordionItem value={`${pathKey}-${item.id}`} className="border-none">
-            <div className="border-b border-border px-4 py-4 sm:px-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <AccordionTrigger className="min-w-0 flex-1 px-2 py-2 text-left hover:no-underline">
+            <div className="border-b border-border px-3 py-2 sm:px-5 sm:py-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                <AccordionTrigger className="min-w-0 flex-1 px-1 py-2 text-left hover:no-underline sm:px-2">
                   <div className="min-w-0 text-left flex gap-2">
                     {variantLabel ? <span className="px-2 py-0.5 text-xs font-medium text-muted-foreground bg-muted rounded-full">{variantLabel}</span> : null}
                     <p className="truncate text-sm font-semibold text-foreground">{itemTitle}</p>
@@ -403,8 +403,8 @@ const SettingSheetGroupItem = ({
         </Accordion>
       ) : (
         <>
-          <div className="border-b border-border px-4 py-4 sm:px-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="border-b border-border px-3 py-3 sm:px-5 sm:py-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <div className="min-w-0">
                 {variantLabel ? <span className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">{variantLabel}</span> : null}
                 <p className="truncate text-sm font-semibold text-foreground">{itemTitle}</p>
@@ -428,23 +428,27 @@ interface GroupItemActionsProps {
   setFieldValue: (nextValue: SettingSheetFieldValue) => void;
 }
 
+/** スマホでは文字を隠してアイコンだけの横一列にし、項目カードの高さを抑える */
+const actionButtonClass = 'px-2 sm:px-3';
+const actionLabelClass = 'hidden sm:inline';
+
 const GroupItemActions = ({ block, groupValue, item, itemIndex, setFieldValue }: GroupItemActionsProps) => (
-  <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex">
-    <Button type="button" variant="outline" size="sm" onClick={() => setFieldValue({ values: [], items: moveItem(groupValue.items, itemIndex, 'up') })} disabled={itemIndex === 0}>
+  <div className="flex min-w-0 shrink-0 justify-end gap-1 sm:gap-2">
+    <Button type="button" variant="outline" size="sm" className={actionButtonClass} aria-label="上へ" onClick={() => setFieldValue({ values: [], items: moveItem(groupValue.items, itemIndex, 'up') })} disabled={itemIndex === 0}>
       <ArrowUp className="size-4" />
-      上へ
+      <span className={actionLabelClass}>上へ</span>
     </Button>
-    <Button type="button" variant="outline" size="sm" onClick={() => setFieldValue({ values: [], items: moveItem(groupValue.items, itemIndex, 'down') })} disabled={itemIndex === groupValue.items.length - 1}>
+    <Button type="button" variant="outline" size="sm" className={actionButtonClass} aria-label="下へ" onClick={() => setFieldValue({ values: [], items: moveItem(groupValue.items, itemIndex, 'down') })} disabled={itemIndex === groupValue.items.length - 1}>
       <ArrowDown className="size-4" />
-      下へ
+      <span className={actionLabelClass}>下へ</span>
     </Button>
-    <Button type="button" variant="outline" size="sm" onClick={() => setFieldValue({ values: [], items: [...groupValue.items, cloneGroupItemValue(getGroupItemFields(block, item.variantId), item)] })}>
+    <Button type="button" variant="outline" size="sm" className={actionButtonClass} aria-label="複製" onClick={() => setFieldValue({ values: [], items: [...groupValue.items, cloneGroupItemValue(getGroupItemFields(block, item.variantId), item)] })}>
       <Copy className="size-4" />
-      複製
+      <span className={actionLabelClass}>複製</span>
     </Button>
-    <Button type="button" variant="outline" size="sm" onClick={() => setFieldValue({ values: [], items: groupValue.items.filter((_, index) => index !== itemIndex) })}>
+    <Button type="button" variant="outline" size="sm" className={actionButtonClass} aria-label="削除" onClick={() => setFieldValue({ values: [], items: groupValue.items.filter((_, index) => index !== itemIndex) })}>
       <Trash2 className="size-4" />
-      削除
+      <span className={actionLabelClass}>削除</span>
     </Button>
   </div>
 );

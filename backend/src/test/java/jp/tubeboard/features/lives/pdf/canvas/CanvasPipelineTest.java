@@ -64,7 +64,7 @@ class CanvasPipelineTest {
                                 new GroupItemResponse(null, List.of(
                                         new FieldAnswerResponse("mic-name", List.of("e835"), List.of())))))))));
         PublicSettingSheetSubmissionDetailResponse sub = new PublicSettingSheetSubmissionDetailResponse(
-                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0), 0L,
+                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0), LocalDateTime.of(2026, 1, 1, 0, 0), 0L,
                 List.of(answer), List.of());
 
         Map<String, Object> ns = CanvasContext.build(sampleLive(), cfg, sub);
@@ -169,7 +169,7 @@ class CanvasPipelineTest {
                                 new GroupItemResponse(null, List.of(
                                         new FieldAnswerResponse("mic-name", List.of("e835"), List.of())))))))));
         PublicSettingSheetSubmissionDetailResponse sub = new PublicSettingSheetSubmissionDetailResponse(
-                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0), 0L,
+                UUID.randomUUID(), "Band", "完成", LocalDateTime.of(2026, 1, 1, 0, 0), LocalDateTime.of(2026, 1, 1, 0, 0), 0L,
                 List.of(answer), List.of());
 
         Map<String, Object> ns = CanvasContext.build(sampleLive(), cfg, sub);
@@ -213,16 +213,16 @@ class CanvasPipelineTest {
                         new FieldAnswerResponse("member-name", List.of("佐藤"), List.of()),
                         new FieldAnswerResponse("member-parts", List.of("Ba"), List.of())))));
         return new PublicSettingSheetSubmissionDetailResponse(UUID.randomUUID(), "KingGnu", "完成",
-                LocalDateTime.of(2026, 6, 20, 12, 0), 0L, List.of(bandName, memberItems), List.of());
+                LocalDateTime.of(2026, 6, 20, 12, 0), LocalDateTime.of(2026, 6, 20, 12, 0), 0L, List.of(bandName, memberItems), List.of());
     }
 
     private FormBlockResponse leaf(String id, String type, String label) {
-        return new FormBlockResponse(id, type, label, "", false, true, false, false,
+        return new FormBlockResponse(id, type, label, "", false, true, true, false, false,
                 "outline", "plain", List.of(), 0, "", "", "", List.of(), LAYOUT_HALF, null, "", List.of());
     }
 
     private FormBlockResponse group(String id, String label, List<FormBlockResponse> children) {
-        return new FormBlockResponse(id, "REPEATABLE_GROUP", label, "", false, true, false, true,
+        return new FormBlockResponse(id, "REPEATABLE_GROUP", label, "", false, true, true, false, true,
                 "subtle", "outline", List.of(), 1, "追加", "項目", "", children, LAYOUT_HALF, null, "",
                 List.of(new VariantResponse("default", "default", children)));
     }

@@ -138,6 +138,18 @@ class TenantsControllerIntegrationTest {
                                 .andExpect(jsonPath("$.fieldErrors.name").value("テナント名は必須です"));
         }
 
+        @Test
+        void 長すぎるテナント名はバリデーションエラーを返す() throws Exception {
+                String token = createAccessToken("tenant-user-sub");
+
+                mockMvc.perform(post("/api/tenants/create")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(APPLICATION_JSON)
+                                .content("{\"name\":\"" + "長".repeat(256) + "\"}"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.fieldErrors.name").value("テナント名は255文字以内で入力してください"));
+        }
+
         private String createAccessToken(String sub) {
                 userRepository.save(User.builder()
                                 .sub(sub)

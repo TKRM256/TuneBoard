@@ -183,7 +183,7 @@ class DefaultCanvasFactoryTest {
                                         answer("mc-mic-main", "true")))))))));
 
         return new PublicSettingSheetSubmissionDetailResponse(
-                UUID.randomUUID(), "たぬきバンド", "完成", LocalDateTime.of(2026, 7, 1, 12, 0), 0L,
+                UUID.randomUUID(), "たぬきバンド", "完成", LocalDateTime.of(2026, 7, 1, 12, 0), LocalDateTime.of(2026, 7, 1, 12, 0), 0L,
                 List.of(answer("band-name", "たぬきバンド"), answer("submission-status", "完成"),
                         answer("detail", "よろしくお願いします"), members, setlist),
                 List.of());

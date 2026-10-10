@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api/client";
 import { useState } from "react";
 import type { ApiClientError } from "@/lib/api/type";
-import type { TenantsFormValues, TenantsResponse } from "../types/tenant-types";
+import { validateTenantName, type TenantsFormValues, type TenantsResponse } from "../types/tenant-types";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ConfirmButton } from "@/components/original/ConfirmButton";
@@ -12,6 +12,16 @@ import { CreateAccordionCard } from "@/components/original/CreateAccordionCard";
 export const CreateTenantsCard = ({ onCreateSuccess }: { onCreateSuccess: (newTenant: TenantsResponse) => void }) => {
   const [formValues, setFormValues] = useState<TenantsFormValues>({ name: { value: "" } });
   
+  /** 入力チェック。問題があれば項目にエラーを表示して false を返す。 */
+  const validate = (): boolean => {
+    const error = validateTenantName(formValues.name.value);
+    if (!error) {
+      return true;
+    }
+    setFormValues((prev) => ({ ...prev, name: { ...prev.name, error } }));
+    return false;
+  };
+
   const onSubmit = async () => {
     try {
       const response = await apiClient.post<TenantsResponse>("/tenants/create", {
@@ -26,7 +36,10 @@ export const CreateTenantsCard = ({ onCreateSuccess }: { onCreateSuccess: (newTe
     } catch (error: unknown) {
       const apiError = error as ApiClientError;
       const serverFieldErrors = apiError.apiError?.fieldErrors;
-      if(!serverFieldErrors) return;
+      if(!serverFieldErrors) {
+        toast.error(apiError.apiError?.message ?? "テナントの作成に失敗しました", { position: "top-center" });
+        return;
+      }
       for(const key in serverFieldErrors){
         if(key in formValues){
           setFormValues((prev) => ({
@@ -65,7 +78,7 @@ export const CreateTenantsCard = ({ onCreateSuccess }: { onCreateSuccess: (newTe
               </Field>
             </FieldGroup>
             <div className="flex justify-end">
-              <ConfirmButton onClick={onSubmit}>
+              <ConfirmButton onClick={onSubmit} validate={validate}>
                 作成
               </ConfirmButton>
             </div>
