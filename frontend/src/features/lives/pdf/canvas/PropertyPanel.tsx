@@ -9,15 +9,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import type { CanvasElement, FieldElement, TableColumn, TableElement, TextElement } from '../canvas-schema';
-import type { FieldCatalog } from '../field-catalog';
-import { ExpressionTextarea } from './ExpressionInputs';
+import type { FieldCatalog } from '../../canvas-shared/field-catalog';
+import { ExpressionTextarea } from '../../canvas-shared/expression/ExpressionInputs';
 import {
   BackgroundBorderGroup,
   ColorInput,
   FieldGroup,
   NumberField,
   TypographyGroup,
-} from './property-fields';
+} from '../../canvas-shared/property-fields';
 import { TablePropertyPanel, type TableFitProps } from './TablePropertyPanel';
 
 interface Props extends TableFitProps {

@@ -66,4 +66,8 @@ public class Live extends Audit {
     /** PDF出力のレイアウト（CanvasDocument）。未設定なら既定レイアウトを使う。 */
     @Column(name = "pdf_canvas_json", columnDefinition = "TEXT")
     private String pdfCanvasJson;
+
+    /** ステージ配置図の設定（下絵とアイコンの一覧）。未設定なら null。 */
+    @Column(name = "stage_plot_json", columnDefinition = "TEXT")
+    private String stagePlotJson;
 }

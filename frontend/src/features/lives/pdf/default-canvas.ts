@@ -12,7 +12,7 @@ import type {
 } from './canvas-schema';
 import { getPaperDimensions } from './canvas-schema';
 import { buildStandardGroupColumns, indexColumn } from './default-canvas-columns';
-import { buildFieldCatalog, type CatalogGroup } from './field-catalog';
+import { buildFieldCatalog, type CatalogGroup } from '../canvas-shared/field-catalog';
 
 export function newId(): string {
   return crypto.randomUUID();
@@ -97,7 +97,9 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
   const halfW = contentW * 0.5 - 2;
   // ヘッダーを描き終えた位置から下が本文領域。その一部を上段に割り当てる
   const topRowHeightMm = Math.round((PAGE_HEIGHT_MM - MARGIN_MM - y) * TOP_ROW_RATIO);
-  const hasFields = catalog.fields.length > 0;
+  // 配置図は文字の表に向かないので、既定のレイアウトには入れない（バックエンドの DefaultCanvasFactory と同じ）
+  const infoFields = catalog.fields.filter((field) => field.type !== 'STAGE_PLOT');
+  const hasFields = infoFields.length > 0;
   const [firstGroup, ...restGroups] = catalog.groups.filter((group) => group.fields.length > 0);
 
   // 上段は「単発項目のKV表」と「最初の繰り返しグループ」を左右に並べ、
@@ -112,7 +114,7 @@ export function buildDefaultCanvas(config: SettingSheetConfigResponse | null): C
       hMm: topRowHeightMm,
       source: {
         kind: 'fields',
-        fields: catalog.fields.map((f) => ({ fieldId: f.id, fallbackLabel: f.label })),
+        fields: infoFields.map((f) => ({ fieldId: f.id, fallbackLabel: f.label })),
       },
       columns: [
         { id: newId(), header: '項目', fieldId: '__label__', widthRatio: 0.3, align: 'left' },
@@ -170,10 +172,11 @@ function groupTable(group: CatalogGroup, xMm: number, yMm: number, wMm: number, 
 }
 
 function genericGroupColumns(group: CatalogGroup): TableColumn[] {
-  const each = 0.92 / group.fields.length;
+  const fields = group.fields.filter((field) => field.type !== 'STAGE_PLOT');
+  const each = 0.92 / Math.max(1, fields.length);
   return [
     indexColumn(0.08),
-    ...group.fields.map((f) => ({
+    ...fields.map((f) => ({
       id: newId(),
       header: f.label,
       fieldId: f.id,

@@ -7,12 +7,8 @@ import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
-import jp.tubeboard.features.lives.dto.request.PdfCanvasMeasureRequest;
-import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
 import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
-import jp.tubeboard.features.lives.dto.response.PdfCanvasMeasureResponse;
-import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
@@ -20,7 +16,6 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.request.PublicSongDuplicateCheckRequest;
 import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
 
 public interface ILivesService {
 
@@ -52,12 +47,6 @@ public interface ILivesService {
         SettingSheetConfigResponse getSettingSheetConfig(UUID id);
 
         SettingSheetConfigResponse updateSettingSheetConfig(UUID id, SettingSheetConfigUpdateRequest request);
-
-        PdfCanvasResponse getPdfCanvas(UUID id);
-
-        PdfCanvasResponse updatePdfCanvas(UUID id, PdfCanvasUpdateRequest request);
-
-        PdfCanvasMeasureResponse measurePdfCanvas(UUID id, PdfCanvasMeasureRequest request);
 
         SettingSheetSubmissionResponse submitPublicSettingSheet(String publicToken,
                         PublicSettingSheetSubmissionRequest request);
@@ -97,11 +86,4 @@ public interface ILivesService {
 
         PublicSongDuplicateCheckResponse checkPublicSongDuplicate(String publicToken,
                         PublicSongDuplicateCheckRequest request, UUID excludeSubmissionId);
-
-        SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, CanvasDocument canvas);
-
-        SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds, CanvasDocument canvas);
-
-        record SubmissionPdfResult(byte[] bytes, String filenameStem) {
-        }
 }

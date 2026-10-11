@@ -39,7 +39,8 @@ export const BlockEditorTree = ({
   onApplyGroupAppearance,
   onUpdateOptionSource,
 }: BlockEditorTreeProps) => {
-  const renderBlockEditor = (block: SettingSheetBlock, index: number, parentId: string | null, depth = 0) => {
+  // insideGroup: 繰り返しグループの中のブロックか（管理者入力はグループの外だけで使える）
+  const renderBlockEditor = (block: SettingSheetBlock, index: number, parentId: string | null, depth = 0, insideGroup = false) => {
     const blockTypeLabel = SETTING_SHEET_BLOCK_OPTIONS.find((option) => option.value === block.type)?.label;
     const siblingCount = getSiblingCount(rootBlocks, parentId);
 
@@ -52,6 +53,7 @@ export const BlockEditorTree = ({
                 <Badge variant="secondary">{blockTypeLabel}</Badge>
                 {isRepeatableGroupBlock(block.type) && block.titleSourceFieldId ? <Badge variant="outline">タイトル連動</Badge> : null}
                 {block.hidden ? <Badge variant="outline">非表示</Badge> : null}
+                {block.adminOnly ? <Badge variant="outline">管理者入力</Badge> : null}
               </div>
               <div>
                 <p className="text-sm font-medium">{index + 1}. {block.label || '無題のブロック'}</p>
@@ -81,13 +83,20 @@ export const BlockEditorTree = ({
                 index={index}
                 parentId={parentId}
                 depth={depth}
+                insideGroup={insideGroup}
                 optionSourceCandidates={optionSourceCandidates}
                 onInsert={onInsert}
                 onUpdateBlock={onUpdateBlock}
                 onChangeType={onChangeType}
                 onApplyGroupAppearance={onApplyGroupAppearance}
                 onUpdateOptionSource={onUpdateOptionSource}
-                renderNestedBlock={(child, childIndex, nestedParentId, nestedDepth) => renderBlockEditor(child, childIndex, nestedParentId, nestedDepth)}
+                renderNestedBlock={(child, childIndex, nestedParentId, nestedDepth) => renderBlockEditor(
+                  child,
+                  childIndex,
+                  nestedParentId,
+                  nestedDepth,
+                  insideGroup || isRepeatableGroupBlock(block.type),
+                )}
               />              
             </AccordionContent>
           </AccordionItem>

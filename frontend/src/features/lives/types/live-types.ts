@@ -1,4 +1,6 @@
 export type LiveStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+import type { PublicStagePlot } from '@/features/stage-plot/stage-plot-types';
+
 export type SettingSheetBlockType =
   | 'SECTION'
   | 'SHORT_TEXT'
@@ -8,7 +10,9 @@ export type SettingSheetBlockType =
   | 'CHECKBOX'
   | 'BOOLEAN'
   | 'REPEATABLE_GROUP'
-  | 'SONG';
+  | 'SONG'
+  | 'DURATION'
+  | 'STAGE_PLOT';
 
 export interface SettingSheetOptionSource {
   blockId: string;
@@ -59,6 +63,8 @@ export interface SettingSheetBlock {
   optionSource: SettingSheetOptionSource | null;
   duplicateDetectionRole: DuplicateDetectionRole;
   variants?: SettingSheetGroupVariant[];
+  /** 管理者だけが入力する項目。出演者の公開フォームには出ない。グループの外の入力欄だけに付けられる */
+  adminOnly?: boolean;
 }
 
 export type DuplicateDetectionRole = '' | 'SONG_TITLE' | 'SONG_ARTIST';
@@ -99,6 +105,8 @@ export interface LiveCopySourceResponse {
   status: LiveStatus;
   hasSettingSheetConfig: boolean;
   hasPdfCanvas: boolean;
+  hasVenueForm: boolean;
+  hasStagePlot: boolean;
 }
 
 export interface PublicLiveResponse {
@@ -108,6 +116,7 @@ export interface PublicLiveResponse {
   deadlineAt: string | null;
   status: LiveStatus;
   settingSheetConfig: SettingSheetConfigResponse;
+  stagePlot?: PublicStagePlot | null;
 }
 
 export interface SettingSheetSubmissionAnswerResponse {
@@ -216,6 +225,8 @@ export const SETTING_SHEET_BLOCK_OPTIONS: Array<{ value: SettingSheetBlockType; 
   { value: 'BOOLEAN', label: '真偽値', description: '代表者やメインVoのようなON/OFF項目です。' },
   { value: 'REPEATABLE_GROUP', label: '繰り返しグループ', description: 'メンバーや曲のように動的に追加できるまとまりです。' },
   { value: 'SONG', label: '楽曲', description: '曲名・アーティスト名とiTunes検索をセットで入力します。' },
+  { value: 'DURATION', label: '演奏時間', description: '「分:秒」で時間を入力します。合計は出力時に自動で計算できます。' },
+  { value: 'STAGE_PLOT', label: 'ステージ配置図', description: 'ステージの下絵にアイコンを置いて立ち位置を伝えます。' },
 ];
 
 export const SETTING_SHEET_APPEARANCE_OPTIONS: Array<{ value: SettingSheetBlockAppearance; label: string; description: string }> = [
@@ -244,6 +255,10 @@ export function createBlockTemplate(type: SettingSheetBlockType): SettingSheetBl
       return { id: createId(), type, label: 'チェック項目', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('half', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'REPEATABLE_GROUP':
       return { id: createId(), type, label: '繰り返しグループ', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'subtle', itemAppearance: 'outline', options: [], minItems: 0, addButtonLabel: '項目を追加', entryTitle: '項目', titleSourceFieldId: '', fields: [createBlockTemplate('SHORT_TEXT')], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '', variants: [] };
+    case 'DURATION':
+      return { id: createId(), type, label: '演奏時間', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('third', 1, false), optionSource: null, duplicateDetectionRole: '' };
+    case 'STAGE_PLOT':
+      return { id: createId(), type, label: 'ステージ配置図', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
     case 'SONG':
       return { id: createId(), type, label: '楽曲', description: '', hidden: false, publicVisible: false, adminVisible: false, required: false, collapsible: false, appearance: 'outline', itemAppearance: 'plain', options: [], minItems: 0, addButtonLabel: '', entryTitle: '', titleSourceFieldId: '', fields: [], layout: createLayout('full', 1, false), optionSource: null, duplicateDetectionRole: '' };
   }
@@ -275,7 +290,12 @@ export function isTextBlock(type: SettingSheetBlockType) {
 }
 
 export function isInputBlock(type: SettingSheetBlockType) {
-  return ['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'BOOLEAN', 'SONG'].includes(type);
+  return ['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'BOOLEAN', 'SONG', 'DURATION', 'STAGE_PLOT'].includes(type);
+}
+
+/** 曲かぶり検出の曲名・アーティスト名に使えるブロック。 */
+export function canUseDuplicateDetectionRole(type: SettingSheetBlockType) {
+  return ['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'BOOLEAN'].includes(type);
 }
 
 export function isSectionBlock(type: SettingSheetBlockType) {
@@ -309,7 +329,7 @@ export function normalizeSettingSheetConfig(config: SettingSheetConfigResponse |
     return createEmptySettingSheetConfig();
   }
 
-  const blocks = (config.blocks ?? []).map((block, index) => normalizeBlock(block, `${index + 1}`));
+  const blocks = (config.blocks ?? []).map((block, index) => normalizeBlock(block, `${index + 1}`, false));
 
   return {
     title: config.title?.trim() || '',
@@ -320,13 +340,15 @@ export function normalizeSettingSheetConfig(config: SettingSheetConfigResponse |
   };
 }
 
-function normalizeBlock(block: SettingSheetBlock, fallbackId: string): SettingSheetBlock {
+/** insideGroup: 繰り返しグループの中のブロックか。管理者入力はグループの中では使えない。 */
+function normalizeBlock(block: SettingSheetBlock, fallbackId: string, insideGroup: boolean): SettingSheetBlock {
   const type = SETTING_SHEET_BLOCK_OPTIONS.some((option) => option.value === block.type) ? block.type : ('SHORT_TEXT' as SettingSheetBlockType);
   const template = createBlockTemplate(type);
   const required = isInputBlock(type) || isRepeatableGroupBlock(type) ? block.required === true : false;
-  const normalizedFields = canContainBlocks(type) ? (block.fields ?? []).map((child, index) => normalizeBlock(child, `${fallbackId}-${index + 1}`)) : [];
+  const childrenInsideGroup = insideGroup || isRepeatableGroupBlock(type);
+  const normalizedFields = canContainBlocks(type) ? (block.fields ?? []).map((child, index) => normalizeBlock(child, `${fallbackId}-${index + 1}`, childrenInsideGroup)) : [];
   const normalizedVariants: SettingSheetGroupVariant[] = isRepeatableGroupBlock(type)
-    ? (block.variants ?? []).map((v) => ({ id: v.id?.trim() || crypto.randomUUID(), label: v.label?.trim() || '項目', fields: (v.fields ?? []).map((child, index) => normalizeBlock(child, `${fallbackId}-v-${index + 1}`)) }))
+    ? (block.variants ?? []).map((v) => ({ id: v.id?.trim() || crypto.randomUUID(), label: v.label?.trim() || '項目', fields: (v.fields ?? []).map((child, index) => normalizeBlock(child, `${fallbackId}-v-${index + 1}`, true)) }))
     : [];
   const allFieldsForTitle = normalizedVariants.length > 0 ? normalizedVariants.flatMap((v) => v.fields) : normalizedFields;
   const validTitleSource = isRepeatableGroupBlock(type)
@@ -358,10 +380,11 @@ function normalizeBlock(block: SettingSheetBlock, fallbackId: string): SettingSh
     optionSource: isOptionBlock(type) && block.optionSource?.blockId?.trim() && block.optionSource?.fieldId?.trim()
       ? { blockId: block.optionSource.blockId.trim(), fieldId: block.optionSource.fieldId.trim() }
       : null,
-    duplicateDetectionRole: isInputBlock(type) && !isSongBlock(type) && (block.duplicateDetectionRole === 'SONG_TITLE' || block.duplicateDetectionRole === 'SONG_ARTIST')
+    duplicateDetectionRole: canUseDuplicateDetectionRole(type) && (block.duplicateDetectionRole === 'SONG_TITLE' || block.duplicateDetectionRole === 'SONG_ARTIST')
       ? block.duplicateDetectionRole
       : '',
     variants: normalizedVariants,
+    adminOnly: isInputBlock(type) && !insideGroup && block.adminOnly === true,
   };
 }
 

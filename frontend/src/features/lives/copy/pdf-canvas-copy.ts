@@ -5,7 +5,7 @@
  */
 import { elementKindLabel, type CanvasDocument, type CanvasElement, type TableElement } from '../pdf/canvas-schema';
 import { newId } from '../pdf/default-canvas';
-import type { FieldCatalog } from '../pdf/field-catalog';
+import type { FieldCatalog } from '../canvas-shared/field-catalog';
 
 /** 表の列で使う擬似フィールド。フォームの項目ではないので参照チェックの対象外。 */
 const PSEUDO_FIELD_IDS = new Set(['__index__', '__label__', '']);

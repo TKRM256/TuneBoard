@@ -20,7 +20,7 @@ import {
 } from '../types/live-types';
 import { PdfCanvasCopyDialog } from '../copy/PdfCanvasCopyDialog';
 import { buildDefaultCanvas } from './default-canvas';
-import { buildFieldCatalog } from './field-catalog';
+import { buildFieldCatalog } from '../canvas-shared/field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
 import {
   loadPanelVisibility,
@@ -32,8 +32,8 @@ import { useTableHeightFit } from './useTableHeightFit';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
-import { AlignmentToolbar } from './canvas/AlignmentToolbar';
-import { ExpressionPreviewProvider } from './canvas/ExpressionPreviewContext';
+import { AlignmentToolbar } from '../canvas-shared/AlignmentToolbar';
+import { ExpressionPreviewProvider } from '../canvas-shared/expression/ExpressionPreviewContext';
 import { PageSettings } from './canvas/PageSettings';
 import { PreviewPane } from './canvas/PreviewPane';
 import { PanelVisibilityToggles, type PanelKey } from './canvas/PanelVisibilityToggles';

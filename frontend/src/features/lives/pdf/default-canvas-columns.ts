@@ -7,7 +7,7 @@
  * 見つからない項目は列から落とすので、作り替えたフォームでも壊れない。
  */
 import type { TableColumn } from './canvas-schema';
-import type { CatalogEntry, CatalogGroup } from './field-catalog';
+import type { CatalogEntry, CatalogGroup } from '../canvas-shared/field-catalog';
 
 // default-canvas.ts と相互参照になるのを避けるため、ここでも同じ生成規則を持つ。
 function newId(): string {

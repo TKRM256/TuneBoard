@@ -76,7 +76,7 @@ export async function fetchSubmissionsZip(
   );
 }
 
-async function postForBlob(path: string, body: unknown, opts: FetchOptions): Promise<PdfFetchResult> {
+export async function postForBlob(path: string, body: unknown, opts: FetchOptions): Promise<PdfFetchResult> {
   const headers = new Headers({ 'Content-Type': 'application/json', 'X-Requested-With': 'TuneBoard' });
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);

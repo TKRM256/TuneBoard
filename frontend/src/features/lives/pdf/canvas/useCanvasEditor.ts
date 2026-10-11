@@ -13,7 +13,7 @@ import type {
 import { getPaperDimensions } from '../canvas-schema';
 import { newId } from '../default-canvas';
 import type { PaletteInsert } from './ElementPalette';
-import type { AlignMode } from './AlignmentToolbar';
+import { clampMove, computeAlignment, computeDistribution, round1, type AlignMode } from '../../canvas-shared/geometry';
 
 const HISTORY_LIMIT = 100;
 
@@ -407,15 +407,8 @@ export function useCanvasEditor(initial: CanvasDocument): CanvasEditor {
     );
 
     // Clamp delta so no selected element leaves the canvas.
-    let cdx = dxMm;
-    let cdy = dyMm;
-    for (const e of docRef.current.elements) {
-      if (!selectedIds.has(e.id)) continue;
-      if (e.xMm + cdx < 0) cdx = -e.xMm;
-      if (e.yMm + cdy < 0) cdy = -e.yMm;
-      if (e.xMm + e.wMm + cdx > widthMm) cdx = widthMm - e.xMm - e.wMm;
-      if (e.yMm + e.hMm + cdy > heightMm) cdy = heightMm - e.yMm - e.hMm;
-    }
+    const selected = docRef.current.elements.filter((e) => selectedIds.has(e.id));
+    const { dx: cdx, dy: cdy } = clampMove(selected, dxMm, dyMm, widthMm, heightMm);
 
     commit({
       ...docRef.current,
@@ -461,58 +454,4 @@ function mergeElement(element: CanvasElement, patch: Partial<CanvasElement>): Ca
   delete rest.kind;
   const merged: Record<string, unknown> = { ...(element as unknown as Record<string, unknown>), ...rest };
   return merged as unknown as CanvasElement;
-}
-
-function computeAlignment(sel: CanvasElement[], mode: AlignMode): Map<string, Partial<CanvasElement>> {
-  const out = new Map<string, Partial<CanvasElement>>();
-  if (sel.length === 0) return out;
-  const minX = Math.min(...sel.map((e) => e.xMm));
-  const minY = Math.min(...sel.map((e) => e.yMm));
-  const maxRight = Math.max(...sel.map((e) => e.xMm + e.wMm));
-  const maxBottom = Math.max(...sel.map((e) => e.yMm + e.hMm));
-  const centerX = (minX + maxRight) / 2;
-  const centerY = (minY + maxBottom) / 2;
-  for (const e of sel) {
-    switch (mode) {
-      case 'left': out.set(e.id, { xMm: minX }); break;
-      case 'right': out.set(e.id, { xMm: maxRight - e.wMm }); break;
-      case 'center-h': out.set(e.id, { xMm: centerX - e.wMm / 2 }); break;
-      case 'top': out.set(e.id, { yMm: minY }); break;
-      case 'bottom': out.set(e.id, { yMm: maxBottom - e.hMm }); break;
-      case 'center-v': out.set(e.id, { yMm: centerY - e.hMm / 2 }); break;
-    }
-  }
-  return out;
-}
-
-function computeDistribution(sel: CanvasElement[], axis: 'horizontal' | 'vertical'): Map<string, Partial<CanvasElement>> {
-  const out = new Map<string, Partial<CanvasElement>>();
-  if (sel.length < 3) return out;
-  const sorted = [...sel].sort((a, b) => axis === 'horizontal' ? a.xMm - b.xMm : a.yMm - b.yMm);
-  const first = sorted[0];
-  const last = sorted[sorted.length - 1];
-  if (axis === 'horizontal') {
-    const span = (last.xMm + last.wMm) - first.xMm;
-    const totalWidths = sorted.reduce((s, e) => s + e.wMm, 0);
-    const gap = (span - totalWidths) / (sorted.length - 1);
-    let cursor = first.xMm;
-    for (const e of sorted) {
-      out.set(e.id, { xMm: round1(cursor) });
-      cursor += e.wMm + gap;
-    }
-  } else {
-    const span = (last.yMm + last.hMm) - first.yMm;
-    const totalHeights = sorted.reduce((s, e) => s + e.hMm, 0);
-    const gap = (span - totalHeights) / (sorted.length - 1);
-    let cursor = first.yMm;
-    for (const e of sorted) {
-      out.set(e.id, { yMm: round1(cursor) });
-      cursor += e.hMm + gap;
-    }
-  }
-  return out;
-}
-
-function round1(v: number): number {
-  return Math.round(v * 10) / 10;
 }

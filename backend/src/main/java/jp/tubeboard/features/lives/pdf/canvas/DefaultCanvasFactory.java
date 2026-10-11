@@ -132,7 +132,8 @@ public class DefaultCanvasFactory {
             if (b == null) continue;
             if ("SECTION".equals(b.type())) {
                 out.addAll(collectInfoFields(b.fields()));
-            } else if (!"REPEATABLE_GROUP".equals(b.type())) {
+            } else if (!"REPEATABLE_GROUP".equals(b.type()) && !"STAGE_PLOT".equals(b.type())) {
+                // 配置図は文字の表に向かないので、既定のレイアウトには入れない
                 out.add(b);
             }
         }
@@ -159,7 +160,8 @@ public class DefaultCanvasFactory {
                 : group.fields();
         if (sources == null) return List.of();
         return sources.stream()
-                .filter(b -> b != null && !"SECTION".equals(b.type()) && !"REPEATABLE_GROUP".equals(b.type()))
+                .filter(b -> b != null && !"SECTION".equals(b.type()) && !"REPEATABLE_GROUP".equals(b.type())
+                        && !"STAGE_PLOT".equals(b.type()))
                 .limit(6)
                 .toList();
     }

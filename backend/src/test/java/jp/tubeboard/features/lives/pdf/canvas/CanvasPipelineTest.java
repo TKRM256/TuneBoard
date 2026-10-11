@@ -22,6 +22,8 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.LayoutResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.VariantResponse;
+import jp.tubeboard.features.lives.export.context.CanvasContext;
+import jp.tubeboard.features.lives.export.context.ExpressionEvaluator;
 import jp.tubeboard.features.lives.model.LiveStatus;
 
 class CanvasPipelineTest {

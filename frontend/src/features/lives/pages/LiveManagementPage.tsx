@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Copy, ExternalLink, FileCheck2, Settings2, Wrench } from 'lucide-react';
+import { ChevronLeft, Copy, ExternalLink, FileCheck2, FileText, LayoutGrid, Settings2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -164,6 +164,8 @@ export const LiveManagementPage = () => {
         {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
         <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
         {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
+        {isAdmin && <QuickActionLink icon={<FileText className="size-5" />} label="会場書式" to={`/tenants/${tenantId}/lives/${liveId}/venue-form`} />}
+        {isAdmin && <QuickActionLink icon={<LayoutGrid className="size-5" />} label="ステージ設定" to={`/tenants/${tenantId}/lives/${liveId}/stage-plot`} />}
       </div>
 
       {/* Live Info */}

@@ -16,11 +16,11 @@ import org.junit.jupiter.api.Test;
 
 import jp.tubeboard.features.lives.pdf.FontChain;
 import jp.tubeboard.features.lives.pdf.PdfFontLoader;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasContext;
+import jp.tubeboard.features.lives.export.context.CanvasContext;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasElement;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableColumn;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableSource;
-import jp.tubeboard.features.lives.pdf.canvas.ExpressionEvaluator;
+import jp.tubeboard.features.lives.export.context.ExpressionEvaluator;
 import jp.tubeboard.features.lives.pdf.canvas.table.TableMeasurer.CellLayout;
 import jp.tubeboard.features.lives.pdf.canvas.table.TableMeasurer.MeasuredTable;
 

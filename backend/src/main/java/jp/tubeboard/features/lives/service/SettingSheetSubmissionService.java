@@ -1,7 +1,9 @@
 package jp.tubeboard.features.lives.service;
 
+import static jp.tubeboard.features.lives.service.AnswerMaps.emptyAnswer;
+import static jp.tubeboard.features.lives.service.AnswerMaps.toAnswerMap;
+
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,7 +24,7 @@ import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDeta
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse.GroupItemResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
-import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.OptionSourceResponse;
+import jp.tubeboard.features.lives.stageplot.StagePlotSettings;
 
 @Service
 public class SettingSheetSubmissionService {
@@ -30,8 +32,6 @@ public class SettingSheetSubmissionService {
     private static final Logger log = LoggerFactory.getLogger(SettingSheetSubmissionService.class);
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
     private static final int RECORD_LABEL_MAX_LENGTH = 255;
-    private static final int SHORT_TEXT_MAX_LENGTH = 255;
-    private static final int LONG_TEXT_MAX_LENGTH = 5000;
 
     public PublicSettingSheetSubmissionRequest normalizeSubmissionRequest(PublicSettingSheetSubmissionRequest request) {
         return new PublicSettingSheetSubmissionRequest(
@@ -45,10 +45,26 @@ public class SettingSheetSubmissionService {
                 : answers.stream().filter(Objects::nonNull).map(this::normalizeFieldAnswer).toList();
     }
 
-    public void validateSubmission(PublicSettingSheetSubmissionRequest request, SettingSheetConfigResponse config) {
+    /** 出演者の提出の検証。config には管理者入力の項目を除いた設定を渡す。 */
+    public void validateSubmission(PublicSettingSheetSubmissionRequest request, SettingSheetConfigResponse config,
+            StagePlotSettings stagePlot) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
-        validateAnswers(config.blocks(), request.answers(), "answers.", config.blocks(), request.answers(), fieldErrors,
+        SubmissionAnswerValidator.validate(config.blocks(), request.answers(), "answers.",
+                new SubmissionAnswerValidator.Context(config.blocks(), request.answers(), fieldErrors, true, stagePlot),
                 true);
+        throwIfInvalid(fieldErrors);
+    }
+
+    /** 管理者入力の検証。必須は問わない（少しずつ埋めるため）。blocks は管理者入力のブロックだけ。 */
+    public void validateAdminAnswers(List<FormBlockResponse> blocks, List<FieldAnswerRequest> answers,
+            StagePlotSettings stagePlot) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        SubmissionAnswerValidator.validate(blocks, answers, "answers.",
+                new SubmissionAnswerValidator.Context(blocks, answers, fieldErrors, false, stagePlot), true);
+        throwIfInvalid(fieldErrors);
+    }
+
+    private static void throwIfInvalid(Map<String, String> fieldErrors) {
         if (!fieldErrors.isEmpty()) {
             throw new BadRequestException(fieldErrors.values().stream().findFirst().orElse("入力内容を確認してください。"),
                     fieldErrors);
@@ -147,114 +163,6 @@ public class SettingSheetSubmissionService {
         return List.copyOf(filtered);
     }
 
-    private void validateAnswers(List<FormBlockResponse> blocks,
-            List<FieldAnswerRequest> answers,
-            String pathPrefix,
-            List<FormBlockResponse> rootBlocks,
-            List<FieldAnswerRequest> rootAnswers,
-            Map<String, String> fieldErrors,
-            boolean validateUnknownAnswers) {
-        Map<String, FormBlockResponse> blockMap = toBlockMap(blocks);
-        Map<String, FieldAnswerRequest> answerMap = toAnswerMap(answers);
-        if (validateUnknownAnswers) {
-            for (String fieldId : answerMap.keySet()) {
-                if (!blockMap.containsKey(fieldId)) {
-                    fieldErrors.putIfAbsent(pathPrefix + fieldId, "無効な質問です。");
-                }
-            }
-        }
-        for (FormBlockResponse block : blocks) {
-            if (Boolean.TRUE.equals(block.hidden())) {
-                continue;
-            }
-            FieldAnswerRequest answer = answerMap.getOrDefault(block.id(), emptyAnswer(block.id()));
-            String key = pathPrefix + block.id();
-            if (SettingSheetConstants.BLOCK_SECTION.equals(block.type())) {
-                validateAnswers(block.fields(), answers, pathPrefix, rootBlocks, rootAnswers, fieldErrors, false);
-                continue;
-            }
-            if (SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
-                int minimum = Math.max(Boolean.TRUE.equals(block.required()) ? 1 : 0,
-                        block.minItems() == null ? 0 : block.minItems());
-                if (answer.items().size() < minimum) {
-                    fieldErrors.putIfAbsent(key + ".items", block.label() + " は少なくとも" + minimum + "件必要です。");
-                }
-                if (!answer.values().isEmpty()) {
-                    fieldErrors.putIfAbsent(key, block.label() + " の入力形式が不正です。");
-                }
-                for (int index = 0; index < answer.items().size(); index++) {
-                    GroupItemRequest item = answer.items().get(index);
-                    validateAnswers(block.itemFields(item.variantId()), item.answers(),
-                            key + ".items[" + index + "].answers.",
-                            rootBlocks, rootAnswers, fieldErrors, true);
-                }
-                continue;
-            }
-            if (SettingSheetConstants.BLOCK_SONG.equals(block.type())) {
-                if (Boolean.TRUE.equals(block.required()) && answer.values().isEmpty()) {
-                    fieldErrors.putIfAbsent(key, block.label() + " は必須です。");
-                }
-                if (answer.values().size() > 2) {
-                    fieldErrors.putIfAbsent(key, block.label() + " の入力形式が不正です。");
-                }
-                putTooLongError(block, answer.values(), key, fieldErrors);
-                continue;
-            }
-            if (!answer.items().isEmpty()) {
-                fieldErrors.putIfAbsent(key, block.label() + " の入力形式が不正です。");
-                continue;
-            }
-            List<String> values = answer.values();
-            if (Boolean.TRUE.equals(block.required()) && values.isEmpty()) {
-                fieldErrors.putIfAbsent(key, block.label() + " は必須です。");
-                continue;
-            }
-            if (putTooLongError(block, values, key, fieldErrors)) {
-                continue;
-            }
-            if ((SettingSheetConstants.BLOCK_SHORT_TEXT.equals(block.type())
-                    || SettingSheetConstants.BLOCK_LONG_TEXT.equals(block.type())
-                    || SettingSheetConstants.BLOCK_SINGLE_SELECT.equals(block.type())
-                    || SettingSheetConstants.BLOCK_BOOLEAN.equals(block.type())) && values.size() > 1) {
-                fieldErrors.putIfAbsent(key, block.label() + " は1つだけ回答してください。");
-                continue;
-            }
-            if (SettingSheetConstants.BLOCK_BOOLEAN.equals(block.type())
-                    && values.stream().anyMatch(value -> !("true".equals(value) || "false".equals(value)))) {
-                fieldErrors.putIfAbsent(key, block.label() + " の値が不正です。");
-                continue;
-            }
-            if (SettingSheetConstants.OPTION_BLOCK_TYPES.contains(block.type())) {
-                List<String> allowedOptions = resolveAllowedOptions(block, rootBlocks, rootAnswers);
-                if (values.stream().anyMatch(value -> !allowedOptions.contains(value))) {
-                    fieldErrors.putIfAbsent(key, block.label() + " の選択肢が不正です。");
-                }
-            }
-        }
-    }
-
-    /**
-     * 自由入力欄の文字数上限。公開 API から巨大な値を保存されないようにする。
-     * 選択肢系は管理者が決めた選択肢との一致で検証するので対象外。フロントの validation.ts と同じ値にする。
-     */
-    private boolean putTooLongError(FormBlockResponse block, List<String> values, String key,
-            Map<String, String> fieldErrors) {
-        int maxLength;
-        if (SettingSheetConstants.BLOCK_LONG_TEXT.equals(block.type())) {
-            maxLength = LONG_TEXT_MAX_LENGTH;
-        } else if (SettingSheetConstants.BLOCK_SHORT_TEXT.equals(block.type())
-                || SettingSheetConstants.BLOCK_SONG.equals(block.type())) {
-            maxLength = SHORT_TEXT_MAX_LENGTH;
-        } else {
-            return false;
-        }
-        if (values.stream().noneMatch(value -> value.length() > maxLength)) {
-            return false;
-        }
-        fieldErrors.putIfAbsent(key, block.label() + " は" + maxLength + "文字以内で入力してください。");
-        return true;
-    }
-
     private FieldAnswerRequest normalizeFieldAnswer(FieldAnswerRequest answer) {
         return new FieldAnswerRequest(
                 safeText(answer.fieldId()),
@@ -268,77 +176,14 @@ public class SettingSheetSubmissionService {
                                 .toList());
     }
 
-    private Map<String, FormBlockResponse> toBlockMap(List<FormBlockResponse> blocks) {
-        Map<String, FormBlockResponse> blockMap = new LinkedHashMap<>();
-        for (FormBlockResponse block : blocks) {
-            blockMap.put(block.id(), block);
-            if (SettingSheetConstants.BLOCK_SECTION.equals(block.type())) {
-                blockMap.putAll(toBlockMap(block.fields()));
-            }
-        }
-        return blockMap;
-    }
-
-    private Map<String, FieldAnswerRequest> toAnswerMap(List<FieldAnswerRequest> answers) {
-        Map<String, FieldAnswerRequest> answerMap = new LinkedHashMap<>();
-        for (FieldAnswerRequest answer : answers) {
-            if (!answer.fieldId().isBlank()) {
-                answerMap.put(answer.fieldId(), answer);
-            }
-        }
-        return answerMap;
-    }
-
-    private FieldAnswerRequest emptyAnswer(String fieldId) {
-        return new FieldAnswerRequest(fieldId, List.of(), List.of());
-    }
-
-    private List<String> resolveAllowedOptions(FormBlockResponse block,
-            List<FormBlockResponse> rootBlocks,
-            List<FieldAnswerRequest> rootAnswers) {
-        if (block.optionSource() == null) {
-            return block.options();
-        }
-        return List.copyOf(new LinkedHashSet<>(collectReferencedValues(rootBlocks, rootAnswers, block.optionSource())));
-    }
-
-    private List<String> collectReferencedValues(List<FormBlockResponse> blocks,
-            List<FieldAnswerRequest> answers,
-            OptionSourceResponse source) {
-        LinkedHashSet<String> values = new LinkedHashSet<>();
-        Map<String, FieldAnswerRequest> answerMap = toAnswerMap(answers);
-        for (FormBlockResponse block : blocks) {
-            if (Boolean.TRUE.equals(block.hidden())) {
-                continue;
-            }
-            if (SettingSheetConstants.BLOCK_SECTION.equals(block.type())) {
-                values.addAll(collectReferencedValues(block.fields(), answers, source));
-                continue;
-            }
-            if (!SettingSheetConstants.BLOCK_REPEATABLE_GROUP.equals(block.type())) {
-                continue;
-            }
-            FieldAnswerRequest answer = answerMap.getOrDefault(block.id(), emptyAnswer(block.id()));
-            if (block.id().equals(source.blockId())) {
-                for (GroupItemRequest item : answer.items()) {
-                    FieldAnswerRequest target = toAnswerMap(item.answers()).get(source.fieldId());
-                    if (target != null) {
-                        target.values().stream().filter(value -> !value.isBlank()).forEach(values::add);
-                    }
-                }
-            }
-            for (GroupItemRequest item : answer.items()) {
-                values.addAll(
-                        collectReferencedValues(block.itemFields(item.variantId()), item.answers(), source));
-            }
-        }
-        return List.copyOf(values);
-    }
-
     private String findFirstSubmittedValue(List<FormBlockResponse> blocks, List<FieldAnswerRequest> answers) {
         Map<String, FieldAnswerRequest> answerMap = toAnswerMap(answers);
         for (FormBlockResponse block : blocks) {
             if (Boolean.TRUE.equals(block.hidden())) {
+                continue;
+            }
+            if (SettingSheetConstants.BLOCK_STAGE_PLOT.equals(block.type())) {
+                // 配置図の値は JSON なので、一覧に出す名前には使わない
                 continue;
             }
             FieldAnswerRequest answer = answerMap.getOrDefault(block.id(), emptyAnswer(block.id()));

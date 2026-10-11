@@ -16,7 +16,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 import type { CanvasDocument } from '../pdf/canvas-schema';
-import { buildFieldCatalog, type FieldCatalog } from '../pdf/field-catalog';
+import { buildFieldCatalog, type FieldCatalog } from '../canvas-shared/field-catalog';
 
 import type { LiveCopySourceResponse } from '../types/live-types';
 import { CopyChecklist, type CopyChecklistItem } from './CopyChecklist';

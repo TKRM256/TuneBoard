@@ -1,7 +1,7 @@
 /** Live submissions list with detail dialog and song duplicate detection. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, FileDown, Search } from 'lucide-react';
+import { ChevronLeft, FileDown, FileText, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -24,8 +24,11 @@ import {
   type LiveResponse,
   type PublicSettingSheetSubmissionDetailResponse,
   type SettingSheetConfigResponse,
+  type SettingSheetSubmissionAnswerResponse,
   type SongDuplicateResponse,
 } from '../types/live-types';
+import { applyAdminAnswers, collectAdminBlocks } from '../admin-answers/admin-answer-model';
+import { useVenueFormExport } from '../venue-form/useVenueFormExport';
 import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { SubmissionsTable } from '../components/SubmissionsTable';
@@ -277,12 +280,21 @@ export const LiveSubmissionsPage = () => {
     });
   }, [allVisibleSelected, visibleDetails]);
 
+  const targetIds = useCallback(() => (visibleSelectedCount > 0
+    ? visibleDetails.filter((d) => selectedIds.has(d.id)).map((d) => d.id)
+    : visibleDetails.map((d) => d.id)), [visibleDetails, visibleSelectedCount, selectedIds]);
+
   const handleClickBulkPdf = useCallback(() => {
-    const ids = visibleSelectedCount > 0
-      ? visibleDetails.filter((d) => selectedIds.has(d.id)).map((d) => d.id)
-      : visibleDetails.map((d) => d.id);
-    openBulkPdfPreview(ids);
-  }, [visibleDetails, visibleSelectedCount, selectedIds, openBulkPdfPreview]);
+    openBulkPdfPreview(targetIds());
+  }, [targetIds, openBulkPdfPreview]);
+
+  const { exportVenueForm, isExporting } = useVenueFormExport(tenantId, liveId);
+  const adminBlocks = useMemo(() => collectAdminBlocks(config), [config]);
+  // 管理者入力を保存したら、表と詳細に出している回答もその場で差し替える
+  const handleAdminSaved = useCallback((submissionId: string, answers: SettingSheetSubmissionAnswerResponse[]) => {
+    const adminIds = adminBlocks.map((block) => block.id);
+    setDetails((prev) => prev.map((d) => (d.id === submissionId ? applyAdminAnswers(d, adminIds, answers) : d)));
+  }, [adminBlocks]);
 
   const openSubmissionDetail = useCallback((id: string) => {
     setSelectedSubmissionId(id);
@@ -361,6 +373,16 @@ export const LiveSubmissionsPage = () => {
                 <FileDown className="size-4" />
                 {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF` : 'PDF一括出力'}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportVenueForm(targetIds())}
+                disabled={visibleDetails.length === 0 || isExporting}
+                title="会場の書式に書き込んだPDFを出力します"
+              >
+                <FileText className="size-4" />
+                会場書式PDF
+              </Button>
               <Button asChild variant="outline" size="sm">
                 <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
                   <ChevronLeft className="size-4" />
@@ -434,6 +456,9 @@ export const LiveSubmissionsPage = () => {
               onToggleSort={toggleSort}
               searchQuery={searchQuery}
               isHighlightColumn={isHighlightColumn}
+              liveId={liveId}
+              adminBlocks={isAdmin ? adminBlocks : []}
+              onAdminSaved={handleAdminSaved}
             />
           )}
         </CardContent>
@@ -446,6 +471,8 @@ export const LiveSubmissionsPage = () => {
         recordLabel={recordLabel}
         onCopyEditLink={copyEditLink}
         onOpenPdfPreview={openSinglePdfPreview}
+        onOpenVenueForm={(submissionId) => exportVenueForm([submissionId])}
+        adminAnswers={isAdmin ? { liveId, blocks: adminBlocks, onSaved: handleAdminSaved } : undefined}
       />
 
       <TrashSheet

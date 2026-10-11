@@ -8,7 +8,7 @@ import {
   type SettingSheetConfigResponse,
 } from '../types/live-types';
 import { buildStandardGroupColumns } from './default-canvas-columns';
-import { buildFieldCatalog } from './field-catalog';
+import { buildFieldCatalog } from '../canvas-shared/field-catalog';
 
 function block(id: string, type: SettingSheetBlockType, label: string, patch: Partial<SettingSheetBlock> = {}): SettingSheetBlock {
   return { ...createBlockTemplate(type), id, label, ...patch };

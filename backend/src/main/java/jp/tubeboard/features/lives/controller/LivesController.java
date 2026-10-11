@@ -1,12 +1,8 @@
 package jp.tubeboard.features.lives.controller;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,32 +12,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
-import java.util.Map;
 
 import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveDeleteRequest;
 import jp.tubeboard.features.lives.dto.request.LivePurgeRequest;
 import jp.tubeboard.features.lives.dto.request.LiveRestoreRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
-import jp.tubeboard.features.lives.dto.request.PdfCanvasMeasureRequest;
-import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
-import jp.tubeboard.features.lives.dto.request.PdfGenerateRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.SongDuplicateDismissRequest;
-import jp.tubeboard.features.lives.dto.request.SubmissionsZipRequest;
 import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
-import jp.tubeboard.features.lives.dto.response.PdfCanvasMeasureResponse;
-import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasContext;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
-import jp.tubeboard.features.lives.pdf.canvas.ExpressionEvaluator;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
-import jp.tubeboard.features.lives.service.crud.ILivesService.SubmissionPdfResult;
 import lombok.AllArgsConstructor;
 
 @RestController
@@ -50,7 +35,6 @@ import lombok.AllArgsConstructor;
 public class LivesController {
 
     private final ILivesService livesService;
-    private final ExpressionEvaluator expressionEvaluator;
 
     @PostMapping("/create")
     public ResponseEntity<LiveResponse> create(@RequestBody @Valid LiveCreateRequest request) {
@@ -122,25 +106,6 @@ public class LivesController {
         return ResponseEntity.ok(livesService.updateSettingSheetConfig(id, request));
     }
 
-    @GetMapping("/{id}/pdf-canvas")
-    public ResponseEntity<PdfCanvasResponse> getPdfCanvas(@PathVariable(name = "id") UUID id) {
-        return ResponseEntity.ok(livesService.getPdfCanvas(id));
-    }
-
-    @PostMapping("/{id}/pdf-canvas")
-    public ResponseEntity<PdfCanvasResponse> updatePdfCanvas(
-            @PathVariable(name = "id") UUID id,
-            @RequestBody @Valid PdfCanvasUpdateRequest request) {
-        return ResponseEntity.ok(livesService.updatePdfCanvas(id, request));
-    }
-
-    @PostMapping("/{id}/pdf-canvas/measure")
-    public ResponseEntity<PdfCanvasMeasureResponse> measurePdfCanvas(
-            @PathVariable(name = "id") UUID id,
-            @RequestBody @Valid PdfCanvasMeasureRequest request) {
-        return ResponseEntity.ok(livesService.measurePdfCanvas(id, request));
-    }
-
     @GetMapping("/{id}/setting-sheet/submissions")
     public ResponseEntity<List<SettingSheetSubmissionResponse>> listSettingSheetSubmissions(
             @PathVariable(name = "id") UUID id) {
@@ -207,126 +172,5 @@ public class LivesController {
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SongDuplicateDismissRequest request) {
         return ResponseEntity.ok(livesService.toggleDismissSongDuplicate(id, request.normalizedTitle()));
-    }
-
-    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/preview-expression")
-    public ResponseEntity<Map<String, String>> previewExpression(
-            @PathVariable(name = "id") UUID id,
-            @PathVariable(name = "submissionId") UUID submissionId,
-            @RequestBody Map<String, String> body) {
-        try {
-            LiveResponse live = livesService.get(id);
-            SettingSheetConfigResponse config = livesService.getSettingSheetConfig(id);
-            PublicSettingSheetSubmissionDetailResponse submission = livesService.getOwnedSettingSheetSubmission(id, submissionId);
-            Evaluation evaluation = evaluate(live, config, submission, body);
-            return evaluation.error()
-                    ? ResponseEntity.ok(Map.of("result", evaluation.result(), "error", "true"))
-                    : ResponseEntity.ok(Map.of("result", evaluation.result()));
-        } catch (Exception ex) {
-            return ResponseEntity.ok(Map.of("result", "[評価エラー: " + ex.getMessage() + "]", "error", "true"));
-        }
-    }
-
-    /**
-     * 同じ式をライブの全提出に対して評価する。式が一部の提出だけで壊れていないかを
-     * PDF を作らずに一覧で確認できるようにするためのもの。
-     */
-    @PostMapping("/{id}/setting-sheet/preview-expression")
-    public ResponseEntity<List<ExpressionPreviewRowResponse>> previewExpressionForAllSubmissions(
-            @PathVariable(name = "id") UUID id,
-            @RequestBody Map<String, String> body) {
-        LiveResponse live = livesService.get(id);
-        SettingSheetConfigResponse config = livesService.getSettingSheetConfig(id);
-
-        return ResponseEntity.ok(livesService.listOwnedSettingSheetSubmissionDetails(id).stream()
-                .map(submission -> {
-                    Evaluation evaluation = evaluate(live, config, submission, body);
-                    return new ExpressionPreviewRowResponse(
-                            submission.id(),
-                            submission.recordLabel(),
-                            evaluation.result(),
-                            evaluation.error());
-                })
-                .toList());
-    }
-
-    public record ExpressionPreviewRowResponse(UUID submissionId, String recordLabel, String result, boolean error) {
-    }
-
-    private record Evaluation(String result, boolean error) {
-    }
-
-    private Evaluation evaluate(LiveResponse live, SettingSheetConfigResponse config,
-            PublicSettingSheetSubmissionDetailResponse submission, Map<String, String> body) {
-        try {
-            Map<String, Object> ns = new java.util.HashMap<>(CanvasContext.build(live, config, submission));
-            bindSampleRow(ns, body.get("groupId"), body.get("fieldId"));
-            return new Evaluation(expressionEvaluator.interpolate(body.getOrDefault("expression", ""), ns), false);
-        } catch (Exception ex) {
-            return new Evaluation("[評価エラー: " + ex.getMessage() + "]", true);
-        }
-    }
-
-    /**
-     * 繰り返し行やフィールド行の書式は描画時に {@code item} / {@code value} / {@code values}
-     * が束縛されて評価される。プレビューでも同じ式を試せるよう、
-     * 指定されたグループの 1 件目（グループ未指定なら該当フィールド）を見本として束縛する。
-     */
-    private void bindSampleRow(Map<String, Object> ns, String groupId, String fieldId) {
-        if (groupId != null && !groupId.isBlank()
-                && ns.get("groups") instanceof Map<?, ?> groups
-                && groups.get(groupId) instanceof CanvasContext.GroupRef group
-                && !group.getItems().isEmpty()) {
-            CanvasContext.ItemRef item = group.getItems().get(0);
-            ns.put("item", item);
-            if (fieldId != null && !fieldId.isBlank()) {
-                CanvasContext.FieldRef ref = item.field(fieldId);
-                ns.put("value", ref.getValue());
-                ns.put("values", ref.getValues());
-            }
-            return;
-        }
-
-        if (fieldId != null && !fieldId.isBlank()
-                && ns.get("fields") instanceof Map<?, ?> fields
-                && fields.get(fieldId) instanceof CanvasContext.FieldRef ref) {
-            ns.put("value", ref.getValue());
-            ns.put("values", ref.getValues());
-        }
-    }
-
-    @PostMapping("/{id}/setting-sheet/submissions/{submissionId}/pdf")
-    public ResponseEntity<byte[]> downloadSubmissionPdf(
-            @PathVariable(name = "id") UUID id,
-            @PathVariable(name = "submissionId") UUID submissionId,
-            @RequestBody(required = false) PdfGenerateRequest request) {
-        CanvasDocument canvas = request != null ? request.canvas() : null;
-        SubmissionPdfResult result = livesService.generateSubmissionPdf(id, submissionId, canvas);
-        return pdfResponse(result, "pdf", MediaType.APPLICATION_PDF);
-    }
-
-    @PostMapping("/{id}/setting-sheet/submissions/pdf-zip")
-    public ResponseEntity<byte[]> downloadSubmissionsZip(
-            @PathVariable(name = "id") UUID id,
-            @RequestBody @Valid SubmissionsZipRequest request) {
-        SubmissionPdfResult result = livesService.generateSubmissionsZip(id, request.submissionIds(),
-                request.canvas());
-        return pdfResponse(result, "zip", MediaType.parseMediaType("application/zip"));
-    }
-
-    private ResponseEntity<byte[]> pdfResponse(SubmissionPdfResult result, String extension, MediaType mediaType) {
-        String filename = sanitizeFilename(result.filenameStem()) + "." + extension;
-        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
-        return ResponseEntity.ok()
-                .contentType(mediaType)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"download." + extension + "\"; filename*=UTF-8''" + encoded)
-                .body(result.bytes());
-    }
-
-    private String sanitizeFilename(String stem) {
-        if (stem == null || stem.isBlank()) return "submission";
-        String cleaned = stem.replaceAll("[\\\\/:*?\"<>|\\r\\n\\t]", "_").trim();
-        return cleaned.length() > 80 ? cleaned.substring(0, 80) : cleaned;
     }
 }

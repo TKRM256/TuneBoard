@@ -52,6 +52,8 @@ public class SettingSheetConfigService {
                                                                 "持ち込みシンセ", "その他"),
                                                 null,
                                                 formBuilderHelper.layoutFull(3)),
+                                formBuilderHelper.plainBlock("song-duration", SettingSheetConstants.BLOCK_DURATION,
+                                                "演奏時間", "分:秒 で入力します。", formBuilderHelper.layoutThird(1)),
                                 formBuilderHelper.longTextBlock("song-note-pa", "PAへの要望", false,
                                                 formBuilderHelper.layoutHalf(1)),
                                 formBuilderHelper.longTextBlock("song-note-light", "照明への要望", false,
@@ -111,7 +113,11 @@ public class SettingSheetConfigService {
                                                                                                 songVariantFields),
                                                                                 formBuilderHelper.variant("mc-entry",
                                                                                                 "MC",
-                                                                                                mcVariantFields)))));
+                                                                                                mcVariantFields))),
+                                                formBuilderHelper.plainBlock("stage-plot",
+                                                                SettingSheetConstants.BLOCK_STAGE_PLOT, "ステージ配置図",
+                                                                "メンバーや機材の立ち位置を置いてください。",
+                                                                formBuilderHelper.layoutFull(1))));
         }
 
         public SettingSheetConfigResponse readSettingSheetConfig(Live live) {

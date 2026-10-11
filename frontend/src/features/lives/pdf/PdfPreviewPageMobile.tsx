@@ -32,7 +32,7 @@ import {
   type SettingSheetConfigResponse,
 } from '../types/live-types';
 import { buildDefaultCanvas } from './default-canvas';
-import { buildFieldCatalog } from './field-catalog';
+import { buildFieldCatalog } from '../canvas-shared/field-catalog';
 import { downloadBlob, fetchSubmissionPdf, fetchSubmissionsZip } from './pdf-api';
 import { persistCanvas } from './canvas-storage';
 import { useLiveCanvasSync } from './useLiveCanvasSync';
@@ -41,7 +41,7 @@ import { PdfCanvasCopyDialog } from '../copy/PdfCanvasCopyDialog';
 import { CanvasFrame } from './canvas/CanvasFrame';
 import { ElementPalette } from './canvas/ElementPalette';
 import { PropertyPanel } from './canvas/PropertyPanel';
-import { ExpressionPreviewProvider } from './canvas/ExpressionPreviewContext';
+import { ExpressionPreviewProvider } from '../canvas-shared/expression/ExpressionPreviewContext';
 import { PageSettings } from './canvas/PageSettings';
 import { PreviewPane } from './canvas/PreviewPane';
 import { useCanvasEditor } from './canvas/useCanvasEditor';

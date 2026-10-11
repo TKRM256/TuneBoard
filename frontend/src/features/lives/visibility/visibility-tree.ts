@@ -142,6 +142,10 @@ export function resolveTypeLabel(type: SettingSheetBlock['type']): string {
       return '真偽';
     case 'SONG':
       return '楽曲';
+    case 'DURATION':
+      return '時間';
+    case 'STAGE_PLOT':
+      return '配置図';
     case 'REPEATABLE_GROUP':
       return '繰り返し';
   }

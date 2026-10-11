@@ -75,6 +75,12 @@ export const summarizeBlock = (block: SettingSheetBlock) => {
   if (block.type === 'SONG') {
     return '曲名・アーティスト名・iTunes検索';
   }
+  if (block.type === 'DURATION') {
+    return '分:秒 で入力';
+  }
+  if (block.type === 'STAGE_PLOT') {
+    return 'ステージの下絵にアイコンを置く';
+  }
   return block.description?.trim() || '単体入力フィールド';
 };
 

@@ -17,9 +17,9 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DEFAULT_MIN_FONT_SIZE_PT, type TableColumn, type TableElement } from '../canvas-schema';
-import type { CatalogGroup, FieldCatalog } from '../field-catalog';
-import { ExpressionInput } from './ExpressionInputs';
-import { ColorInput, FieldGroup, NumberField } from './property-fields';
+import type { CatalogGroup, FieldCatalog } from '../../canvas-shared/field-catalog';
+import { ExpressionInput } from '../../canvas-shared/expression/ExpressionInputs';
+import { ColorInput, FieldGroup, NumberField } from '../../canvas-shared/property-fields';
 
 export interface TableFitProps {
   /** 現在プレビュー中の提出の実データに、選択中の表の高さを合わせる。 */

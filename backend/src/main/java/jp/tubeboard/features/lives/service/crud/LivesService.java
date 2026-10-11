@@ -2,6 +2,7 @@ package jp.tubeboard.features.lives.service.crud;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -10,19 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import jp.tubeboard.common.exception.BadRequestException;
 import jp.tubeboard.features.auth.User;
 import jp.tubeboard.features.auth.UserService;
+import jp.tubeboard.features.lives.adminanswer.AdminAnswerService;
 import jp.tubeboard.features.lives.dto.request.LiveCreateRequest;
 import jp.tubeboard.features.lives.dto.request.LiveUpdateRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest;
+import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest.FieldAnswerRequest;
 import jp.tubeboard.features.lives.dto.request.SettingSheetConfigUpdateRequest;
-import jp.tubeboard.features.lives.dto.request.PdfCanvasMeasureRequest;
-import jp.tubeboard.features.lives.dto.request.PdfCanvasUpdateRequest;
 import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
-import jp.tubeboard.features.lives.dto.response.PdfCanvasMeasureResponse;
-import jp.tubeboard.features.lives.dto.response.PdfCanvasResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
@@ -34,17 +32,15 @@ import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.exception.SettingSheetSubmissionConflictException;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
-import jp.tubeboard.features.lives.pdf.SettingSheetCanvasMeasurer;
-import jp.tubeboard.features.lives.pdf.SettingSheetPdfService;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
+import jp.tubeboard.features.lives.service.config.AdminOnlyBlocks;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
 import jp.tubeboard.features.lives.service.pdf.LivePdfCanvasService;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import jp.tubeboard.features.lives.stageplot.StagePlotService;
+import jp.tubeboard.features.lives.venueform.VenueFormService;
 import jp.tubeboard.features.tenants.model.Tenants;
 import lombok.AllArgsConstructor;
 
@@ -61,9 +57,10 @@ public class LivesService implements ILivesService {
         private final SettingSheetSubmissionService settingSheetSubmissionService;
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
         private final SongDuplicateDetectionService songDuplicateDetectionService;
-        private final SettingSheetPdfService settingSheetPdfService;
-        private final SettingSheetCanvasMeasurer canvasMeasurer;
         private final LivePdfCanvasService livePdfCanvasService;
+        private final VenueFormService venueFormService;
+        private final StagePlotService stagePlotService;
+        private final AdminAnswerService adminAnswerService;
 
         private final LiveServiceHelper helper;
 
@@ -130,7 +127,9 @@ public class LivesService implements ILivesService {
                                                 live.getDate(),
                                                 live.getStatus(),
                                                 live.getSettingsJson() != null && !live.getSettingsJson().isBlank(),
-                                                livePdfCanvasService.hasPdfCanvas(live)))
+                                                livePdfCanvasService.hasPdfCanvas(live),
+                                                venueFormService.hasVenueForm(live),
+                                                stagePlotService.hasSettings(live)))
                                 .toList();
         }
 
@@ -244,7 +243,9 @@ public class LivesService implements ILivesService {
                                 live.getLocation(),
                                 live.getDeadlineAt(),
                                 live.getStatus(),
-                                settingSheetConfigService.readSettingSheetConfig(live));
+                                // 管理者だけが入力する項目は、出演者には項目ごと見せない
+                                AdminOnlyBlocks.stripForPublic(settingSheetConfigService.readSettingSheetConfig(live)),
+                                stagePlotService.toPublic(live));
         }
 
         @Override
@@ -266,41 +267,6 @@ public class LivesService implements ILivesService {
                 live.setSettingsJson(settingSheetConfigService.writeSettingSheetConfig(normalized));
                 liveRepository.save(live);
                 return normalized;
-        }
-
-        @Override
-        public PdfCanvasResponse getPdfCanvas(UUID id) {
-                CanvasDocument canvas = livePdfCanvasService.readPdfCanvas(helper.findOwnedLive(id));
-                return new PdfCanvasResponse(canvas, canvas != null);
-        }
-
-        @Override
-        @Transactional
-        public PdfCanvasResponse updatePdfCanvas(UUID id, PdfCanvasUpdateRequest request) {
-                Live live = helper.findAdminLive(id);
-                // page / elements が欠けたレイアウトは読み込み時に「未保存」と同じ扱いになり、保存済みの形が消えてしまう
-                if (request.canvas().page() == null || request.canvas().elements() == null) {
-                        throw new BadRequestException("PDFレイアウトの形式が正しくありません");
-                }
-
-                live.setPdfCanvasJson(livePdfCanvasService.writePdfCanvas(request.canvas()));
-                liveRepository.save(live);
-                return new PdfCanvasResponse(request.canvas(), request.canvas() != null);
-        }
-
-        @Override
-        public PdfCanvasMeasureResponse measurePdfCanvas(UUID id, PdfCanvasMeasureRequest request) {
-                Live live = helper.findOwnedLive(id);
-                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
-                PublicSettingSheetSubmissionDetailResponse detail = getOwnedSettingSheetSubmission(id,
-                                request.submissionId());
-                try {
-                        return new PdfCanvasMeasureResponse(canvasMeasurer.measureTables(helper.toResponse(live),
-                                        config, detail, resolveCanvas(live, request.canvas())));
-                } catch (IOException ex) {
-                        log.error("PDFレイアウトの測定に失敗: liveId={}, submissionId={}", id, request.submissionId(), ex);
-                        throw new UncheckedIOException("PDFレイアウトの測定に失敗しました", ex);
-                }
         }
 
         @Override
@@ -334,6 +300,8 @@ public class LivesService implements ILivesService {
                 SettingSheetSubmission submission = helper.findOwnedSubmission(liveId, submissionId);
                 PublicSettingSheetSubmissionRequest payload = settingSheetSubmissionService.readSubmissionPayload(
                                 submission.getPayloadJson());
+                SettingSheetConfigResponse config = settingSheetConfigService
+                                .readSettingSheetConfig(submission.getLive());
                 return new PublicSettingSheetSubmissionDetailResponse(
                                 submission.getId(),
                                 submission.getRecordLabel(),
@@ -341,19 +309,25 @@ public class LivesService implements ILivesService {
                                 submission.getCreatedAt(),
                                 submission.getUpdatedAt(),
                                 submission.getVersion(),
-                                settingSheetSubmissionService.mapFieldAnswers(payload.answers()),
+                                adminAnswerService.merge(
+                                                settingSheetSubmissionService.mapFieldAnswers(payload.answers()),
+                                                adminAnswerService.readAll(List.of(submission.getId()))
+                                                                .get(submission.getId()),
+                                                config),
                                 helper.mapItunesLinks(submission.getId()));
         }
 
         @Override
         public List<PublicSettingSheetSubmissionDetailResponse> listOwnedSettingSheetSubmissionDetails(UUID liveId) {
                 User currentUser = userService.getCurrentUser();
-                helper.findOwnedLive(liveId);
+                Live live = helper.findOwnedLive(liveId);
+                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
 
-                return settingSheetSubmissionRepository
-                                .findAllByLiveIdAndAccessibleByUserId(liveId,
-                                                currentUser.getId())
-                                .stream()
+                List<SettingSheetSubmission> submissions = settingSheetSubmissionRepository
+                                .findAllByLiveIdAndAccessibleByUserId(liveId, currentUser.getId());
+                Map<UUID, List<FieldAnswerRequest>> adminAnswers = adminAnswerService
+                                .readAll(submissions.stream().map(SettingSheetSubmission::getId).toList());
+                return submissions.stream()
                                 .map(submission -> {
                                         PublicSettingSheetSubmissionRequest payload = settingSheetSubmissionService
                                                         .readSubmissionPayload(submission.getPayloadJson());
@@ -364,8 +338,9 @@ public class LivesService implements ILivesService {
                                                         submission.getCreatedAt(),
                                                         submission.getUpdatedAt(),
                                                         submission.getVersion(),
-                                                        settingSheetSubmissionService
+                                                        adminAnswerService.merge(settingSheetSubmissionService
                                                                         .mapFieldAnswers(payload.answers()),
+                                                                        adminAnswers.get(submission.getId()), config),
                                                         List.of());
                                 })
                                 .toList();
@@ -392,8 +367,8 @@ public class LivesService implements ILivesService {
         public PublicSettingSheetSubmissionDetailResponse getPublicSharedSettingSheetSubmission(String publicToken,
                         UUID submissionId) {
                 SettingSheetSubmission submission = helper.findPublicSubmission(publicToken, submissionId);
-                SettingSheetConfigResponse config = settingSheetConfigService
-                                .readSettingSheetConfig(submission.getLive());
+                SettingSheetConfigResponse config = AdminOnlyBlocks.stripForPublic(settingSheetConfigService
+                                .readSettingSheetConfig(submission.getLive()));
                 if (!Boolean.TRUE.equals(config.publicSubmissionEnabled())) {
                         throw new LivesNotFoundException("共有提出データは公開されていません");
                 }
@@ -421,7 +396,8 @@ public class LivesService implements ILivesService {
                 Live live = liveRepository.findByPublicTokenAndDeletedAtIsNull(publicToken)
                                 .orElseThrow(() -> new LivesNotFoundException("公開ライブが見つかりません"));
 
-                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
+                SettingSheetConfigResponse config = AdminOnlyBlocks
+                                .stripForPublic(settingSheetConfigService.readSettingSheetConfig(live));
                 if (!Boolean.TRUE.equals(config.publicSubmissionEnabled())) {
                         throw new LivesNotFoundException("共有提出データは公開されていません");
                 }
@@ -511,48 +487,5 @@ public class LivesService implements ILivesService {
                 Live live = liveRepository.findByPublicTokenAndDeletedAtIsNull(publicToken)
                                 .orElseThrow(() -> new LivesNotFoundException("公開ライブが見つかりません"));
                 return songDuplicateDetectionService.checkSongDuplicate(live, request, excludeSubmissionId);
-        }
-
-        @Override
-        public SubmissionPdfResult generateSubmissionPdf(UUID liveId, UUID submissionId, CanvasDocument canvas) {
-                Live live = helper.findOwnedLive(liveId);
-                LiveResponse liveResponse = helper.toResponse(live);
-                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
-                PublicSettingSheetSubmissionDetailResponse detail = getOwnedSettingSheetSubmission(liveId,
-                                submissionId);
-                try {
-                        byte[] bytes = settingSheetPdfService.generate(liveResponse, config, detail,
-                                        resolveCanvas(live, canvas));
-                        return new SubmissionPdfResult(bytes, detail.recordLabel());
-                } catch (IOException ex) {
-                        log.error("PDF生成に失敗: liveId={}, submissionId={}", liveId, submissionId, ex);
-                        throw new UncheckedIOException("PDF生成に失敗しました", ex);
-                }
-        }
-
-        @Override
-        public SubmissionPdfResult generateSubmissionsZip(UUID liveId, List<UUID> submissionIds, CanvasDocument canvas) {
-                Live live = helper.findOwnedLive(liveId);
-                LiveResponse liveResponse = helper.toResponse(live);
-                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
-                List<SettingSheetPdfService.SubmissionInputs> inputs = submissionIds.stream()
-                                .map(id -> new SettingSheetPdfService.SubmissionInputs(liveResponse, config,
-                                                getOwnedSettingSheetSubmission(liveId, id)))
-                                .toList();
-                try {
-                        byte[] bytes = settingSheetPdfService.generateZip(inputs, resolveCanvas(live, canvas));
-                        return new SubmissionPdfResult(bytes, live.getName() + "_セッティングシート");
-                } catch (IOException ex) {
-                        log.error("PDF ZIP生成に失敗: liveId={}, submissions={}", liveId, submissionIds.size(), ex);
-                        throw new UncheckedIOException("PDF Zip生成に失敗しました", ex);
-                }
-        }
-
-        /**
-         * リクエストにレイアウトが無ければ、そのライブに保存済みのレイアウトを使う。
-         * どちらも無い場合は null のままで、描画側が既定レイアウトを組み立てる。
-         */
-        private CanvasDocument resolveCanvas(Live live, CanvasDocument requested) {
-                return requested != null ? requested : livePdfCanvasService.readPdfCanvas(live);
         }
 }

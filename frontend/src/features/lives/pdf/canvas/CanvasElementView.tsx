@@ -2,7 +2,7 @@
  *  Mirrors (loosely) how the backend will render the same element in the PDF. */
 import type { CSSProperties } from 'react';
 import type { CanvasElement, TableElement } from '../canvas-schema';
-import type { FieldCatalog } from '../field-catalog';
+import type { FieldCatalog } from '../../canvas-shared/field-catalog';
 
 interface Props {
   element: CanvasElement;

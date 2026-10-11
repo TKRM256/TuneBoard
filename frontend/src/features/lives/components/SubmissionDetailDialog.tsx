@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Copy, FileDown, Music } from 'lucide-react';
+import { Copy, FileDown, FileText, Music } from 'lucide-react';
 import {
   type ItunesLinkSelection,
   type PublicSettingSheetSubmissionDetailResponse,
+  type SettingSheetBlock,
   type SettingSheetConfigResponse,
+  type SettingSheetSubmissionAnswerResponse,
 } from '../types/live-types';
+import { AdminAnswersEditor } from '../admin-answers/AdminAnswersEditor';
 import { formatSubmittedAt, renderSubmissionBlocks } from '../helpers/submission-detail-helpers';
 
 function SummaryItem({ label, value }: { label: string; value: ReactNode }) {
@@ -31,6 +34,13 @@ interface SubmissionDetailDialogProps {
   recordLabel: string;
   onCopyEditLink: (submissionId: string) => void;
   onOpenPdfPreview?: (submissionId: string) => void;
+  onOpenVenueForm?: (submissionId: string) => void;
+  /** 管理者入力の欄を出すときに渡す（管理者でなければ渡さない） */
+  adminAnswers?: {
+    liveId: string;
+    blocks: SettingSheetBlock[];
+    onSaved: (submissionId: string, answers: SettingSheetSubmissionAnswerResponse[]) => void;
+  };
 }
 
 export function SubmissionDetailDialog({
@@ -41,6 +51,8 @@ export function SubmissionDetailDialog({
   recordLabel,
   onCopyEditLink,
   onOpenPdfPreview,
+  onOpenVenueForm,
+  adminAnswers,
 }: SubmissionDetailDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,6 +71,15 @@ export function SubmissionDetailDialog({
                 <SummaryItem label="状態" value={<Badge variant="secondary">{detail.submissionStatus}</Badge>} />
                 <SummaryItem label="提出日時" value={formatSubmittedAt(detail.submittedAt)} />
               </div>
+              {adminAnswers && adminAnswers.blocks.length > 0 ? (
+                <AdminAnswersEditor
+                  key={detail.id}
+                  liveId={adminAnswers.liveId}
+                  detail={detail}
+                  blocks={adminAnswers.blocks}
+                  onSaved={adminAnswers.onSaved}
+                />
+              ) : null}
               <Separator />
               <div className="space-y-3">
                 {config ? renderSubmissionBlocks(config.blocks, detail.answers, detail.id) : null}
@@ -88,6 +109,12 @@ export function SubmissionDetailDialog({
                 <Button variant="outline" size="sm" onClick={() => onOpenPdfPreview(detail.id)}>
                   <FileDown className="size-4" />
                   PDF出力
+                </Button>
+              ) : null}
+              {onOpenVenueForm ? (
+                <Button variant="outline" size="sm" onClick={() => onOpenVenueForm(detail.id)}>
+                  <FileText className="size-4" />
+                  会場書式PDF
                 </Button>
               ) : null}
             </div>

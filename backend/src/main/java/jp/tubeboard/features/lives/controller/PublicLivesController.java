@@ -20,6 +20,7 @@ import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDeta
 import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
+import jp.tubeboard.features.lives.stageplot.StagePlotService;
 import lombok.AllArgsConstructor;
 
 @RestController
@@ -28,6 +29,7 @@ import lombok.AllArgsConstructor;
 public class PublicLivesController {
 
     private final ILivesService livesService;
+    private final StagePlotService stagePlotService;
 
     @GetMapping("/{publicToken}")
     public ResponseEntity<PublicLiveResponse> findByPublicToken(
@@ -70,6 +72,12 @@ public class PublicLivesController {
             @RequestBody @Valid PublicSettingSheetSubmissionRequest request) {
         return ResponseEntity
                 .ok(livesService.updatePublicSettingSheetSubmission(publicToken, submissionId, baseVersion, request));
+    }
+
+    /** 出演者が配置図を入力するときの下絵。 */
+    @GetMapping("/{publicToken}/stage-plot/base")
+    public ResponseEntity<byte[]> stagePlotBase(@PathVariable(name = "publicToken") String publicToken) {
+        return StagePlotController.image(stagePlotService.publicBaseImage(publicToken));
     }
 
     @PostMapping("/{publicToken}/check-song-duplicate")

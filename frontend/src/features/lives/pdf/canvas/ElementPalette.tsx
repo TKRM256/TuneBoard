@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, Hash, Heading1, Music, Plus, Square, Table2,
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { CatalogGroup, FieldCatalog } from '../field-catalog';
+import type { CatalogGroup, FieldCatalog } from '../../canvas-shared/field-catalog';
 
 export type PaletteInsert =
   | { kind: 'text'; content: string; title: string }

@@ -1,6 +1,7 @@
 /** Helper functions for rendering submission detail blocks, formatting dates and values. */
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { summarizeStagePlot } from '@/features/stage-plot/stage-plot-types';
 import {
   isSectionBlock,
   isRepeatableGroupBlock,
@@ -20,6 +21,9 @@ export function formatAnswerValue(values: string[], blockType: SettingSheetBlock
   }
   if (blockType === 'BOOLEAN') {
     return values[0] === 'true' ? 'はい' : values[0] === 'false' ? 'いいえ' : values.join(' / ');
+  }
+  if (blockType === 'STAGE_PLOT') {
+    return summarizeStagePlot(values[0]) || '未入力';
   }
   return values.join(' / ');
 }

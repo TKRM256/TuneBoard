@@ -15,6 +15,8 @@ const LiveSubmissionsPage = lazy(() => import('./features/lives/pages/LiveSubmis
 const PdfPreviewPage = lazy(() => import('./features/lives/pdf/PdfPreviewPage').then((module) => ({ default: module.PdfPreviewPage })));
 const PdfPreviewPageMobile = lazy(() => import('./features/lives/pdf/PdfPreviewPageMobile').then((module) => ({ default: module.PdfPreviewPageMobile })));
 const LiveVisibilitySettingsPage = lazy(() => import('./features/lives/pages/LiveVisibilitySettingsPage').then((module) => ({ default: module.LiveVisibilitySettingsPage })));
+const VenueFormEditorPage = lazy(() => import('./features/lives/venue-form/VenueFormEditorPage').then((module) => ({ default: module.VenueFormEditorPage })));
+const StagePlotSettingsPage = lazy(() => import('./features/stage-plot/StagePlotSettingsPage').then((module) => ({ default: module.StagePlotSettingsPage })));
 const InvitationAcceptPage = lazy(() => import('./features/tenants/pages/InvitationAcceptPage').then((module) => ({ default: module.InvitationAcceptPage })));
 
 const routeFallback = (
@@ -48,6 +50,7 @@ const router = createBrowserRouter([
       { path: 'tenants/:tenantId/lives/:liveId/form', element: lazyRoute(<LiveFormEditorPage />) },
       { path: 'tenants/:tenantId/lives/:liveId/submissions', element: lazyRoute(<LiveSubmissionsPage />) },
       { path: 'tenants/:tenantId/lives/:liveId/settings', element: lazyRoute(<LiveVisibilitySettingsPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId/stage-plot', element: lazyRoute(<StagePlotSettingsPage />) },
     ],
   },
   {
@@ -58,6 +61,7 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
+      { path: 'tenants/:tenantId/lives/:liveId/venue-form', element: lazyRoute(<VenueFormEditorPage />) },
       { path: 'tenants/:tenantId/lives/:liveId/submissions/pdf-preview', element: lazyRoute(<PdfPreviewPage />) },
       { path: 'tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview', element: lazyRoute(<PdfPreviewPage />) },
       { path: 'tenants/:tenantId/lives/:liveId/submissions/pdf-preview-mobile', element: lazyRoute(<PdfPreviewPageMobile />) },

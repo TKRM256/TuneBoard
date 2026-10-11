@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { type PublicLiveResponse, type PublicSettingSheetSubmissionDetailResponse } from '@/features/lives/types/live-types';
+import { hideUnavailableStagePlots } from '@/features/stage-plot/stage-plot-availability';
 import { apiClient } from '@/lib/api/client';
 import { ApiClientError } from '@/lib/api/type';
 
@@ -44,7 +45,12 @@ export function usePublicLiveData(publicToken: string | undefined, submissionId:
           return;
         }
 
-        const nextLive = liveResponse as PublicLiveResponse;
+        const fetchedLive = liveResponse as PublicLiveResponse;
+        // ステージ設定が無いライブでは配置図の欄を出しても入力できないので隠す
+        const nextLive: PublicLiveResponse = {
+          ...fetchedLive,
+          settingSheetConfig: hideUnavailableStagePlots(fetchedLive.settingSheetConfig, fetchedLive.stagePlot),
+        };
         if (!submissionId) {
           if (!cancelled) {
             setState({ errorMessage: '', isLoading: false, live: nextLive, submission: null });

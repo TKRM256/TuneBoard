@@ -33,8 +33,10 @@ import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 import lombok.AllArgsConstructor;
 import jp.tubeboard.features.lives.service.SettingSheetConstants;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
+import jp.tubeboard.features.lives.service.config.AdminOnlyBlocks;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
+import jp.tubeboard.features.lives.stageplot.StagePlotSettingsReader;
 
 @Component
 @AllArgsConstructor
@@ -48,6 +50,7 @@ public class LiveServiceHelper {
         private final SettingSheetSubmissionService settingSheetSubmissionService;
         private final SongDuplicateDetectionService songDuplicateDetectionService;
         private final UserTenantRepository userTenantRepository;
+        private final StagePlotSettingsReader stagePlotSettingsReader;
 
         public Tenants findTenant(UUID tenantId, Long userId) {
                 return tenantsRepository.findByIdAndAccessibleByUserId(tenantId, userId)
@@ -145,8 +148,11 @@ public class LiveServiceHelper {
                 assertAcceptingPublicSubmission(live);
                 PublicSettingSheetSubmissionRequest normalizedRequest = settingSheetSubmissionService
                                 .normalizeSubmissionRequest(request);
-                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
-                settingSheetSubmissionService.validateSubmission(normalizedRequest, config);
+                // 出演者は管理者入力の項目を見られないので、それを除いた設定で検証する
+                SettingSheetConfigResponse config = AdminOnlyBlocks.stripForPublic(
+                                settingSheetConfigService.readSettingSheetConfig(live));
+                settingSheetSubmissionService.validateSubmission(normalizedRequest, config,
+                                stagePlotSettingsReader.read(live));
                 String summary = settingSheetSubmissionService.resolveSubmissionSummary(config, normalizedRequest,
                                 live.getName());
 

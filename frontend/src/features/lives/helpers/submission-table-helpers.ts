@@ -1,4 +1,5 @@
 /** Table column definitions and cell value extraction for the submissions table. */
+import { summarizeStagePlot } from '@/features/stage-plot/stage-plot-types';
 import {
   isSectionBlock,
   type SettingSheetBlock,
@@ -73,6 +74,12 @@ function formatBooleanValue(value: string): string {
   return value === 'true' || value === 'はい' ? 'はい' : 'いいえ';
 }
 
+function formatValue(value: string, blockType: SettingSheetBlock['type']): string {
+  if (blockType === 'BOOLEAN') return formatBooleanValue(value);
+  if (blockType === 'STAGE_PLOT') return summarizeStagePlot(value) || EMPTY_CELL_VALUE;
+  return value;
+}
+
 export function extractCellValue(
   answers: SettingSheetSubmissionAnswerResponse[],
   path: string[],
@@ -92,11 +99,9 @@ export function extractCellValue(
     if (blockType === 'REPEATABLE_GROUP') {
       return answer.items.length === 0 ? EMPTY_CELL_VALUE : `${answer.items.length}件`;
     }
-    return answer.values.length > 0 ? answer.values.map(
-      (value) => {
-        return blockType === 'BOOLEAN' ? formatBooleanValue(value) : value;
-      }
-    ).join(' / ') : EMPTY_CELL_VALUE;
+    return answer.values.length > 0
+      ? answer.values.map((value) => formatValue(value, blockType)).join(' / ')
+      : EMPTY_CELL_VALUE;
   }
 
   const nestedValues = answer.items

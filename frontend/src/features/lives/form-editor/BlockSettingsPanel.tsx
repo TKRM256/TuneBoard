@@ -15,12 +15,12 @@ import {
 } from './utils';
 import {
   canContainBlocks,
+  canUseDuplicateDetectionRole,
   DUPLICATE_DETECTION_ROLE_OPTIONS,
   type DuplicateDetectionRole,
   isInputBlock,
   isOptionBlock,
   isRepeatableGroupBlock,
-  isSongBlock,
   SETTING_SHEET_APPEARANCE_OPTIONS,
   SETTING_SHEET_BLOCK_OPTIONS,
   type SettingSheetBlock,
@@ -32,6 +32,8 @@ interface BlockSettingsPanelProps {
   index: number;
   parentId: string | null;
   depth: number;
+  /** 繰り返しグループの中のブロックか。管理者入力はグループの外だけで使える */
+  insideGroup: boolean;
   optionSourceCandidates: Array<{ value: string; label: string }>;
   onInsert: (parentId: string | null, insertIndex: number, type: SettingSheetBlock['type']) => void;
   onUpdateBlock: (blockId: string, patch: Partial<SettingSheetBlock>) => void;
@@ -44,6 +46,7 @@ interface BlockSettingsPanelProps {
 export const BlockSettingsPanel = ({
   block,
   depth,
+  insideGroup,
   optionSourceCandidates,
   onInsert,
   onUpdateBlock,
@@ -149,25 +152,31 @@ export const BlockSettingsPanel = ({
                 <p className="text-xs font-medium text-muted-foreground">表示先</p>
                 <div className="flex items-center gap-3 text-sm">
                   <Checkbox checked={!block.hidden} onCheckedChange={(checked) => onUpdateBlock(block.id, { hidden: checked !== true })} />
-                  公開フォーム（出演者が入力する欄として表示）
+                  公開フォーム
                 </div>
                 {!canContainBlocks(block.type) ? (
                   <>
                     <div className="flex items-center gap-3 text-sm">
                       <Checkbox checked={block.publicVisible === true} onCheckedChange={(checked) => onUpdateBlock(block.id, { publicVisible: checked === true })} />
-                      共有フォーム（出演者に配る提出一覧に表示）
+                      共有フォーム
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       <Checkbox
                         checked={block.adminVisible ?? block.publicVisible === true}
                         onCheckedChange={(checked) => onUpdateBlock(block.id, { adminVisible: checked === true })}
                       />
-                      管理者画面（管理者の提出一覧に表示）
+                      管理者画面
                     </div>
                   </>
                 ) : null}
+                {isInputBlock(block.type) && !insideGroup ? (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Checkbox checked={block.adminOnly === true} onCheckedChange={(checked) => onUpdateBlock(block.id, { adminOnly: checked === true })} />
+                    管理者だけが入力する
+                  </div>
+                ) : null}
               </div>
-              {isInputBlock(block.type) && !isSongBlock(block.type) ? (
+              {canUseDuplicateDetectionRole(block.type) ? (
                 <div>
                   <p className="text-xs text-muted-foreground">曲かぶり検知の役割</p>
                   <Select value={block.duplicateDetectionRole || '__none__'} onValueChange={(value) => onUpdateBlock(block.id, { duplicateDetectionRole: (value === '__none__' ? '' : value) as DuplicateDetectionRole })}>
