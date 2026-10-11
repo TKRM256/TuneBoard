@@ -1,4 +1,5 @@
 /** 背景から検出した罫線を、ページ上の mm の座標に直す。 */
+import type { SnapLine } from '../../canvas-shared/snapping';
 import type { VenueAsset, VenuePage } from '../venue-form-schema';
 
 /** サーバーが返す罫線。座標は背景（ページの画像全体）に対する比率（0〜1、左上が原点）。 */
@@ -9,13 +10,8 @@ export interface RuledLine {
   to: number;
 }
 
-/** ページ上の罫線（mm）。横線なら pos が y、from〜to が x の範囲。 */
-export interface PageLine {
-  axis: 'h' | 'v';
-  posMm: number;
-  fromMm: number;
-  toMm: number;
-}
+/** ページ上の罫線（mm）。吸着の相手としてそのまま使う。 */
+export type PageLine = SnapLine;
 
 interface Rect {
   x: number;

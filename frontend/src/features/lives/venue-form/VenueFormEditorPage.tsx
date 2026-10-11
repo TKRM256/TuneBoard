@@ -17,6 +17,7 @@ import { LiveCopyFromDialog } from '../copy/LiveCopyFromDialog';
 import { downloadBlob } from '../pdf/pdf-api';
 import type { SettingSheetBlock } from '../types/live-types';
 import { AssistToggles } from './assist/AssistToggles';
+import { fitToCell } from './assist/cell-fit';
 import { usePageLines } from './assist/usePageLines';
 import { useCanvasViewport } from './useCanvasViewport';
 import { useVenueFormEditor } from './useVenueFormEditor';
@@ -59,6 +60,14 @@ export const VenueFormEditorPage = () => {
   const blocksById = useMemo(() => indexBlocks(data?.config.blocks ?? []), [data?.config]);
   const pageLines = usePageLines(liveId ?? '', editor.currentPage ?? null, data?.assets ?? NO_ASSETS);
   const [showLines, setShowLines] = useState(false);
+  const [snap, setSnap] = useState(true);
+
+  // ダブルクリックした要素を、罫線の枠いっぱいに広げる（枠が無ければ何もしない）
+  const fitElementToCell = (id: string) => {
+    const element = editor.pageElements.find((candidate) => candidate.id === id);
+    const patch = element ? fitToCell(element, pageLines) : null;
+    if (patch) editor.updateElement(id, patch);
+  };
 
   if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
   const backTo = `/tenants/${tenantId}/lives/${liveId}${downloadIds.length > 0 ? '/submissions' : ''}`;
@@ -150,7 +159,7 @@ export const VenueFormEditorPage = () => {
               zoomExtras={(
                 <>
                   <ZoomFitButtons onFitPage={viewport.fitPage} onFitWidth={viewport.fitWidth} onReset={viewport.resetZoom} />
-                  <AssistToggles lineCount={pageLines.length} showLines={showLines} onShowLinesChange={setShowLines} />
+                  <AssistToggles lineCount={pageLines.length} showLines={showLines} onShowLinesChange={setShowLines} snap={snap} onSnapChange={setSnap} />
                 </>
               )}
               onAlign={editor.align}
@@ -167,6 +176,8 @@ export const VenueFormEditorPage = () => {
                     backgroundIsPdf={isPdfBackground(data.assets, editor.currentPage.background?.assetId)}
                     ruledLines={pageLines}
                     showRuledLines={showLines}
+                    snapLines={snap ? pageLines : undefined}
+                    onElementDoubleClick={fitElementToCell}
                     liveId={liveId}
                     page={editor.currentPage}
                     elements={editor.pageElements}

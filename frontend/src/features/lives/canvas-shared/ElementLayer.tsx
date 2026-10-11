@@ -6,11 +6,17 @@
  *  translated via CSS transform on a full-canvas wrapper div so react-rnd's
  *  internal position state is not disturbed during the drag.
  *
- *  Shift+Resize: holding Shift while resizing locks the aspect ratio. */
+ *  Shift+Resize: holding Shift while resizing locks the aspect ratio.
+ *
+ *  罫線への吸着: snapLines を渡すと、動かす・大きさを変えるときに要素の端が近くの線に吸い付く（Alt で一時的に無効）。
+ *  ドラッグ中の位置は react-rnd に任せたまま、吸着後の位置との差だけを CSS transform でずらして見せ、
+ *  離したときに吸着後の位置を保存する（react-rnd の位置を上書きすると、同じ線に吸い付いている間ずれていくため）。 */
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 
 import { round1, type MmBox } from './geometry';
+import { snapMove, snapResize, type ResizeDirection, type SnapBox, type SnapLine } from './snapping';
+import { SnapGuides } from './SnapGuides';
 
 interface Props<T extends MmBox> {
   elements: T[];
@@ -21,6 +27,21 @@ interface Props<T extends MmBox> {
   onUpdate: (id: string, patch: Partial<MmBox>) => void;
   onMoveSelection: (dxMm: number, dyMm: number) => void;
   renderElement: (element: T, selected: boolean) => ReactNode;
+  /** 吸着の相手にする線（mm）。空なら吸着しない */
+  snapLines?: SnapLine[];
+  onElementDoubleClick?: (id: string) => void;
+}
+
+/** 吸着する距離（画面上のピクセル）。拡大率によらず同じ感覚で効くようにする */
+const SNAP_THRESHOLD_PX = 8;
+
+interface DragState {
+  id: string;
+  start: { x: number; y: number };
+  /** マウスの移動量を足した、吸着前の位置（px） */
+  raw: { x: number; y: number };
+  /** 吸着後の位置（px）。離したときに保存する */
+  snapped: { x: number; y: number };
 }
 
 export function ElementLayer<T extends MmBox>({
@@ -32,47 +53,81 @@ export function ElementLayer<T extends MmBox>({
   onUpdate,
   onMoveSelection,
   renderElement,
+  snapLines = NO_LINES,
+  onElementDoubleClick,
 }: Props<T>) {
   const snapPx = snapMm * pxPerMm;
   const shiftHeld = useShiftHeld();
+  const thresholdMm = SNAP_THRESHOLD_PX / pxPerMm;
+  const [guides, setGuides] = useState<SnapLine[]>(NO_LINES);
 
   // Multi-drag: refs to each element's full-canvas wrapper div.
   const wrapperRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
-  const draggedIdRef = useRef<string | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const resizeSnapRef = useRef<SnapBox | null>(null);
 
   const handleDragStart = (elId: string, startX: number, startY: number) => {
     if (!selectedIds.has(elId)) return;
-    draggedIdRef.current = elId;
-    dragStartRef.current = { x: startX, y: startY };
+    const start = { x: startX, y: startY };
+    dragRef.current = { id: elId, start, raw: { ...start }, snapped: { ...start } };
   };
 
-  const handleDrag = (elId: string, currentX: number, currentY: number) => {
-    if (draggedIdRef.current !== elId || !dragStartRef.current || selectedIds.size <= 1) return;
-    const dx = currentX - dragStartRef.current.x;
-    const dy = currentY - dragStartRef.current.y;
+  const handleDrag = (el: T, altKey: boolean, deltaX: number, deltaY: number) => {
+    const drag = dragRef.current;
+    if (!drag || drag.id !== el.id) return;
+    drag.raw = { x: drag.raw.x + deltaX, y: drag.raw.y + deltaY };
+    const wrapper = wrapperRefs.current.get(el.id);
+    const maxX = (wrapper?.clientWidth ?? Infinity) - el.wMm * pxPerMm;
+    const maxY = (wrapper?.clientHeight ?? Infinity) - el.hMm * pxPerMm;
+    // react-rnd は親の範囲に収めて表示するので、同じように収めた位置が今見えている位置
+    const shown = { x: clamp(drag.raw.x, 0, maxX), y: clamp(drag.raw.y, 0, maxY) };
+    let target = shown;
+    if (snapLines.length > 0 && !altKey) {
+      const box = { xMm: shown.x / pxPerMm, yMm: shown.y / pxPerMm, wMm: el.wMm, hMm: el.hMm };
+      const result = snapMove(box, snapLines, thresholdMm);
+      target = { x: clamp(result.box.xMm * pxPerMm, 0, maxX), y: clamp(result.box.yMm * pxPerMm, 0, maxY) };
+      setGuides(result.guides.length > 0 ? result.guides : NO_LINES);
+    } else {
+      setGuides(NO_LINES);
+    }
+    drag.snapped = target;
+    if (wrapper) wrapper.style.transform = translate(target.x - shown.x, target.y - shown.y);
     for (const [id, div] of wrapperRefs.current) {
-      if (id !== elId && selectedIds.has(id)) {
-        div.style.transform = `translate(${dx}px, ${dy}px)`;
+      if (id !== el.id && selectedIds.has(id)) {
+        div.style.transform = translate(target.x - drag.start.x, target.y - drag.start.y);
       }
     }
   };
 
-  const handleDragStop = (elId: string, finalX: number, finalY: number) => {
-    if (draggedIdRef.current !== elId) return;
-    const start = dragStartRef.current;
-    draggedIdRef.current = null;
-    dragStartRef.current = null;
+  const handleDragStop = (elId: string) => {
+    const drag = dragRef.current;
+    if (!drag || drag.id !== elId) return;
+    dragRef.current = null;
+    setGuides(NO_LINES);
 
     for (const [, div] of wrapperRefs.current) {
       div.style.transform = '';
     }
 
-    if (selectedIds.size > 1 && start) {
-      onMoveSelection((finalX - start.x) / pxPerMm, (finalY - start.y) / pxPerMm);
+    const { start, snapped } = drag;
+    if (snapped.x === start.x && snapped.y === start.y) return;
+    if (selectedIds.size > 1) {
+      onMoveSelection((snapped.x - start.x) / pxPerMm, (snapped.y - start.y) / pxPerMm);
     } else {
-      onUpdate(elId, { xMm: round1(finalX / pxPerMm), yMm: round1(finalY / pxPerMm) });
+      onUpdate(elId, { xMm: round1(snapped.x / pxPerMm), yMm: round1(snapped.y / pxPerMm) });
     }
+  };
+
+  const handleResize = (altKey: boolean, direction: string, box: SnapBox) => {
+    if (snapLines.length === 0 || altKey || shiftHeld) {
+      resizeSnapRef.current = null;
+      setGuides(NO_LINES);
+      return;
+    }
+    const minMm = Math.max(MIN_PX, snapPx) / pxPerMm;
+    const result = snapResize(box, direction as ResizeDirection, snapLines, thresholdMm, minMm);
+    resizeSnapRef.current = result.box;
+    setGuides(result.guides.length > 0 ? result.guides : NO_LINES);
   };
 
   return (
@@ -109,15 +164,15 @@ export function ElementLayer<T extends MmBox>({
               resizeHandleStyles={selected ? { bottomRight: small ? OUTER_HANDLE : CORNER_HANDLE } : undefined}
               style={{ ...selectionStyle(selected), pointerEvents: 'auto' }}
               onDragStart={(_, d) => handleDragStart(el.id, d.x, d.y)}
-              onDrag={(_, d) => handleDrag(el.id, d.x, d.y)}
-              onDragStop={(_, d) => handleDragStop(el.id, d.x, d.y)}
+              onDrag={(event, d) => handleDrag(el, altKeyOf(event), d.deltaX, d.deltaY)}
+              onDragStop={() => handleDragStop(el.id)}
+              onResize={(event, direction, ref, _, position) => handleResize(altKeyOf(event), direction, toMmBox(ref, position, pxPerMm))}
               onResizeStop={(_, __, ref, ___, position) => {
-                onUpdate(el.id, {
-                  xMm: round1(position.x / pxPerMm),
-                  yMm: round1(position.y / pxPerMm),
-                  wMm: round1(parseFloat(ref.style.width) / pxPerMm),
-                  hMm: round1(parseFloat(ref.style.height) / pxPerMm),
-                });
+                const snapped = resizeSnapRef.current;
+                resizeSnapRef.current = null;
+                setGuides(NO_LINES);
+                const box = snapped ?? toMmBox(ref, position, pxPerMm);
+                onUpdate(el.id, { xMm: round1(box.xMm), yMm: round1(box.yMm), wMm: round1(box.wMm), hMm: round1(box.hMm) });
               }}
             >
               <div
@@ -129,6 +184,7 @@ export function ElementLayer<T extends MmBox>({
                   if (!e.shiftKey && selectedIds.has(el.id)) return;
                   onSelect(el.id, e.shiftKey);
                 }}
+                onDoubleClick={onElementDoubleClick ? () => onElementDoubleClick(el.id) : undefined}
                 style={{ width: '100%', height: '100%', cursor: 'move', position: 'relative' }}
               >
                 {small ? <span aria-hidden style={{ position: 'absolute', inset: -HIT_SLOP_PX }} /> : null}
@@ -138,8 +194,32 @@ export function ElementLayer<T extends MmBox>({
           </div>
         );
       })}
+      {guides.length > 0 ? <SnapGuides lines={guides} pxPerMm={pxPerMm} /> : null}
     </>
   );
+}
+
+const NO_LINES: SnapLine[] = [];
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function translate(dx: number, dy: number) {
+  return dx === 0 && dy === 0 ? '' : `translate(${dx}px, ${dy}px)`;
+}
+
+function altKeyOf(event: unknown) {
+  return Boolean((event as { altKey?: boolean } | null)?.altKey);
+}
+
+function toMmBox(ref: HTMLElement, position: { x: number; y: number }, pxPerMm: number): SnapBox {
+  return {
+    xMm: position.x / pxPerMm,
+    yMm: position.y / pxPerMm,
+    wMm: parseFloat(ref.style.width) / pxPerMm,
+    hMm: parseFloat(ref.style.height) / pxPerMm,
+  };
 }
 
 /** これより小さい要素は、つまみを外に出して当たり判定を広げる */
