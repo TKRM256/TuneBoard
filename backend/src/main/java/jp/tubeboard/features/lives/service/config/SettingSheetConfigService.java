@@ -52,8 +52,6 @@ public class SettingSheetConfigService {
                                                                 "持ち込みシンセ", "その他"),
                                                 null,
                                                 formBuilderHelper.layoutFull(3)),
-                                formBuilderHelper.plainBlock("song-duration", SettingSheetConstants.BLOCK_DURATION,
-                                                "演奏時間", "分:秒 で入力します。", formBuilderHelper.layoutThird(1)),
                                 formBuilderHelper.longTextBlock("song-note-pa", "PAへの要望", false,
                                                 formBuilderHelper.layoutHalf(1)),
                                 formBuilderHelper.longTextBlock("song-note-light", "照明への要望", false,

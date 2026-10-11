@@ -124,6 +124,17 @@ public final class ExpressionHelpers {
         return DurationFormat.format(total);
     }
 
+    /** グループ内の曲の演奏時間の概算（iTunes の長さを分に切り上げたもの）の合計（分）。長さの分からない曲は数えない。
+     *  Usage: {@code sumApproxMinutes(groups['setlist'], 'song')} */
+    public int sumApproxMinutes(Object groupOrItems, String songFieldId) {
+        int total = 0;
+        for (ItemRef item : asItems(groupOrItems)) {
+            Integer minutes = item.field(songFieldId).getApproxMinutes();
+            if (minutes != null) total += minutes;
+        }
+        return total;
+    }
+
     /** Map each item in a group/list through a JEXL lambda and return the results.
      *  Usage: {@code map(groups['members'].items, (m) -> m.field('name').value)} */
     public List<Object> map(Object groupOrItems, JexlScript fn) {

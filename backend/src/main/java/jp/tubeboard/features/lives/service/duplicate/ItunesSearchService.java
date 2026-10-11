@@ -83,7 +83,8 @@ public class ItunesSearchService {
                                 item.collectionName() != null ? item.collectionName() : "",
                                 artworkUrl,
                                 item.previewUrl(),
-                                item.trackViewUrl());
+                                item.trackViewUrl(),
+                                item.trackTimeMillis());
         }
 
         // --- Public DTO ---
@@ -95,7 +96,8 @@ public class ItunesSearchService {
                         String album,
                         String albumArtUrl,
                         String previewUrl,
-                        String trackViewUrl) {
+                        String trackViewUrl,
+                        Long durationMs) {
         }
 
         // --- JSON mapping records ---
@@ -114,6 +116,7 @@ public class ItunesSearchService {
                         String collectionName,
                         String artworkUrl100,
                         String previewUrl,
-                        String trackViewUrl) {
+                        String trackViewUrl,
+                        Long trackTimeMillis) {
         }
 }

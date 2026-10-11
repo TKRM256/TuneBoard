@@ -27,16 +27,30 @@ public final class CanvasContext {
         private final String value;
         private final List<String> values;
         private final boolean empty;
+        private final Integer approxMinutes;
 
         public FieldRef(String value, List<String> values, boolean empty) {
+            this(value, values, empty, null);
+        }
+
+        public FieldRef(String value, List<String> values, boolean empty, Integer approxMinutes) {
             this.value = value;
             this.values = values;
             this.empty = empty;
+            this.approxMinutes = approxMinutes;
         }
 
         public String getValue() { return value; }
         public List<String> getValues() { return values; }
         public boolean isEmpty() { return empty; }
+        /** 曲の欄だけ: iTunes の曲の長さから出した演奏時間の概算（分、切り上げ）。分からなければ null。 */
+        public Integer getApproxMinutes() { return approxMinutes; }
+
+        static FieldRef from(FieldAnswerResponse answer, String blockType, SongDurations songDurations) {
+            FieldRef ref = from(answer, blockType);
+            if (!"SONG".equals(blockType)) return ref;
+            return new FieldRef(ref.value, ref.values, ref.empty, songDurations.approxMinutes(answer));
+        }
 
         public static FieldRef from(FieldAnswerResponse answer, String blockType) {
             if (answer == null || answer.values() == null || answer.values().isEmpty()) {
@@ -150,6 +164,7 @@ public final class CanvasContext {
         Map<String, FieldAnswerResponse> answers = indexAnswers(submission.answers());
         Map<String, FormBlockResponse> blocksById = new HashMap<>();
         indexBlocks(config.blocks(), blocksById);
+        SongDurations songDurations = new SongDurations(submission.itunesLinks());
 
         for (FormBlockResponse block : blocksById.values()) {
             if ("REPEATABLE_GROUP".equals(block.type())) {
@@ -159,11 +174,11 @@ public final class CanvasContext {
                         : List.of();
                 List<ItemRef> itemRefs = new ArrayList<>(items.size());
                 for (int i = 0; i < items.size(); i++) {
-                    itemRefs.add(buildItemRef(block, items.get(i), i));
+                    itemRefs.add(buildItemRef(block, items.get(i), i, songDurations));
                 }
                 groupRefs.put(block.id(), new GroupRef(itemRefs, itemRefs.size()));
             } else if (!"SECTION".equals(block.type())) {
-                fieldRefs.put(block.id(), FieldRef.from(answers.get(block.id()), block.type()));
+                fieldRefs.put(block.id(), FieldRef.from(answers.get(block.id()), block.type(), songDurations));
             }
         }
 
@@ -177,7 +192,8 @@ public final class CanvasContext {
         return root;
     }
 
-    private static ItemRef buildItemRef(FormBlockResponse groupBlock, GroupItemResponse item, int index) {
+    private static ItemRef buildItemRef(FormBlockResponse groupBlock, GroupItemResponse item, int index,
+            SongDurations songDurations) {
         Map<String, FieldRef> itemFields = new HashMap<>();
         Map<String, GroupRef> itemGroups = new HashMap<>();
         Map<String, FieldAnswerResponse> answers = indexAnswers(item.answers());
@@ -190,12 +206,12 @@ public final class CanvasContext {
                         ? answer.items() : List.of();
                 List<ItemRef> nestedRefs = new ArrayList<>(nested.size());
                 for (int i = 0; i < nested.size(); i++) {
-                    nestedRefs.add(buildItemRef(field, nested.get(i), i));
+                    nestedRefs.add(buildItemRef(field, nested.get(i), i, songDurations));
                 }
                 itemGroups.put(field.id(), new GroupRef(nestedRefs, nestedRefs.size()));
                 continue;
             }
-            itemFields.put(field.id(), FieldRef.from(answers.get(field.id()), field.type()));
+            itemFields.put(field.id(), FieldRef.from(answers.get(field.id()), field.type(), songDurations));
         }
         return new ItemRef(index, item.variantId(), itemFields, itemGroups);
     }

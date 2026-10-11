@@ -178,6 +178,7 @@ export interface ItunesTrack {
   albumArtUrl: string;
   previewUrl: string | null;
   trackViewUrl: string;
+  durationMs: number | null;
 }
 
 export interface ItunesLinkSelection {
@@ -187,6 +188,8 @@ export interface ItunesLinkSelection {
   itunesTitle: string;
   itunesArtist: string;
   itunesAlbumArtUrl: string;
+  /** iTunes の曲の長さ。演奏時間の概算に使う。古い提出では無い */
+  itunesDurationMs?: number | null;
 }
 
 export interface FormField {

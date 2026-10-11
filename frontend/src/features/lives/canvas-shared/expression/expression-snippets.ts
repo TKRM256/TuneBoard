@@ -2,7 +2,7 @@
  *  picker. Snippets cover live/submission variables, every catalog field
  *  (recursively), join/filter helpers for repeatable groups, and the standard
  *  helper functions. */
-import type { CatalogGroup, FieldCatalog } from '../field-catalog';
+import type { CatalogEntry, CatalogGroup, FieldCatalog } from '../field-catalog';
 
 export interface SnippetEntry {
   label: string;
@@ -108,6 +108,7 @@ function pushGroupSnippets(group: CatalogGroup, target: SnippetGroup[], parentId
       hint: `${group.pathLabel} > ${field.label}`,
       keywords: `${field.label} ${group.label}`,
     });
+    entries.push(...durationSnippets(field, group, groupRef));
   }
 
   if (group.fields.length > 0) {
@@ -128,6 +129,21 @@ function pushGroupSnippets(group: CatalogGroup, target: SnippetGroup[], parentId
   for (const child of group.childGroups) {
     pushGroupSnippets(child, target, [...parentIds, group.fieldId]);
   }
+}
+
+/** 演奏時間の欄・曲の欄には、合計をそのまま挿せる雛形を足す。 */
+function durationSnippets(field: CatalogEntry, group: CatalogGroup, groupRef: string): SnippetEntry[] {
+  const hint = `${group.pathLabel} > ${field.label}`;
+  if (field.type === 'DURATION') {
+    return [{ label: `${field.label}の合計`, expression: `sumDuration(${groupRef}, '${field.id}')`, hint, keywords: `${field.label} 合計 sumDuration` }];
+  }
+  if (field.type === 'SONG') {
+    return [
+      { label: '演奏時間（概算）の合計（分）', expression: `sumApproxMinutes(${groupRef}, '${field.id}')`, hint, keywords: `${field.label} 演奏時間 概算 合計 sumApproxMinutes` },
+      { label: '演奏時間（概算、1件目、分）', expression: `${groupRef}.items[0].field('${field.id}').approxMinutes`, hint, keywords: `${field.label} 演奏時間 概算 approxMinutes` },
+    ];
+  }
+  return [];
 }
 
 function buildItemPath(parentIds: string[], childId: string): string {

@@ -31,6 +31,7 @@ import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.repository.TenantsRepository;
 import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 import lombok.AllArgsConstructor;
+import jp.tubeboard.features.lives.service.ItunesDuration;
 import jp.tubeboard.features.lives.service.SettingSheetConstants;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.AdminOnlyBlocks;
@@ -138,7 +139,8 @@ public class LiveServiceHelper {
                                                 link.getItunesTrackId(),
                                                 link.getItunesTitle(),
                                                 link.getItunesArtist(),
-                                                link.getItunesAlbumArtUrl()))
+                                                link.getItunesAlbumArtUrl(),
+                                                link.getItunesDurationMs()))
                                 .toList();
         }
 
@@ -219,6 +221,7 @@ public class LiveServiceHelper {
                                         .itunesTitle(link.itunesTitle())
                                         .itunesArtist(link.itunesArtist())
                                         .itunesAlbumArtUrl(link.itunesAlbumArtUrl())
+                                        .itunesDurationMs(ItunesDuration.sanitizeMillis(link.itunesDurationMs()))
                                         .build();
                         itunesTrackLinkRepository.save(entity);
                 }

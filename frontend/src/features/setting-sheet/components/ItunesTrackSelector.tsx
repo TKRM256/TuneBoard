@@ -65,6 +65,7 @@ export const ItunesTrackSelector = ({ selected, onSelect }: ItunesTrackSelectorP
       itunesTitle: track.name,
       itunesArtist: track.artist,
       itunesAlbumArtUrl: track.albumArtUrl,
+      itunesDurationMs: track.durationMs,
     });
     setQuery('');
     setResults([]);

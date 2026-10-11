@@ -36,6 +36,18 @@ const HELPER_COMPLETIONS: Completion[] = [
   snippetCompletion("truncate(${1:value}, ${2:20})", {
     label: 'truncate', detail: '(value, max)', info: '文字数を切り詰める', type: 'function',
   }),
+  snippetCompletion("sumDuration(${1:groups['id']}, '${2:field-id}')", {
+    label: 'sumDuration', detail: '(group, fieldId) → 分:秒', info: '演奏時間の合計', type: 'function',
+  }),
+  snippetCompletion("sumApproxMinutes(${1:groups['id']}, '${2:song-field-id}')", {
+    label: 'sumApproxMinutes', detail: '(group, songFieldId) → 分', info: 'iTunes の曲の長さから出した演奏時間（概算）の合計', type: 'function',
+  }),
+  snippetCompletion("durationSeconds(${1:value})", {
+    label: 'durationSeconds', detail: '(分:秒) → 秒', info: '演奏時間を秒に直す', type: 'function',
+  }),
+  snippetCompletion("formatDuration(${1:seconds})", {
+    label: 'formatDuration', detail: '(秒) → 分:秒', info: '秒を演奏時間の書き方に直す', type: 'function',
+  }),
   { label: 'join', detail: '(list, sep)', info: 'リストを文字列結合', type: 'function' },
   { label: 'pluck', detail: '(group, fieldId)', info: 'フィールド値をリストに', type: 'function' },
   { label: 'filterEquals', detail: '(group, fieldId, value)', info: '等値でフィルタ', type: 'function' },
@@ -53,6 +65,7 @@ const ITEM_COMPLETIONS: Completion[] = [
   { label: 'value', type: 'property' },
   { label: 'values', type: 'property' },
   { label: 'isEmpty', type: 'property' },
+  { label: 'approxMinutes', detail: '曲の欄: 演奏時間（概算、分）', type: 'property' },
   { label: 'items', type: 'property' },
   { label: 'count', type: 'property' },
   snippetCompletion("field('${1:field-id}')", { label: 'field', detail: "(fieldId) → FieldRef", type: 'method' }),

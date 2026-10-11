@@ -7,6 +7,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Copy, FileDown, FileText, Music } from 'lucide-react';
+
+import { approxMinutes } from '@/features/setting-sheet/helpers/itunes-duration';
+
 import {
   type ItunesLinkSelection,
   type PublicSettingSheetSubmissionDetailResponse,
@@ -127,6 +130,7 @@ export function SubmissionDetailDialog({
 }
 
 function ItunesLinkCard({ link }: { link: ItunesLinkSelection }) {
+  const minutes = approxMinutes(link.itunesDurationMs);
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3">
       {link.itunesAlbumArtUrl ? (
@@ -142,6 +146,7 @@ function ItunesLinkCard({ link }: { link: ItunesLinkSelection }) {
         {link.itunesTitle && link.itunesTitle !== link.songTitle && (
           <p className="truncate text-xs text-muted-foreground">iTunes: {link.itunesTitle} — {link.itunesArtist}</p>
         )}
+        {minutes != null ? <p className="text-xs text-muted-foreground">演奏時間（概算） {minutes}分</p> : null}
       </div>
     </div>
   );
