@@ -16,6 +16,8 @@ import { buildFieldCatalog } from '../canvas-shared/field-catalog';
 import { LiveCopyFromDialog } from '../copy/LiveCopyFromDialog';
 import { downloadBlob } from '../pdf/pdf-api';
 import type { SettingSheetBlock } from '../types/live-types';
+import { AssistToggles } from './assist/AssistToggles';
+import { usePageLines } from './assist/usePageLines';
 import { useCanvasViewport } from './useCanvasViewport';
 import { useVenueFormEditor } from './useVenueFormEditor';
 import { useVenueFormPageData } from './useVenueFormPageData';
@@ -55,6 +57,8 @@ export const VenueFormEditorPage = () => {
   const leaveGuard = useUnsavedChangesWarning(isDirty);
   const catalog = useMemo(() => buildFieldCatalog(data?.config), [data?.config]);
   const blocksById = useMemo(() => indexBlocks(data?.config.blocks ?? []), [data?.config]);
+  const pageLines = usePageLines(liveId ?? '', editor.currentPage ?? null, data?.assets ?? NO_ASSETS);
+  const [showLines, setShowLines] = useState(false);
 
   if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
   const backTo = `/tenants/${tenantId}/lives/${liveId}${downloadIds.length > 0 ? '/submissions' : ''}`;
@@ -143,7 +147,12 @@ export const VenueFormEditorPage = () => {
               onRedo={editor.redo}
               onZoomIn={viewport.zoomIn}
               onZoomOut={viewport.zoomOut}
-              zoomExtras={<ZoomFitButtons onFitPage={viewport.fitPage} onFitWidth={viewport.fitWidth} onReset={viewport.resetZoom} />}
+              zoomExtras={(
+                <>
+                  <ZoomFitButtons onFitPage={viewport.fitPage} onFitWidth={viewport.fitWidth} onReset={viewport.resetZoom} />
+                  <AssistToggles lineCount={pageLines.length} showLines={showLines} onShowLinesChange={setShowLines} />
+                </>
+              )}
               onAlign={editor.align}
               onDistribute={editor.distribute}
               onLayer={editor.layer}
@@ -156,6 +165,8 @@ export const VenueFormEditorPage = () => {
                   <VenueCanvas
                     canvasRef={canvasRef}
                     backgroundIsPdf={isPdfBackground(data.assets, editor.currentPage.background?.assetId)}
+                    ruledLines={pageLines}
+                    showRuledLines={showLines}
                     liveId={liveId}
                     page={editor.currentPage}
                     elements={editor.pageElements}
@@ -198,6 +209,8 @@ export const VenueFormEditorPage = () => {
     </ExpressionPreviewProvider>
   );
 };
+
+const NO_ASSETS: VenueAsset[] = [];
 
 function isPdfBackground(assets: VenueAsset[], assetId: string | undefined) {
   return Boolean(assetId && assets.find((asset) => asset.id === assetId)?.contentType === 'application/pdf');

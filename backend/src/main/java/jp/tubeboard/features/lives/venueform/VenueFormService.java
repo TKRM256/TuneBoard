@@ -79,6 +79,13 @@ public class VenueFormService {
         return assetService.find(live.getId(), assetId, LiveAssetPurpose.VENUE_FORM);
     }
 
+    /** ファイルにそのページがあるか確かめる。 */
+    public void requirePage(LiveAsset asset, int pageIndex) {
+        if (pageIndex < 0 || pageIndex >= assetService.readMeta(asset).pageCount()) {
+            throw new BadRequestException("ページが見つかりません");
+        }
+    }
+
     public byte[] pagePreview(LiveAsset asset, int pageIndex, int quality) {
         return rasterizer.previewPng(asset, pageIndex, quality);
     }

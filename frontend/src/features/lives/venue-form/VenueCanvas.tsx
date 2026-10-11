@@ -7,6 +7,8 @@ import { useAuthedObjectUrl } from '@/hooks/use-authed-object-url';
 import type { FieldCatalog } from '../canvas-shared/field-catalog';
 import { ElementLayer } from '../canvas-shared/ElementLayer';
 import type { MmBox } from '../canvas-shared/geometry';
+import type { PageLine } from './assist/ruled-lines';
+import { RuledLinesOverlay } from './assist/RuledLinesOverlay';
 import { VenueElementView } from './VenueElementView';
 import { venuePagePreviewPath } from './venue-form-api';
 import type { VenueElement, VenuePage } from './venue-form-schema';
@@ -24,6 +26,9 @@ interface Props {
   canvasRef?: Ref<HTMLDivElement>;
   /** 背景が PDF のときだけ、拡大に合わせて高い解像度で描き直せる */
   backgroundIsPdf?: boolean;
+  /** 背景から検出した罫線。showRuledLines のときは重ねて見せる */
+  ruledLines?: PageLine[];
+  showRuledLines?: boolean;
 }
 
 /** 背景の PDF を描く解像度の段階。画面の実際の密度（拡大率 × 画面の倍率）に足りる最小の段階を選ぶ。 */
@@ -36,7 +41,7 @@ function backgroundQuality(pxPerMm: number) {
   return Math.min(MAX_QUALITY, Math.max(1, Math.ceil(neededDpi / PREVIEW_DPI - 0.15)));
 }
 
-export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selectedIds, onSelect, onUpdate, onMoveSelection, canvasRef, backgroundIsPdf = false }: Props) {
+export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selectedIds, onSelect, onUpdate, onMoveSelection, canvasRef, backgroundIsPdf = false, ruledLines = [], showRuledLines = false }: Props) {
   const background = page.background;
   const quality = background && backgroundIsPdf ? backgroundQuality(pxPerMm) : 1;
   const backgroundPath = background ? venuePagePreviewPath(liveId, background.assetId, background.pageIndex) : null;
@@ -69,6 +74,7 @@ export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selected
           {failed ? '背景を読み込めませんでした' : <Loader2 className="size-5 animate-spin" />}
         </div>
       ) : null}
+      {showRuledLines ? <RuledLinesOverlay lines={ruledLines} pxPerMm={pxPerMm} /> : null}
       <ElementLayer
         elements={elements}
         pxPerMm={pxPerMm}

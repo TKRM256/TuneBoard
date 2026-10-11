@@ -45,6 +45,13 @@ public class AssetRasterizer {
         return AssetInspector.PDF.equals(asset.getContentType()) ? AssetInspector.PNG : asset.getContentType();
     }
 
+    /** ページを画像として読む（罫線の検出用）。画像ファイルはそのまま、PDF は指定の解像度で描く。 */
+    public BufferedImage pageImage(LiveAsset asset, int pageIndex, float pdfDpi) {
+        return AssetInspector.PDF.equals(asset.getContentType())
+                ? renderPdfPage(asset.getContent(), pageIndex, pdfDpi)
+                : readImage(asset.getContent());
+    }
+
     /** ページの一部を切り出した PNG。ステージの下絵を会場書式から作るときに使う。 */
     public byte[] cropPng(LiveAsset asset, int pageIndex, CropRect rect) {
         validate(rect);

@@ -20,6 +20,7 @@ import jp.tubeboard.common.exception.BadRequestException;
 import jp.tubeboard.features.lives.asset.LiveAsset;
 import jp.tubeboard.features.lives.asset.LiveAssetResponse;
 import jp.tubeboard.features.lives.venueform.VenueFormDtos.CopyFromRequest;
+import jp.tubeboard.features.lives.venueform.VenueFormDtos.PageLinesResponse;
 import jp.tubeboard.features.lives.venueform.VenueFormDtos.VenueFormCheckRequest;
 import jp.tubeboard.features.lives.venueform.VenueFormDtos.VenueFormCheckResponse;
 import jp.tubeboard.features.lives.venueform.VenueFormDtos.VenueFormRenderRequest;
@@ -28,6 +29,7 @@ import jp.tubeboard.features.lives.venueform.VenueFormDtos.VenueFormUpdateReques
 import jp.tubeboard.features.lives.venueform.VenueFormDtos.VenueFormZipRequest;
 import jp.tubeboard.features.lives.venueform.VenueFormPdfService;
 import jp.tubeboard.features.lives.venueform.VenueFormService;
+import jp.tubeboard.features.lives.venueform.lines.RuledLineService;
 import lombok.AllArgsConstructor;
 
 /** 会場書式（会場の書式を背景にした PDF）の設定と出力。 */
@@ -38,6 +40,7 @@ public class VenueFormController {
 
     private final VenueFormService venueFormService;
     private final VenueFormPdfService venueFormPdfService;
+    private final RuledLineService ruledLineService;
 
     @GetMapping
     public ResponseEntity<VenueFormResponse> get(@PathVariable(name = "id") UUID id) {
@@ -67,6 +70,18 @@ public class VenueFormController {
                 .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePrivate())
                 .contentType(MediaType.parseMediaType(venueFormService.pagePreviewContentType(asset)))
                 .body(venueFormService.pagePreview(asset, pageIndex, quality));
+    }
+
+    /** 背景のページの罫線（あてふりの吸着・枠合わせ用）。 */
+    @GetMapping("/assets/{assetId}/pages/{pageIndex}/lines")
+    public ResponseEntity<PageLinesResponse> pageLines(@PathVariable(name = "id") UUID id,
+            @PathVariable(name = "assetId") UUID assetId,
+            @PathVariable(name = "pageIndex") int pageIndex) {
+        LiveAsset asset = venueFormService.findAsset(id, assetId);
+        venueFormService.requirePage(asset, pageIndex);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePrivate())
+                .body(new PageLinesResponse(ruledLineService.linesFor(asset, pageIndex)));
     }
 
     @PostMapping("/copy-from")

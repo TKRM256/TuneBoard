@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import jp.tubeboard.features.lives.asset.LiveAssetResponse;
 import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenueFormDocument;
+import jp.tubeboard.features.lives.venueform.lines.RuledLine;
 
 /** 会場書式 API の入出力。 */
 public final class VenueFormDtos {
@@ -30,6 +31,10 @@ public final class VenueFormDtos {
     }
 
     public record VenueFormCheckRequest(UUID submissionId, VenueFormDocument document) {
+    }
+
+    /** 背景のページから検出した罫線。座標はページに対する比率。 */
+    public record PageLinesResponse(List<RuledLine> lines) {
     }
 
     public record VenueFormCheckResponse(List<String> warnings) {
