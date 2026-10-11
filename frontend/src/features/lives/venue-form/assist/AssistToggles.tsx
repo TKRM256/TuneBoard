@@ -1,6 +1,6 @@
 /** あてふり補助の切り替え（罫線の表示・罫線への吸着・範囲から表を作る）。 */
 import type { ReactNode } from 'react';
-import { Grid3x3, Magnet, TableProperties } from 'lucide-react';
+import { Grid3x3, Magnet, SquareCheck, TableProperties } from 'lucide-react';
 
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -47,6 +47,15 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, snap, o
         onPressedChange={(next) => onToolChange(next ? 'table' : 'none')}
       >
         <TableProperties className="size-4" />
+      </AssistToggle>
+      <AssistToggle
+        label="選択肢の印を置く"
+        tooltip="選択肢の印を置く（選択肢ごとに場所を順にクリック。Esc でやめる）"
+        pressed={tool === 'marker'}
+        disabled={false}
+        onPressedChange={(next) => onToolChange(next ? 'marker' : 'none')}
+      >
+        <SquareCheck className="size-4" />
       </AssistToggle>
     </>
   );

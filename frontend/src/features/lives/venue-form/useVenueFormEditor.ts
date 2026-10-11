@@ -109,6 +109,12 @@ export function useVenueFormEditor() {
     },
     movePage: (id: string, direction: -1 | 1) => commit(ops.movePage(current(), id, direction)),
     updateElement: (id: string, patch: Partial<VenueElement>) => commit(ops.updateElement(current(), id, patch)),
+    /** 指定した要素を消す（あてふり補助で置いた印を取り消すときなど） */
+    removeElements: (ids: string[]) => {
+      if (ids.length === 0) return;
+      commit(ops.removeElements(current(), new Set(ids)));
+      setSelectedIds(new Set());
+    },
     removeSelected: () => {
       commit(ops.removeElements(current(), selectedIds));
       setSelectedIds(new Set());

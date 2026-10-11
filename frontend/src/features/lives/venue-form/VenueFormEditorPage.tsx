@@ -16,9 +16,8 @@ import { buildFieldCatalog } from '../canvas-shared/field-catalog';
 import { LiveCopyFromDialog } from '../copy/LiveCopyFromDialog';
 import { downloadBlob } from '../pdf/pdf-api';
 import type { SettingSheetBlock } from '../types/live-types';
+import { AssistCanvasLayer, AssistDialogs, AssistGuide } from './assist/AssistParts';
 import { AssistToggles } from './assist/AssistToggles';
-import { RegionSelectLayer } from './assist/RegionSelectLayer';
-import { TableFromRegionDialog } from './assist/TableFromRegionDialog';
 import { useVenueAssist } from './assist/useVenueAssist';
 import { useCanvasViewport } from './useCanvasViewport';
 import { useVenueFormEditor } from './useVenueFormEditor';
@@ -59,7 +58,7 @@ export const VenueFormEditorPage = () => {
   const leaveGuard = useUnsavedChangesWarning(isDirty);
   const catalog = useMemo(() => buildFieldCatalog(data?.config), [data?.config]);
   const blocksById = useMemo(() => indexBlocks(data?.config.blocks ?? []), [data?.config]);
-  const assist = useVenueAssist(editor, liveId ?? '', data?.assets ?? NO_ASSETS);
+  const assist = useVenueAssist(editor, { liveId: liveId ?? '', assets: data?.assets ?? NO_ASSETS, catalog, blocksById });
 
   if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
   const backTo = `/tenants/${tenantId}/lives/${liveId}${downloadIds.length > 0 ? '/submissions' : ''}`;
@@ -168,31 +167,32 @@ export const VenueFormEditorPage = () => {
               onDuplicate={editor.duplicateSelected}
               onDelete={editor.removeSelected}
             />
-            <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto bg-muted/20 p-6" {...viewport.scrollerProps}>
-              {editor.currentPage ? (
-                <div className="flex w-max min-w-full justify-center">
-                  <VenueCanvas
-                    canvasRef={canvasRef}
-                    backgroundIsPdf={isPdfBackground(data.assets, editor.currentPage.background?.assetId)}
-                    ruledLines={assist.lines}
-                    showRuledLines={assist.showLines || assist.tool !== 'none'}
-                    snapLines={assist.snapLines}
-                    onElementDoubleClick={assist.fitElementToCell}
-                    overlay={assist.tool === 'table' ? (
-                      <RegionSelectLayer pxPerMm={viewport.pxPerMm} onSelect={assist.selectTableRegion} onCancel={() => assist.setTool('none')} />
-                    ) : null}
-                    liveId={liveId}
-                    page={editor.currentPage}
-                    elements={editor.pageElements}
-                    catalog={catalog}
-                    pxPerMm={viewport.pxPerMm}
-                    selectedIds={editor.selectedIds}
-                    onSelect={editor.select}
-                    onUpdate={editor.updateElement}
-                    onMoveSelection={editor.moveSelected}
-                  />
-                </div>
-              ) : null}
+            <div className="relative min-h-0 flex-1">
+              <AssistGuide assist={assist} />
+              <div ref={scrollerRef} className="h-full overflow-auto bg-muted/20 p-6" {...viewport.scrollerProps}>
+                {editor.currentPage ? (
+                  <div className="flex w-max min-w-full justify-center">
+                    <VenueCanvas
+                      canvasRef={canvasRef}
+                      backgroundIsPdf={isPdfBackground(data.assets, editor.currentPage.background?.assetId)}
+                      ruledLines={assist.lines}
+                      showRuledLines={assist.showLines || assist.tool !== 'none'}
+                      snapLines={assist.snapLines}
+                      onElementDoubleClick={assist.fitElementToCell}
+                      overlay={<AssistCanvasLayer assist={assist} pxPerMm={viewport.pxPerMm} />}
+                      liveId={liveId}
+                      page={editor.currentPage}
+                      elements={editor.pageElements}
+                      catalog={catalog}
+                      pxPerMm={viewport.pxPerMm}
+                      selectedIds={editor.selectedIds}
+                      onSelect={editor.select}
+                      onUpdate={editor.updateElement}
+                      onMoveSelection={editor.moveSelected}
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
           </main>
           <aside className="w-80 shrink-0 border-l">
@@ -219,7 +219,7 @@ export const VenueFormEditorPage = () => {
         unavailableLabel="会場書式なし"
         onConfirm={handleCopy}
       />
-      <TableFromRegionDialog grid={assist.pendingGrid} catalog={catalog} onCreate={assist.createTable} onClose={assist.closeTableDialog} />
+      <AssistDialogs assist={assist} catalog={catalog} />
       <UnsavedChangesDialog guard={leaveGuard} />
     </ExpressionPreviewProvider>
   );

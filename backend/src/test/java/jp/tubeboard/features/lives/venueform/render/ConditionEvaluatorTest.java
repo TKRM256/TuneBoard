@@ -63,6 +63,38 @@ class ConditionEvaluatorTest {
     }
 
     @Test
+    void 何件目かを指定した条件は件数が足りなければエラーにせず偽にする() {
+        ItemRef first = new ItemRef(0, "", Map.of("song-parts",
+                new FieldRef("Vocal", List.of("Vocal"), false)), Map.of());
+        ItemRef second = new ItemRef(1, "", Map.of("song-parts",
+                new FieldRef("Bass", List.of("Bass"), false)), Map.of());
+        Map<String, Object> ns = Map.of("groups", Map.of("setlist", new GroupRef(List.of(first, second), 2)));
+
+        assertThat(conditions.passes(
+                "${count(groups['setlist'].items) >= 2 && contains(groups['setlist'].items[1].field('song-parts').values, 'Bass')}",
+                ns)).isTrue();
+        assertThat(conditions.passes(
+                "${count(groups['setlist'].items) >= 1 && contains(groups['setlist'].items[0].field('song-parts').values, 'Bass')}",
+                ns)).isFalse();
+        assertThat(conditions.passes(
+                "${count(groups['setlist'].items) >= 5 && contains(groups['setlist'].items[4].field('song-parts').values, 'Bass')}",
+                ns)).isFalse();
+    }
+
+    @Test
+    void はいいいえの両方を判定できる() {
+        Map<String, Object> ns = Map.of("fields", Map.of(
+                "on", new FieldRef("true", List.of("true"), false),
+                "off", new FieldRef("false", List.of("false"), false),
+                "blank", new FieldRef("", List.of(), true)));
+
+        assertThat(conditions.passes("${fields['off'].value == 'false'}", ns)).isTrue();
+        assertThat(conditions.passes("${fields['on'].value == 'false'}", ns)).isFalse();
+        // 未回答は「いいえ」とはみなさない
+        assertThat(conditions.passes("${fields['blank'].value == 'false'}", ns)).isFalse();
+    }
+
+    @Test
     void 真偽以外の値も真か偽かに直す() {
         assertThat(ConditionEvaluator.truthy("false")).isFalse();
         assertThat(ConditionEvaluator.truthy("0")).isFalse();

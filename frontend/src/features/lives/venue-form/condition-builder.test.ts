@@ -17,6 +17,12 @@ describe('buildCondition', () => {
     expect(buildCondition({ fieldId: 'pa', operator: 'equals', value: '有' })).toBe("${fields['pa'].value == '有'}");
     expect(buildCondition({ fieldId: 'pa', operator: 'filled' })).toBe("${count(fields['pa'].values) > 0}");
     expect(buildCondition({ fieldId: 'rep', operator: 'isTrue' })).toBe("${fields['rep'].value == 'true'}");
+    expect(buildCondition({ fieldId: 'rep', operator: 'isFalse' })).toBe("${fields['rep'].value == 'false'}");
+  });
+
+  it('checks only the given item of a group, guarding against missing items', () => {
+    expect(buildCondition({ fieldId: 'song-parts', groupId: 'setlist', itemIndex: 2, operator: 'includes', value: 'Bass' }))
+      .toBe("${count(groups['setlist'].items) >= 2 && contains(groups['setlist'].items[1].field('song-parts').values, 'Bass')}");
   });
 
   it('escapes quotes in option values', () => {
@@ -26,7 +32,7 @@ describe('buildCondition', () => {
 
   it('offers operators that fit the field type', () => {
     expect(operatorsFor('MULTI_SELECT')).toEqual(['includes', 'filled']);
-    expect(operatorsFor('BOOLEAN')).toEqual(['isTrue']);
+    expect(operatorsFor('BOOLEAN')).toEqual(['isTrue', 'isFalse']);
     expect(operatorsFor('SHORT_TEXT')).toEqual(['equals', 'filled']);
   });
 });
