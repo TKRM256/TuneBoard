@@ -16,6 +16,7 @@ import { buildFieldCatalog } from '../canvas-shared/field-catalog';
 import { LiveCopyFromDialog } from '../copy/LiveCopyFromDialog';
 import { downloadBlob } from '../pdf/pdf-api';
 import type { SettingSheetBlock } from '../types/live-types';
+import { useCanvasViewport } from './useCanvasViewport';
 import { useVenueFormEditor } from './useVenueFormEditor';
 import { useVenueFormPageData } from './useVenueFormPageData';
 import { useVenueKeyboardShortcuts } from './useVenueKeyboardShortcuts';
@@ -26,9 +27,8 @@ import { VenuePalette } from './VenuePalette';
 import { VenuePreviewDialog } from './VenuePreviewDialog';
 import { VenuePropertyPanel } from './VenuePropertyPanel';
 import { copyVenueFormFrom, fetchVenueFormPdf, fetchVenueFormZip, saveVenueForm } from './venue-form-api';
-import { emptyVenueForm } from './venue-form-schema';
-
-const ZOOM_LEVELS = [1.5, 2, 2.5, 3, 3.5, 4, 5];
+import { emptyVenueForm, type VenueAsset } from './venue-form-schema';
+import { ZoomFitButtons } from './ZoomFitButtons';
 
 export const VenueFormEditorPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -38,7 +38,6 @@ export const VenueFormEditorPage = () => {
   const editor = useVenueFormEditor();
   const [savedJson, setSavedJson] = useState(JSON.stringify(emptyVenueForm()));
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [pxPerMm, setPxPerMm] = useState(2.5);
   const [isCopyOpen, setIsCopyOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const save = useSingleFlight();
@@ -51,6 +50,7 @@ export const VenueFormEditorPage = () => {
     setPreviewId(downloadIds[0] ?? loaded.submissions[0]?.id ?? null);
   });
   useVenueKeyboardShortcuts(editor);
+  const { scrollerRef, canvasRef, ...viewport } = useCanvasViewport(editor.currentPage ?? null);
   const isDirty = JSON.stringify(editor.doc) !== savedJson;
   const leaveGuard = useUnsavedChangesWarning(isDirty);
   const catalog = useMemo(() => buildFieldCatalog(data?.config), [data?.config]);
@@ -136,28 +136,31 @@ export const VenueFormEditorPage = () => {
           <main className="flex min-w-0 flex-1 flex-col">
             <AlignmentToolbar
               selectionCount={editor.selectedIds.size}
-              pxPerMm={pxPerMm}
+              pxPerMm={viewport.pxPerMm}
               canUndo={editor.canUndo}
               canRedo={editor.canRedo}
               onUndo={editor.undo}
               onRedo={editor.redo}
-              onZoomIn={() => setPxPerMm((prev) => ZOOM_LEVELS.find((z) => z > prev) ?? prev)}
-              onZoomOut={() => setPxPerMm((prev) => [...ZOOM_LEVELS].reverse().find((z) => z < prev) ?? prev)}
+              onZoomIn={viewport.zoomIn}
+              onZoomOut={viewport.zoomOut}
+              zoomExtras={<ZoomFitButtons onFitPage={viewport.fitPage} onFitWidth={viewport.fitWidth} onReset={viewport.resetZoom} />}
               onAlign={editor.align}
               onDistribute={editor.distribute}
               onLayer={editor.layer}
               onDuplicate={editor.duplicateSelected}
               onDelete={editor.removeSelected}
             />
-            <div className="min-h-0 flex-1 overflow-auto bg-muted/20 p-6">
+            <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto bg-muted/20 p-6" {...viewport.scrollerProps}>
               {editor.currentPage ? (
-                <div className="flex justify-center">
+                <div className="flex w-max min-w-full justify-center">
                   <VenueCanvas
+                    canvasRef={canvasRef}
+                    backgroundIsPdf={isPdfBackground(data.assets, editor.currentPage.background?.assetId)}
                     liveId={liveId}
                     page={editor.currentPage}
                     elements={editor.pageElements}
                     catalog={catalog}
-                    pxPerMm={pxPerMm}
+                    pxPerMm={viewport.pxPerMm}
                     selectedIds={editor.selectedIds}
                     onSelect={editor.select}
                     onUpdate={editor.updateElement}
@@ -195,6 +198,10 @@ export const VenueFormEditorPage = () => {
     </ExpressionPreviewProvider>
   );
 };
+
+function isPdfBackground(assets: VenueAsset[], assetId: string | undefined) {
+  return Boolean(assetId && assets.find((asset) => asset.id === assetId)?.contentType === 'application/pdf');
+}
 
 function indexBlocks(blocks: SettingSheetBlock[], out = new Map<string, SettingSheetBlock>()) {
   for (const block of blocks) {

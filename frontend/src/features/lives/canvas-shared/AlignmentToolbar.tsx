@@ -38,6 +38,8 @@ interface Props {
   onRedo: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  /** 拡大ボタンの右に足すボタン（全体表示など） */
+  zoomExtras?: React.ReactNode;
   onAlign: (mode: AlignMode) => void;
   onDistribute: (axis: 'horizontal' | 'vertical') => void;
   onLayer: (mode: 'front' | 'back') => void;
@@ -54,6 +56,7 @@ export function AlignmentToolbar({
   onRedo,
   onZoomIn,
   onZoomOut,
+  zoomExtras,
   onAlign,
   onDistribute,
   onLayer,
@@ -135,6 +138,7 @@ export function AlignmentToolbar({
           <Button variant="ghost" size="icon" onClick={onZoomIn} className="size-7">
             <ZoomIn className="size-4" />
           </Button>
+          {zoomExtras}
         </div>
       </div>
     </TooltipProvider>

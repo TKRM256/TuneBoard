@@ -21,18 +21,24 @@ import jp.tubeboard.common.exception.BadRequestException;
 public class AssetRasterizer {
 
     private static final float PREVIEW_DPI = 110f;
+    /** エディタで拡大したときの画質の段階。PREVIEW_DPI の何倍で描くか（大きいほどメモリを使うので 3 倍まで）。 */
+    public static final int MAX_PREVIEW_QUALITY = 3;
     private static final float CROP_DPI = 200f;
 
     /** 範囲は画像全体に対する比率（0〜1）で指定する。 */
     public record CropRect(double x, double y, double width, double height) {
     }
 
-    /** エディタの背景として表示するページの画像。画像ファイルはそのまま返す。 */
-    public byte[] previewPng(LiveAsset asset, int pageIndex) {
+    /**
+     * エディタの背景として表示するページの画像。画像ファイルはそのまま返す。
+     * PDF は拡大しても線がぼやけないよう、quality（1〜3）倍の解像度で描く。
+     */
+    public byte[] previewPng(LiveAsset asset, int pageIndex, int quality) {
         if (!AssetInspector.PDF.equals(asset.getContentType())) {
             return asset.getContent();
         }
-        return toPng(renderPdfPage(asset.getContent(), pageIndex, PREVIEW_DPI));
+        int level = clamp(quality, 1, MAX_PREVIEW_QUALITY);
+        return toPng(renderPdfPage(asset.getContent(), pageIndex, PREVIEW_DPI * level));
     }
 
     public String previewContentType(LiveAsset asset) {

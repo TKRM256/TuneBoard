@@ -42,6 +42,8 @@ export function fetchVenueFormZip(liveId: string, submissionIds: string[], docum
 }
 
 /** 背景ページのプレビュー画像のパス（認証付きで取得する）。 */
-export function venuePagePreviewPath(liveId: string, assetId: string, pageIndex: number): string {
-  return `/lives/${liveId}/venue-form/assets/${assetId}/pages/${pageIndex}`;
+/** quality: PDF の背景を何倍の解像度で描くか（1〜3）。画像の背景には効かない。 */
+export function venuePagePreviewPath(liveId: string, assetId: string, pageIndex: number, quality = 1): string {
+  const base = `/lives/${liveId}/venue-form/assets/${assetId}/pages/${pageIndex}`;
+  return quality > 1 ? `${base}?quality=${quality}` : base;
 }

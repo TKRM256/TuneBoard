@@ -59,13 +59,14 @@ public class VenueFormController {
     @GetMapping("/assets/{assetId}/pages/{pageIndex}")
     public ResponseEntity<byte[]> pagePreview(@PathVariable(name = "id") UUID id,
             @PathVariable(name = "assetId") UUID assetId,
-            @PathVariable(name = "pageIndex") int pageIndex) {
+            @PathVariable(name = "pageIndex") int pageIndex,
+            @RequestParam(name = "quality", defaultValue = "1") int quality) {
         LiveAsset asset = venueFormService.findAsset(id, assetId);
         // ファイルは差し替えると別 ID になるので、同じ URL の中身は変わらない
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePrivate())
                 .contentType(MediaType.parseMediaType(venueFormService.pagePreviewContentType(asset)))
-                .body(venueFormService.pagePreview(asset, pageIndex));
+                .body(venueFormService.pagePreview(asset, pageIndex, quality));
     }
 
     @PostMapping("/copy-from")
