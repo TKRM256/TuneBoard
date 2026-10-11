@@ -30,11 +30,17 @@ export function ShrinkToFitLine({ fontPx, minFontPx, align, children }: Props) {
       setScale(Math.max(minFontPx / fontPx, fit));
     };
     measure();
-    // 回答の読み込みや枠の大きさの変更で幅が変わったら測り直す
-    const observer = new ResizeObserver(measure);
-    observer.observe(box);
-    observer.observe(text);
-    return () => observer.disconnect();
+    // 枠の大きさが変わったら測り直す
+    const resize = new ResizeObserver(measure);
+    resize.observe(box);
+    resize.observe(text);
+    // 回答の読み込みなどで中身が変わったときも測り直す（ResizeObserver は画面に出ていないと届かないことがある）
+    const mutation = new MutationObserver(measure);
+    mutation.observe(text, { childList: true, subtree: true, characterData: true });
+    return () => {
+      resize.disconnect();
+      mutation.disconnect();
+    };
   }, [fontPx, minFontPx]);
 
   const origin = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
