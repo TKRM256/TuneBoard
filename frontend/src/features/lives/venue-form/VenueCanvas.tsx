@@ -1,5 +1,5 @@
 /** 会場書式の 1 ページ。背景（会場の書式）の上に要素を置く。背景は出力と同じく縦横比を保ってページに収める。 */
-import type { PointerEvent, Ref } from 'react';
+import type { PointerEvent, ReactNode, Ref } from 'react';
 import { Loader2 } from 'lucide-react';
 
 import { useAuthedObjectUrl } from '@/hooks/use-authed-object-url';
@@ -32,6 +32,8 @@ interface Props {
   /** 動かす・大きさを変えるときに吸い付く線 */
   snapLines?: PageLine[];
   onElementDoubleClick?: (id: string) => void;
+  /** 要素より手前に重ねる操作用のレイヤー（範囲を囲むときなど） */
+  overlay?: ReactNode;
 }
 
 /** 背景の PDF を描く解像度の段階。画面の実際の密度（拡大率 × 画面の倍率）に足りる最小の段階を選ぶ。 */
@@ -44,7 +46,7 @@ function backgroundQuality(pxPerMm: number) {
   return Math.min(MAX_QUALITY, Math.max(1, Math.ceil(neededDpi / PREVIEW_DPI - 0.15)));
 }
 
-export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selectedIds, onSelect, onUpdate, onMoveSelection, canvasRef, backgroundIsPdf = false, ruledLines = [], showRuledLines = false, snapLines, onElementDoubleClick }: Props) {
+export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selectedIds, onSelect, onUpdate, onMoveSelection, canvasRef, backgroundIsPdf = false, ruledLines = [], showRuledLines = false, snapLines, onElementDoubleClick, overlay }: Props) {
   const background = page.background;
   const quality = background && backgroundIsPdf ? backgroundQuality(pxPerMm) : 1;
   const backgroundPath = background ? venuePagePreviewPath(liveId, background.assetId, background.pageIndex) : null;
@@ -92,6 +94,7 @@ export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selected
           <VenueElementView element={element} catalog={catalog} pxPerMm={pxPerMm} selected={selected} />
         )}
       />
+      {overlay}
     </div>
   );
 }

@@ -55,6 +55,13 @@ export function useVenueFormEditor() {
     setSelectedIds(new Set([element.id]));
   }, [commit, current, currentPage]);
 
+  /** 作り終えた要素をそのまま足して選ぶ（あてふり補助で作った表・印など）。 */
+  const addElements = useCallback((elements: VenueElement[]) => {
+    if (elements.length === 0) return;
+    commit({ ...current(), elements: [...current().elements, ...elements] });
+    setSelectedIds(new Set(elements.map((element) => element.id)));
+  }, [commit, current]);
+
   const addPage = useCallback((page: VenuePage) => {
     commit(ops.addPage(current(), page));
     showPage(page.id);
@@ -92,6 +99,7 @@ export function useVenueFormEditor() {
     select,
     showPage,
     insert,
+    addElements,
     addPage,
     updatePage: (id: string, patch: Partial<VenuePage>) => commit(ops.updatePage(current(), id, patch)),
     removePage: (id: string) => {

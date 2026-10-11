@@ -17,8 +17,9 @@ import { LiveCopyFromDialog } from '../copy/LiveCopyFromDialog';
 import { downloadBlob } from '../pdf/pdf-api';
 import type { SettingSheetBlock } from '../types/live-types';
 import { AssistToggles } from './assist/AssistToggles';
-import { fitToCell } from './assist/cell-fit';
-import { usePageLines } from './assist/usePageLines';
+import { RegionSelectLayer } from './assist/RegionSelectLayer';
+import { TableFromRegionDialog } from './assist/TableFromRegionDialog';
+import { useVenueAssist } from './assist/useVenueAssist';
 import { useCanvasViewport } from './useCanvasViewport';
 import { useVenueFormEditor } from './useVenueFormEditor';
 import { useVenueFormPageData } from './useVenueFormPageData';
@@ -58,16 +59,7 @@ export const VenueFormEditorPage = () => {
   const leaveGuard = useUnsavedChangesWarning(isDirty);
   const catalog = useMemo(() => buildFieldCatalog(data?.config), [data?.config]);
   const blocksById = useMemo(() => indexBlocks(data?.config.blocks ?? []), [data?.config]);
-  const pageLines = usePageLines(liveId ?? '', editor.currentPage ?? null, data?.assets ?? NO_ASSETS);
-  const [showLines, setShowLines] = useState(false);
-  const [snap, setSnap] = useState(true);
-
-  // ダブルクリックした要素を、罫線の枠いっぱいに広げる（枠が無ければ何もしない）
-  const fitElementToCell = (id: string) => {
-    const element = editor.pageElements.find((candidate) => candidate.id === id);
-    const patch = element ? fitToCell(element, pageLines) : null;
-    if (patch) editor.updateElement(id, patch);
-  };
+  const assist = useVenueAssist(editor, liveId ?? '', data?.assets ?? NO_ASSETS);
 
   if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
   const backTo = `/tenants/${tenantId}/lives/${liveId}${downloadIds.length > 0 ? '/submissions' : ''}`;
@@ -159,7 +151,15 @@ export const VenueFormEditorPage = () => {
               zoomExtras={(
                 <>
                   <ZoomFitButtons onFitPage={viewport.fitPage} onFitWidth={viewport.fitWidth} onReset={viewport.resetZoom} />
-                  <AssistToggles lineCount={pageLines.length} showLines={showLines} onShowLinesChange={setShowLines} snap={snap} onSnapChange={setSnap} />
+                  <AssistToggles
+                    lineCount={assist.lines.length}
+                    showLines={assist.showLines}
+                    onShowLinesChange={assist.setShowLines}
+                    snap={assist.snap}
+                    onSnapChange={assist.setSnap}
+                    tool={assist.tool}
+                    onToolChange={assist.setTool}
+                  />
                 </>
               )}
               onAlign={editor.align}
@@ -174,10 +174,13 @@ export const VenueFormEditorPage = () => {
                   <VenueCanvas
                     canvasRef={canvasRef}
                     backgroundIsPdf={isPdfBackground(data.assets, editor.currentPage.background?.assetId)}
-                    ruledLines={pageLines}
-                    showRuledLines={showLines}
-                    snapLines={snap ? pageLines : undefined}
-                    onElementDoubleClick={fitElementToCell}
+                    ruledLines={assist.lines}
+                    showRuledLines={assist.showLines || assist.tool !== 'none'}
+                    snapLines={assist.snapLines}
+                    onElementDoubleClick={assist.fitElementToCell}
+                    overlay={assist.tool === 'table' ? (
+                      <RegionSelectLayer pxPerMm={viewport.pxPerMm} onSelect={assist.selectTableRegion} onCancel={() => assist.setTool('none')} />
+                    ) : null}
                     liveId={liveId}
                     page={editor.currentPage}
                     elements={editor.pageElements}
@@ -216,6 +219,7 @@ export const VenueFormEditorPage = () => {
         unavailableLabel="会場書式なし"
         onConfirm={handleCopy}
       />
+      <TableFromRegionDialog grid={assist.pendingGrid} catalog={catalog} onCreate={assist.createTable} onClose={assist.closeTableDialog} />
       <UnsavedChangesDialog guard={leaveGuard} />
     </ExpressionPreviewProvider>
   );

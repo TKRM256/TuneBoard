@@ -1,9 +1,11 @@
-/** あてふり補助の切り替え（罫線の表示・罫線への吸着）。 */
+/** あてふり補助の切り替え（罫線の表示・罫線への吸着・範囲から表を作る）。 */
 import type { ReactNode } from 'react';
-import { Grid3x3, Magnet } from 'lucide-react';
+import { Grid3x3, Magnet, TableProperties } from 'lucide-react';
 
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+import type { AssistTool } from './useVenueAssist';
 
 interface Props {
   lineCount: number;
@@ -11,9 +13,11 @@ interface Props {
   onShowLinesChange: (next: boolean) => void;
   snap: boolean;
   onSnapChange: (next: boolean) => void;
+  tool: AssistTool;
+  onToolChange: (next: AssistTool) => void;
 }
 
-export function AssistToggles({ lineCount, showLines, onShowLinesChange, snap, onSnapChange }: Props) {
+export function AssistToggles({ lineCount, showLines, onShowLinesChange, snap, onSnapChange, tool, onToolChange }: Props) {
   const noLines = lineCount === 0;
   return (
     <>
@@ -34,6 +38,15 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, snap, o
         onPressedChange={onSnapChange}
       >
         <Magnet className="size-4" />
+      </AssistToggle>
+      <AssistToggle
+        label="範囲から表を作る"
+        tooltip={noLines ? '罫線が見つかりません' : '範囲から表を作る（書式の表をドラッグで囲む。Esc でやめる）'}
+        pressed={tool === 'table'}
+        disabled={noLines}
+        onPressedChange={(next) => onToolChange(next ? 'table' : 'none')}
+      >
+        <TableProperties className="size-4" />
       </AssistToggle>
     </>
   );
