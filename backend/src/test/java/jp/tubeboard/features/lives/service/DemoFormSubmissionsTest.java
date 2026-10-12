@@ -17,9 +17,9 @@ import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.service.config.FormBuilderHelper;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigServiceHelper;
-import jp.tubeboard.features.lives.stageplot.StagePlotSettings;
 import jp.tubeboard.features.tenants.service.demo.DanceDemoForm;
 import jp.tubeboard.features.tenants.service.demo.DemoForm;
+import jp.tubeboard.features.tenants.service.demo.DemoStagePlots;
 import jp.tubeboard.features.tenants.service.demo.FesDemoForm;
 
 /** 開発用のダミーデータの、形の違うフォームと提出。読み込めて、提出が本物の提出と同じ検査を通ること。 */
@@ -63,7 +63,7 @@ class DemoFormSubmissionsTest {
                 Map<String, String> errors = new HashMap<>();
                 SubmissionAnswerValidator.validate(config.blocks(), payload.answers(), "answers.",
                         new SubmissionAnswerValidator.Context(config.blocks(), payload.answers(), errors, true,
-                                StagePlotSettings.empty()),
+                                DemoStagePlots.settings(form.stageKind(), null)),
                         true);
                 assertThat(errors).as("%s live=%d index=%d", form.getClass().getSimpleName(), liveIndex, index)
                         .isEmpty();

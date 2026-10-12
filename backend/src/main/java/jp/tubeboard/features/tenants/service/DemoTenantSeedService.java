@@ -20,6 +20,9 @@ import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionReque
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.tenants.service.demo.DanceDemoForm;
 import jp.tubeboard.features.tenants.service.demo.DemoForm;
+import jp.tubeboard.features.tenants.service.demo.DemoStagePlots;
+import jp.tubeboard.features.tenants.service.demo.DemoStagePlots.Kind;
+import jp.tubeboard.features.tenants.service.demo.DemoVenueSeeder;
 import jp.tubeboard.features.tenants.service.demo.FesDemoForm;
 import jp.tubeboard.features.lives.model.LiveStatus;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
@@ -90,29 +93,31 @@ public class DemoTenantSeedService {
             new SongSeed("Teenager Forever", "King Gnu"),
             new SongSeed("ワタリドリ", "[Alexandros]"));
 
+    /** 担当パートは既定のフォームの選択肢（Vocal / Guitar / Bass / Drum / Keyboard / その他）から選ぶ。 */
     private static final List<MemberSeed> MEMBER_POOL = List.of(
-            new MemberSeed("アヤ", List.of("Vo")),
-            new MemberSeed("ケン", List.of("Gt")),
-            new MemberSeed("リョウ", List.of("Ba")),
-            new MemberSeed("タクミ", List.of("Dr")),
-            new MemberSeed("ミユ", List.of("Vo", "Cho")),
-            new MemberSeed("ソラ", List.of("Gt", "Cho")),
-            new MemberSeed("ハル", List.of("Ba")),
-            new MemberSeed("レン", List.of("Dr")),
-            new MemberSeed("ユナ", List.of("Vo", "Gt")),
-            new MemberSeed("コウ", List.of("Gt")),
-            new MemberSeed("シン", List.of("Ba")),
-            new MemberSeed("ナオ", List.of("Dr")),
-            new MemberSeed("サキ", List.of("Key", "Cho")),
-            new MemberSeed("トワ", List.of("Gt")),
-            new MemberSeed("ユウ", List.of("Ba", "Cho")),
-            new MemberSeed("メイ", List.of("Perc", "Cho")));
+            new MemberSeed("アヤ", List.of("Vocal")),
+            new MemberSeed("ケン", List.of("Guitar")),
+            new MemberSeed("リョウ", List.of("Bass")),
+            new MemberSeed("タクミ", List.of("Drum")),
+            new MemberSeed("ミユ", List.of("Vocal")),
+            new MemberSeed("ソラ", List.of("Guitar", "Vocal")),
+            new MemberSeed("ハル", List.of("Bass")),
+            new MemberSeed("レン", List.of("Drum")),
+            new MemberSeed("ユナ", List.of("Vocal", "Guitar")),
+            new MemberSeed("コウ", List.of("Guitar")),
+            new MemberSeed("シン", List.of("Bass")),
+            new MemberSeed("ナオ", List.of("Drum")),
+            new MemberSeed("サキ", List.of("Keyboard", "Vocal")),
+            new MemberSeed("トワ", List.of("Guitar")),
+            new MemberSeed("ユウ", List.of("Bass", "Vocal")),
+            new MemberSeed("メイ", List.of("その他", "Vocal")));
 
+    /** 曲ごとの使うパートは既定のフォームの選択肢から選ぶ。 */
     private static final List<List<String>> SONG_PART_PATTERNS = List.of(
-            List.of("Vo", "Gt", "Ba", "Dr"),
-            List.of("Vo", "Gt", "Ba", "Dr", "Key"),
-            List.of("Vo", "Gt", "Gt", "Ba", "Dr"),
-            List.of("Vo", "Gt", "Ba", "Dr", "Cho"));
+            List.of("Vocal", "Marshall", "Bass", "Drum"),
+            List.of("Vocal", "Jazzchorus", "Bass", "Drum", "電子ピアノ"),
+            List.of("Vocal", "Marshall", "Jazzchorus", "Bass", "Drum"),
+            List.of("Vocal", "Marshall", "Bass", "Drum", "持ち込みシンセ"));
 
     private static final List<String> PA_NOTES = List.of(
             "イントロのリバーブ多めでお願いします",
@@ -141,6 +146,7 @@ public class DemoTenantSeedService {
     private final LiveRepository liveRepository;
     private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
     private final SettingSheetConfigService settingSheetConfigService;
+    private final DemoVenueSeeder demoVenueSeeder;
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
     @Transactional
@@ -188,6 +194,13 @@ public class DemoTenantSeedService {
                             liveDefinition.submissionCount())
                     : createFormSubmissions(live, tenantDefinition.form(), liveIndex,
                             liveDefinition.submissionCount()));
+
+            // ステージ配置図はどのライブにも、会場書式は各テナントの最初のライブにだけ入れる
+            Kind kind = tenantDefinition.form() == null ? Kind.BAND : tenantDefinition.form().stageKind();
+            demoVenueSeeder.seedStagePlot(live, kind);
+            if (liveIndex == 0) {
+                demoVenueSeeder.seedVenueForm(live, kind);
+            }
         }
     }
 
@@ -252,7 +265,9 @@ public class DemoTenantSeedService {
                 new FieldAnswerRequest("members", List.of(),
                         createMembers(tenantIndex, liveIndex, submissionIndex)),
                 new FieldAnswerRequest("setlist", List.of(),
-                        createSetlist(submissionIndex, songOffset))),
+                        createSetlist(submissionIndex, songOffset)),
+                new FieldAnswerRequest("stage-plot",
+                        List.of(DemoStagePlots.value(Kind.BAND, tenantIndex + liveIndex + submissionIndex)), List.of())),
                 null);
         return toJson(payload);
     }

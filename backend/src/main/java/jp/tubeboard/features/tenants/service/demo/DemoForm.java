@@ -22,6 +22,9 @@ public interface DemoForm {
     /** 提出の中身。 */
     PublicSettingSheetSubmissionRequest payload(int liveIndex, int index);
 
+    /** ステージ配置図のアイコン・会場書式の種類。 */
+    DemoStagePlots.Kind stageKind();
+
     /** 空の値は「回答なし」として除く。 */
     static FieldAnswerRequest answer(String fieldId, String... values) {
         return new FieldAnswerRequest(fieldId, Arrays.stream(values).filter(value -> !value.isBlank()).toList(),

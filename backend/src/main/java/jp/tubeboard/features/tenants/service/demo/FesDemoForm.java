@@ -54,6 +54,7 @@ public final class FesDemoForm implements DemoForm {
                     { "id": "program-change-note", "type": "LONG_TEXT", "label": "転換の内容" }
                   ] }
                 ] },
+                { "id": "stage-layout", "type": "STAGE_PLOT", "label": "立ち位置" },
                 { "id": "merch", "type": "BOOLEAN", "label": "物販あり", "adminVisible": true },
                 { "id": "merch-detail", "type": "LONG_TEXT", "label": "物販の内容" },
                 { "id": "running-order", "type": "SHORT_TEXT", "label": "出演順", "adminOnly": true, "adminVisible": true }
@@ -78,6 +79,11 @@ public final class FesDemoForm implements DemoForm {
     }
 
     @Override
+    public DemoStagePlots.Kind stageKind() {
+        return DemoStagePlots.Kind.FES;
+    }
+
+    @Override
     public String recordLabel(int liveIndex, int index) {
         return pick(ACTS, liveIndex * 2 + index);
     }
@@ -96,6 +102,7 @@ public final class FesDemoForm implements DemoForm {
                 answer("agreements", agreements.toArray(String[]::new)),
                 group("performers", performers(seed)),
                 group("program", program(seed)),
+                answer("stage-layout", DemoStagePlots.value(DemoStagePlots.Kind.FES, seed)),
                 answer("merch", Boolean.toString(merch)),
                 answer("merch-detail", merch ? "Tシャツ 2,500円\nステッカー 300円" : "")), null);
     }

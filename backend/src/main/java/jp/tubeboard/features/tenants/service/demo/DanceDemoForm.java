@@ -45,6 +45,7 @@ public final class DanceDemoForm implements DemoForm {
                   { "id": "track-time", "type": "DURATION", "label": "尺", "layout": { "width": "third" } },
                   { "id": "cue", "type": "SHORT_TEXT", "label": "きっかけ", "layout": { "width": "two-thirds" } }
                 ] },
+                { "id": "formation", "type": "STAGE_PLOT", "label": "フォーメーション" },
                 { "id": "notes", "type": "LONG_TEXT", "label": "備考" }
               ]
             }
@@ -71,6 +72,11 @@ public final class DanceDemoForm implements DemoForm {
     }
 
     @Override
+    public DemoStagePlots.Kind stageKind() {
+        return DemoStagePlots.Kind.DANCE;
+    }
+
+    @Override
     public String recordLabel(int liveIndex, int index) {
         return pick(TEAMS, liveIndex + index);
     }
@@ -89,6 +95,7 @@ public final class DanceDemoForm implements DemoForm {
                 answer("props", Boolean.toString(seed % 3 == 0)),
                 group("dancers", dancers(seed)),
                 group("tracks", tracks(seed)),
+                answer("formation", DemoStagePlots.value(DemoStagePlots.Kind.DANCE, seed)),
                 answer("notes", pick(NOTES, seed))), null);
     }
 
