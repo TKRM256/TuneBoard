@@ -18,14 +18,14 @@ export function Hero({ isLoading, onLogin }: LoginProps) {
         <div className="space-y-8">
           <p className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
             <Music2 className="size-3.5 text-primary" />
-            ライブ・発表会の出演申込を、ひとつの画面で
+            バンドの出演申込を、ひとつの画面で
           </p>
           <h1 className="text-balance text-2xl font-extrabold leading-tight tracking-tight min-[400px]:text-3xl sm:text-5xl lg:text-[2.9rem]">
             <span className="inline-block">紙のセッティングシートを、</span>
             <span className="inline-block bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">もう配らない。</span>
           </h1>
           <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-            出演者はリンクを開いて書くだけ。運営は届いた内容を一覧で確かめ、会場の書式に書き込んだ PDF をそのまま出力できます。
+            出演者はリンクを開いて書くだけ。運営は届いた内容を一覧で確かめ、会場から渡された任意の書式に書き込んだ PDF をそのまま出力できます。
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <GoogleLoginButton isLoading={isLoading} onLogin={onLogin} className="shadow-lg shadow-primary/10" />
@@ -66,19 +66,19 @@ export function Features() {
     <section className="mx-auto max-w-6xl space-y-24 px-6 py-20">
       <div className="space-y-3 text-center">
         <h2 className="text-3xl font-bold tracking-tight">できること</h2>
-        <p className="text-muted-foreground">フォームづくりから、会場への提出まで</p>
+        <p className="text-muted-foreground">フォームづくりから、会場への提出書類まで</p>
       </div>
       <Feature
         icon={<ClipboardList className="size-6" />}
-        title="どんな催しにも合わせて、フォームを作れる"
-        body="文字・選択・はい/いいえ・曲・演奏時間・ステージ配置図を並べるだけ。メンバーや曲のように何件でも書ける欄や、種類ごとに書く項目が変わる欄も作れます。バンドにもダンスにもフェスにも使えます。"
+        title="ライブに合わせて、フォームを作れる"
+        body="文字・選択・はい/いいえ・曲・演奏時間・ステージ配置図を並べるだけ。メンバーや曲のように何件でも書ける欄や、曲・MC のように種類ごとに書く項目が変わる欄も作れます。"
         mock={<FormBuilderMock />}
       />
       <Feature
         reverse
         icon={<FileOutput className="size-6" />}
-        title="会場の書式に、回答をそのまま書き込む"
-        body="会場からもらった PDF や画像を背景にして、枠に合わせて回答を置くだけ。罫線を読み取るので、表の欄やチェック、丸囲みも、数回のクリックで置けます。出演者ごとの PDF をまとめて出力できます。"
+        title="任意の書式に、回答をそのまま書き込む"
+        body="会場から渡された PDF や画像など、どんな書式でも背景にして、枠に合わせて回答を置くだけ。罫線を読み取るので、表の欄やチェック、丸囲みも、数回のクリックで置けます。出演者ごとの PDF をまとめて出力できます。"
         mock={<VenueFormMock />}
       />
       <Feature
@@ -95,7 +95,7 @@ const steps = [
   { icon: ClipboardList, title: 'フォームを作る', body: 'ライブを作って、項目を並べます。前のライブから取り込むこともできます。' },
   { icon: Share2, title: 'リンクを配る', body: '公開ページのリンクを出演者に送ります。ログインは要りません。' },
   { icon: Users, title: '提出を確かめる', body: '届いた内容を一覧で見て、曲かぶりや足りない項目を確かめます。' },
-  { icon: FileOutput, title: 'PDF を出力する', body: '会場の書式に書き込んだ PDF を、提出ごとにまとめて出力します。' },
+  { icon: FileOutput, title: 'PDF を出力する', body: '任意の書式に書き込んだ PDF を、提出ごとにまとめて出力します。' },
 ] as const;
 
 export function Flow() {

@@ -1,7 +1,7 @@
 /** ランディングページの説明に使う、画面を模した図。実際の画面の画像は使わず、枠と色だけで描く。 */
 import { Check } from 'lucide-react';
 
-/** 会場の書式に回答が書き込まれたところ。✓ と ○ 囲みも付く。 */
+/** 書式に回答が書き込まれたところ。✓ と ○ 囲みも付く。 */
 export function VenueFormMock() {
   const row = 'flex h-7 items-center border-b border-slate-300 px-2 text-[11px] text-slate-700 last:border-b-0';
   return (
@@ -9,35 +9,35 @@ export function VenueFormMock() {
       <p className="mb-3 text-center text-xs font-bold tracking-widest">出演申込書</p>
       <div className="rounded border border-slate-400">
         <div className={row}>
-          <span className="w-16 bg-slate-200 py-1 pl-1 text-slate-500">団体名</span>
-          <span className="pl-2 font-medium text-slate-900">ステップスクエア</span>
+          <span className="w-16 bg-slate-200 py-1 pl-1 text-slate-500">バンド名</span>
+          <span className="pl-2 font-medium text-slate-900">Echo Notes</span>
         </div>
         <div className={`${row} overflow-hidden`}>
-          <span className="w-16 shrink-0 bg-slate-200 py-1 pl-1 text-slate-500">ジャンル</span>
-          {['ヒップホップ', 'K-POP'].map((name, index) => (
+          <span className="w-16 shrink-0 bg-slate-200 py-1 pl-1 text-slate-500">使用パート</span>
+          {['Vocal', 'Guitar', 'Bass'].map((name, index) => (
             <span key={name} className="ml-2 flex items-center gap-0.5 whitespace-nowrap">
               <span className="relative inline-block size-2.5 border border-slate-500">
-                {index === 1 ? <Check className="absolute -left-0.5 -top-1 size-3.5 text-red-500" strokeWidth={3} /> : null}
+                {index === 0 || index === 2 ? <Check className="absolute -left-0.5 -top-1 size-3.5 text-red-500" strokeWidth={3} /> : null}
               </span>
               {name}
             </span>
           ))}
         </div>
         <div className={row}>
-          <span className="w-16 bg-slate-200 py-1 pl-1 text-slate-500">出演枠</span>
-          <span className="ml-2 text-slate-500">昼の部</span>
+          <span className="w-16 bg-slate-200 py-1 pl-1 text-slate-500">音出し</span>
+          <span className="ml-2 text-slate-500">リハのみ</span>
           <span className="mx-1 text-slate-400">・</span>
-          <span className="rounded-full border border-red-500 px-1.5 text-slate-900">夜の部</span>
+          <span className="rounded-full border border-red-500 px-1.5 text-slate-900">本番も</span>
         </div>
       </div>
       <div className="mt-3 grid grid-cols-[1fr_1.4fr] gap-2 text-[10px]">
         <div className="rounded border border-slate-400">
-          {['さくら　3年', 'れん　　1年', 'ゆい　　2年'].map((text) => (
+          {['アヤ　　Vo', 'ケン　　Gt', 'リョウ　Ba'].map((text) => (
             <p key={text} className="h-6 border-b border-slate-300 px-2 leading-6 last:border-b-0">{text}</p>
           ))}
         </div>
         <div className="rounded border border-slate-400">
-          {['オープニング 2:45', 'メドレー 6:30', 'エンディング 1:05'].map((text) => (
+          {['リライト', '小さな恋のうた', '風吹けば恋'].map((text) => (
             <p key={text} className="h-6 border-b border-slate-300 px-2 leading-6 last:border-b-0">{text}</p>
           ))}
         </div>
@@ -74,16 +74,16 @@ export function FormBuilderMock() {
   );
   return (
     <div className="w-full max-w-xs space-y-2">
-      {block('文字', '団体名', 'bg-sky-500/15 text-sky-700 dark:text-sky-300')}
-      {block('選択', 'ジャンル', 'bg-violet-500/15 text-violet-700 dark:text-violet-300')}
+      {block('文字', 'バンド名', 'bg-sky-500/15 text-sky-700 dark:text-sky-300')}
+      {block('選択', '提出状況', 'bg-violet-500/15 text-violet-700 dark:text-violet-300')}
       <div className="space-y-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 p-2">
-        {block('繰り返し', '出演者', 'bg-primary/15 text-primary')}
+        {block('繰り返し', 'メンバー', 'bg-primary/15 text-primary')}
         <div className="ml-4 space-y-2">
           {block('文字', '名前', 'bg-sky-500/15 text-sky-700 dark:text-sky-300')}
-          {block('選択', '学年', 'bg-violet-500/15 text-violet-700 dark:text-violet-300')}
+          {block('選択', '担当パート', 'bg-violet-500/15 text-violet-700 dark:text-violet-300')}
         </div>
       </div>
-      {block('曲', '使用曲', 'bg-rose-500/15 text-rose-700 dark:text-rose-300')}
+      {block('曲', 'セットリスト', 'bg-rose-500/15 text-rose-700 dark:text-rose-300')}
     </div>
   );
 }
