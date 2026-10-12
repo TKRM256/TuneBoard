@@ -52,13 +52,13 @@ export const VenueFormEditorPage = () => {
     setSavedJson(JSON.stringify(document));
     setPreviewId(downloadIds[0] ?? loaded.submissions[0]?.id ?? null);
   });
-  useVenueKeyboardShortcuts(editor);
   const { scrollerRef, canvasRef, ...viewport } = useCanvasViewport(editor.currentPage ?? null);
   const isDirty = JSON.stringify(editor.doc) !== savedJson;
   const leaveGuard = useUnsavedChangesWarning(isDirty);
   const catalog = useMemo(() => buildFieldCatalog(data?.config), [data?.config]);
   const blocksById = useMemo(() => indexBlocks(data?.config.blocks ?? []), [data?.config]);
   const assist = useVenueAssist(editor, { liveId: liveId ?? '', assets: data?.assets ?? NO_ASSETS, catalog, blocksById });
+  useVenueKeyboardShortcuts(editor, assist.lines);
 
   if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
   const backTo = `/tenants/${tenantId}/lives/${liveId}${downloadIds.length > 0 ? '/submissions' : ''}`;
@@ -167,7 +167,7 @@ export const VenueFormEditorPage = () => {
             />
             <div className="relative min-h-0 flex-1">
               <AssistGuide assist={assist} />
-              <div ref={scrollerRef} className="h-full overflow-auto bg-muted/20 p-6" {...viewport.scrollerProps}>
+              <div ref={scrollerRef} className="h-full overflow-auto bg-muted/20 p-6 [scrollbar-gutter:stable]" {...viewport.scrollerProps}>
                 {editor.currentPage ? (
                   <div className="flex w-max min-w-full justify-center">
                     <VenueCanvas

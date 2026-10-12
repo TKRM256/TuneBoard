@@ -47,6 +47,15 @@ describe('venue clipboard', () => {
     expect(second.pasted[0].kind === 'text' && second.pasted[0].content).toContain('items[2]');
   });
 
+  it('places the next item where nextBox says, only when every element has a place', () => {
+    const base = doc();
+    const clip = copyElements(base, new Set(['name']));
+    const boxed = pasteElements(base, clip, 'p1', 'next', () => ({ xMm: 10, yMm: 40, wMm: 30, hMm: 5 }));
+    expect(boxed.pasted[0]).toMatchObject({ xMm: 10, yMm: 40, wMm: 30, hMm: 5 });
+    const fallback = pasteElements(base, clip, 'p1', 'next', () => null);
+    expect(fallback.pasted[0]).toMatchObject({ yMm: 26 });
+  });
+
   it('continues a table from the next unwritten item', () => {
     const table = { ...createElement({ kind: 'table', groupId: 'members' }, 'p1', { xMm: 0, yMm: 0 }), id: 't' };
     const base: VenueFormDocument = { pages: [{ ...createBlankPage(), id: 'p1' }], elements: [table] };

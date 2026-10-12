@@ -22,7 +22,7 @@ const EMPTY = '__empty__';
 export function TableFromRegionDialog({ grid, catalog, onCreate, onClose }: Props) {
   return (
     <Dialog open={grid !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>表の欄に項目を並べる</DialogTitle>
         </DialogHeader>
@@ -77,9 +77,10 @@ function TableForm({ grid, catalog, onCreate, onClose }: Required<Pick<Props, 'c
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">列（左から）</Label>
-          <div className="flex gap-1">
+          {/* 細い列でも項目名が読めるよう最低限の幅を持たせ、入りきらなければ横にずらして見る */}
+          <div className="flex gap-1 overflow-x-auto pb-1">
             {grid.cols.slice(1).map((x, i) => (
-              <div key={i} className="min-w-0" style={{ flexBasis: `${((x - grid.cols[i]) / width) * 100}%` }}>
+              <div key={i} className="min-w-20 shrink-0 grow" style={{ flexBasis: `${((x - grid.cols[i]) / width) * 100}%` }}>
                 <Select value={ids[i] || EMPTY} onValueChange={(value) => setColumn(i, value)}>
                   <SelectTrigger className="h-8 w-full px-1.5 text-xs [&>span]:truncate"><SelectValue /></SelectTrigger>
                   <SelectContent>

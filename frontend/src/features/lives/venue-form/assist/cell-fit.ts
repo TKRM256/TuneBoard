@@ -80,6 +80,26 @@ export function fitToCell(element: VenueElement, lines: PageLine[]): SnapBox | n
   return cell ? innerBox(cell) : null;
 }
 
+/** すぐ下の枠を探すとき、今の枠の下の線からこれだけ下の点を使う。 */
+const NEXT_ROW_PROBE_MM = 1;
+/** 下の枠の左右の端が今の枠とこれ以上ずれていれば、同じ表の次の行とはみなさない。 */
+const SAME_COLUMN_MM = 1.5;
+
+/**
+ * 要素がある枠のすぐ下の枠に移した箱（次の件として貼り付けるとき）。枠の中での上下の余白は保ち、
+ * 横の位置と幅はそのまま。今の枠か、左右の端がそろった下の枠（同じ表の次の行）が無ければ null。
+ */
+export function boxInNextRow(box: SnapBox, lines: PageLine[]): SnapBox | null {
+  const x = box.xMm + box.wMm / 2;
+  const cell = findCell(x, box.yMm + box.hMm / 2, lines);
+  const next = cell ? findCell(x, cell.bottom + NEXT_ROW_PROBE_MM, lines) : null;
+  if (!cell || !next) return null;
+  if (Math.abs(next.left - cell.left) > SAME_COLUMN_MM || Math.abs(next.right - cell.right) > SAME_COLUMN_MM) return null;
+  const top = next.top + (box.yMm - cell.top);
+  const bottom = next.bottom - (cell.bottom - (box.yMm + box.hMm));
+  return { xMm: box.xMm, yMm: round2(top), wMm: box.wMm, hMm: round2(Math.max(MIN_CELL_MM, bottom - top)) };
+}
+
 function round2(value: number) {
   return Math.round(value * 100) / 100;
 }

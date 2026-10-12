@@ -1,7 +1,6 @@
 /** 選択肢の印を置く場所を受け取る。クリックは点、ドラッグは範囲（○囲みの大きさなど）。 */
-import { useState, type PointerEvent } from 'react';
-
 import type { SnapBox } from '../../canvas-shared/snapping';
+import { boxRect, useDragBox } from '../../canvas-shared/useDragBox';
 import type { PageLine } from './ruled-lines';
 import { markerBoxAt, type MarkerKind } from './choice-markers';
 
@@ -16,60 +15,38 @@ interface Props {
 const DRAG_MM = 1.5;
 
 export function MarkerPlaceLayer({ pxPerMm, kind, lines, onPlace }: Props) {
-  const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
-
-  const toMm = (event: PointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    return { x: (event.clientX - rect.left) / pxPerMm, y: (event.clientY - rect.top) / pxPerMm };
-  };
-
-  const handleDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
-    event.stopPropagation();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const { x, y } = toMm(event);
-    setDrag({ x0: x, y0: y, x1: x, y1: y });
-  };
-
-  const handleMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (!drag) return;
-    const { x, y } = toMm(event);
-    setDrag({ ...drag, x1: x, y1: y });
-  };
-
-  const handleUp = () => {
-    if (!drag) return;
-    setDrag(null);
-    const w = Math.abs(drag.x1 - drag.x0);
-    const h = Math.abs(drag.y1 - drag.y0);
-    if (w < DRAG_MM && h < DRAG_MM) {
-      onPlace(markerBoxAt(kind, drag.x0, drag.y0, lines));
-      return;
-    }
-    onPlace({ xMm: Math.min(drag.x0, drag.x1), yMm: Math.min(drag.y0, drag.y1), wMm: Math.max(w, DRAG_MM), hMm: Math.max(h, DRAG_MM) });
-  };
+  const { box, handlers } = useDragBox({
+    pxPerMm,
+    canStart: (event) => {
+      event.stopPropagation();
+      return true;
+    },
+    onEnd: (end) => {
+      const rect = boxRect(end);
+      if (rect.wMm < DRAG_MM && rect.hMm < DRAG_MM) onPlace(markerBoxAt(kind, end.x0, end.y0, lines));
+      else onPlace({ xMm: round2(rect.xMm), yMm: round2(rect.yMm), wMm: round2(Math.max(rect.wMm, DRAG_MM)), hMm: round2(Math.max(rect.hMm, DRAG_MM)) });
+    },
+  });
+  const rect = box ? boxRect(box) : null;
 
   return (
-    <div
-      className="absolute inset-0 cursor-crosshair"
-      style={{ zIndex: 5 }}
-      onPointerDown={handleDown}
-      onPointerMove={handleMove}
-      onPointerUp={handleUp}
-      onPointerCancel={() => setDrag(null)}
-    >
-      {drag ? (
+    <div className="absolute inset-0 cursor-crosshair" style={{ zIndex: 5 }} {...handlers}>
+      {rect ? (
         <div
           className="pointer-events-none absolute border-2 border-dashed border-red-500"
           style={{
-            left: Math.min(drag.x0, drag.x1) * pxPerMm,
-            top: Math.min(drag.y0, drag.y1) * pxPerMm,
-            width: Math.abs(drag.x1 - drag.x0) * pxPerMm,
-            height: Math.abs(drag.y1 - drag.y0) * pxPerMm,
+            left: rect.xMm * pxPerMm,
+            top: rect.yMm * pxPerMm,
+            width: rect.wMm * pxPerMm,
+            height: rect.hMm * pxPerMm,
             borderRadius: kind === 'circle' ? '50%' : undefined,
           }}
         />
       ) : null}
     </div>
   );
+}
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100;
 }

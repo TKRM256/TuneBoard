@@ -23,7 +23,7 @@ const NTH_ITEM = 'nth';
 export function MarkerSetupDialog({ open, targets, onStart, onClose }: Props) {
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>選択肢の印を置く</DialogTitle>
         </DialogHeader>

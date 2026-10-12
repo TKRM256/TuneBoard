@@ -28,6 +28,7 @@ import jp.tubeboard.features.lives.export.context.CanvasContext;
 import jp.tubeboard.features.lives.export.context.CanvasException;
 import jp.tubeboard.features.lives.export.context.ExpressionEvaluator;
 import jp.tubeboard.features.lives.pdf.FontChain;
+import jp.tubeboard.features.lives.pdf.canvas.table.TableRows;
 import jp.tubeboard.features.lives.pdf.draw.PdfBox;
 import jp.tubeboard.features.lives.stageplot.StagePlotAnswers;
 import jp.tubeboard.features.lives.stageplot.StagePlotDrawer;
@@ -109,11 +110,15 @@ public final class VenueFormRenderer implements AutoCloseable {
                 }
             }
         }
+        // 表の欄に 1 件ずつ並べたテキスト（items[N] を参照する式）も、書く欄として数える
+        ItemReferences.coveredCounts(document).forEach((groupId, upTo) -> coverages.merge(groupId,
+                new VenueTableDrawer.Coverage(TableRows.collectGroup(groupId, namespace).size(), upTo),
+                (a, b) -> new VenueTableDrawer.Coverage(a.totalRows(), Math.max(a.coveredUpTo(), b.coveredUpTo()))));
         // 同じグループを複数の表に分けて書くこともあるので、全部の表を描き終えてから入りきらなかった分を数える
         coverages.forEach((groupId, coverage) -> {
             int overflow = coverage.totalRows() - coverage.coveredUpTo();
             if (overflow > 0) {
-                warnings.addGeneral("表に入りきらない回答が" + overflow + "件あります（グループ: " + groupLabel(groupId) + "）");
+                warnings.addGeneral("書式に入りきらない回答が" + overflow + "件あります（グループ: " + groupLabel(groupId) + "）");
             }
         });
     }

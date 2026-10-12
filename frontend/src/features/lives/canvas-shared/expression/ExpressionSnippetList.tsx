@@ -58,8 +58,9 @@ export function ExpressionSnippetList({ catalog, onInsert, className }: Props) {
               該当するスニペットがありません。
             </p>
           )}
-          {filteredGroups.map((group) => (
-            <div key={group.title} className="space-y-1">
+          {/* 同じ名前のグループが別々の親の中にあることもあるので、並び順も key に含める */}
+          {filteredGroups.map((group, index) => (
+            <div key={`${index}-${group.title}`} className="space-y-1">
               <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {group.title}
               </div>

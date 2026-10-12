@@ -102,6 +102,33 @@ class VenueFormRendererTest {
     }
 
     @Test
+    void 表の欄に並べたテキストで書ききれない件も警告する() throws IOException {
+        LiveAsset background = backgroundAsset();
+        RenderWarnings warnings = new RenderWarnings();
+        String text = render(document(background.getId(), List.of(
+                text("r1", "${groups['setlist'].items[0].field('song-title').value}", null),
+                text("r2", "${groups[\"setlist\"].items[1].field('song-title').value}", null),
+                text("n3", "3", "${count(groups['setlist'].items) >= 3 && groups['setlist'].items[2] != null}"))),
+                background, warnings);
+
+        assertThat(text).contains("曲目A", "曲目B");
+        assertThat(warnings.list()).singleElement().asString().contains("入りきらない回答が1件", "セットリスト");
+    }
+
+    @Test
+    void 表の欄に全件分のテキストがあれば警告しない() throws IOException {
+        LiveAsset background = backgroundAsset();
+        RenderWarnings warnings = new RenderWarnings();
+        render(document(background.getId(), List.of(
+                table("tb1", 1, 2),
+                text("r3", "${groups['setlist'].items[2].field('song-title').value}", null),
+                text("r4", "${groups['setlist'].items[3].field('song-title').value}", null))),
+                background, warnings);
+
+        assertThat(warnings.list()).isEmpty();
+    }
+
+    @Test
     void 書き間違えた条件式は描かずに警告にする() throws IOException {
         LiveAsset background = backgroundAsset();
         RenderWarnings warnings = new RenderWarnings();

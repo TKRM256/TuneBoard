@@ -1,6 +1,7 @@
 /** 会場書式エディタのコピー・貼り付け（純粋関数）。
  *  「次の件として貼り付け」は、メンバー表のように 1 件ずつ置いていく作業を楽にするためのもの。
- *  式の中の items[N] を items[N+1] に進め、元の要素のすぐ下に置く。 */
+ *  式の中の items[N] を items[N+1] に進め、元の要素のすぐ下（罫線の枠があれば下の枠）に置く。 */
+import type { SnapBox } from '../canvas-shared/snapping';
 import { newId } from './venue-element-factory';
 import type { VenueElement, VenueFormDocument } from './venue-form-schema';
 
@@ -22,7 +23,7 @@ export function advanceItemIndexes(text: string | undefined): string | undefined
 /**
  * 表示中のページに貼り付ける。
  * - same: 同じページなら少しずらし、別のページなら同じ位置に置く
- * - next: 元の要素のすぐ下に置き、items[N] を 1 つ進める
+ * - next: 元の要素のすぐ下に置き、items[N] を 1 つ進める。nextBox がどの要素にも下の置き場所を返すなら、そこに置く
  * @returns 貼り付けた書式と、貼り付けた要素（続けて貼るときの元にする）
  */
 export function pasteElements(
@@ -30,12 +31,16 @@ export function pasteElements(
   clipboard: VenueElement[],
   pageId: string,
   mode: PasteMode,
+  nextBox?: (box: SnapBox) => SnapBox | null,
 ): { doc: VenueFormDocument; pasted: VenueElement[] } {
   if (clipboard.length === 0) return { doc, pasted: [] };
+  const boxes = mode === 'next' && nextBox ? clipboard.map(nextBox) : [];
+  // 一部だけ枠に合わせると並びが崩れるので、全部の置き場所が見つかったときだけ使う
+  const useBoxes = boxes.length > 0 && boxes.every(Boolean);
   const top = Math.min(...clipboard.map((element) => element.yMm));
   const bottom = Math.max(...clipboard.map((element) => element.yMm + element.hMm));
   const samePage = clipboard.every((element) => element.pageId === pageId);
-  const pasted = clipboard.map((element) => {
+  const pasted = clipboard.map((element, index) => {
     const copy = { ...structuredClone(element), id: newId(), pageId } as VenueElement;
     if (copy.kind === 'table') copy.columns = copy.columns.map((column) => ({ ...column, id: newId() }));
     if (mode === 'same') {
@@ -45,7 +50,8 @@ export function pasteElements(
       }
       return copy;
     }
-    copy.yMm += bottom - top;
+    if (useBoxes) Object.assign(copy, boxes[index]);
+    else copy.yMm += bottom - top;
     return advance(copy);
   });
   return { doc: { ...doc, elements: [...doc.elements, ...pasted] }, pasted };

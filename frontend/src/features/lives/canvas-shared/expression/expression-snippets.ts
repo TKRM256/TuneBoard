@@ -122,7 +122,8 @@ function pushGroupSnippets(group: CatalogGroup, target: SnippetGroup[], parentId
   }
 
   target.push({
-    title: `${group.label}（繰り返し）`,
+    // 入れ子のグループは同じ名前が別の親にもありうるので、親からの道筋で見分ける
+    title: `${group.pathLabel || group.label}（繰り返し）`,
     entries,
   });
 

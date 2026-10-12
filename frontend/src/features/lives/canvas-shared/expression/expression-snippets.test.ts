@@ -68,7 +68,7 @@ describe('buildSnippetGroups', () => {
       ]),
     ]);
     const groups = buildSnippetGroups(buildFieldCatalog(config));
-    const micsGroup = groups.find((g) => g.title.startsWith('マイク'));
+    const micsGroup = groups.find((g) => g.title.startsWith('出演者 > マイク'));
     expect(micsGroup).toBeDefined();
     const expressions = micsGroup!.entries.map((e) => e.expression);
     // Nested group reference must traverse through items[0].group(...)

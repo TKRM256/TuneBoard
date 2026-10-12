@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findCell, fitToCell, fontSizeForHeight, innerBox } from './cell-fit';
+import { boxInNextRow, findCell, fitToCell, fontSizeForHeight, innerBox } from './cell-fit';
 import type { PageLine } from './ruled-lines';
 
 const h = (posMm: number, fromMm: number, toMm: number): PageLine => ({ axis: 'h', posMm, fromMm, toMm });
@@ -54,5 +54,21 @@ describe('fontSizeForHeight', () => {
     expect(fontSizeForHeight(1)).toBe(5);
     expect(fontSizeForHeight(100)).toBe(14);
     expect(fontSizeForHeight(4)).toBe(9);
+  });
+});
+
+describe('boxInNextRow', () => {
+  it('すぐ下の枠に、枠の中での上下の余白を保って移す', () => {
+    expect(boxInNextRow({ xMm: 52, yMm: 11, wMm: 30, hMm: 8 }, LINES)).toEqual({ xMm: 52, yMm: 21, wMm: 30, hMm: 8 });
+  });
+
+  it('下の行の高さが違えば、余白を保ったまま高さを合わせる', () => {
+    const uneven = [h(0, 0, 50), h(10, 0, 50), h(26, 0, 50)];
+    expect(boxInNextRow({ xMm: 5, yMm: 1, wMm: 20, hMm: 8 }, uneven)).toEqual({ xMm: 5, yMm: 11, wMm: 20, hMm: 14 });
+  });
+
+  it('いちばん下の行や枠の外では null', () => {
+    expect(boxInNextRow({ xMm: 52, yMm: 21, wMm: 30, hMm: 8 }, LINES)).toBeNull();
+    expect(boxInNextRow({ xMm: 40, yMm: 90, wMm: 10, hMm: 5 }, LINES)).toBeNull();
   });
 });

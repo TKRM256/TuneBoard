@@ -1,11 +1,13 @@
 /** 会場書式エディタのキー操作。入力欄で文字を打っているときや、画面の文字をなぞって選んでいるときは反応しない。
  *  Ctrl+C / X / V: コピー・切り取り・貼り付け
- *  Ctrl+Shift+V: 次の件として貼り付け（items[N] を 1 つ進めて真下に置く）
+ *  Ctrl+Shift+V: 次の件として貼り付け（items[N] を 1 つ進めて真下に置く。罫線の枠の中なら下の枠に置く）
  *  Ctrl+D: 複製 / Ctrl+A: ページの要素を全部選ぶ / Ctrl+Z, Ctrl+Y: 元に戻す・やり直す
  *  矢印: 0.5mm 移動（Shift で 5mm） / Delete: 削除 / Esc: 選択を外す */
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
+import { boxInNextRow } from './assist/cell-fit';
+import type { PageLine } from './assist/ruled-lines';
 import type { VenueFormEditor } from './useVenueFormEditor';
 
 const NUDGE_MM = 0.5;
@@ -21,7 +23,7 @@ function hasTextSelection() {
   return Boolean(selection && !selection.isCollapsed && selection.toString().trim());
 }
 
-export function useVenueKeyboardShortcuts(editor: VenueFormEditor) {
+export function useVenueKeyboardShortcuts(editor: VenueFormEditor, lines: PageLine[]) {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (isTyping(event.target)) return;
@@ -44,7 +46,8 @@ export function useVenueKeyboardShortcuts(editor: VenueFormEditor) {
       }
       if (mod && key === 'v') {
         event.preventDefault();
-        editor.paste(event.shiftKey ? 'next' : 'same');
+        if (event.shiftKey) editor.paste('next', (box) => boxInNextRow(box, lines));
+        else editor.paste('same');
         return;
       }
       if (mod && (key === 'a' || key === 'c' || key === 'x') && hasTextSelection()) return;
@@ -90,5 +93,5 @@ export function useVenueKeyboardShortcuts(editor: VenueFormEditor) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [editor]);
+  }, [editor, lines]);
 }
