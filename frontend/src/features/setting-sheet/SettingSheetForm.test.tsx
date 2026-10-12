@@ -407,7 +407,7 @@ describe('SettingSheetForm', () => {
     await userEvent.type(input, 'My Band');
     await userEvent.click(screen.getByRole('button', { name: '更新する' }));
 
-    expect(await screen.findByText('他の人がこのシートを更新しました')).toBeInTheDocument();
+    expect(await screen.findByText('他の人が同時に更新しました')).toBeInTheDocument();
 
     // 双方が変更したので既定選択は無く、選ぶまで確定できない
     const confirmButton = screen.getByRole('button', { name: 'この内容で保存' });
