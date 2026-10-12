@@ -1,4 +1,5 @@
-/** ページの一覧と、背景（会場の書式）の取り込み。PDF は全ページ、画像は 1 枚 1 ページとして追加する。 */
+/** ページの一覧と、背景（会場の書式）の取り込み。PDF は全ページ、画像は 1 枚 1 ページとして追加する。
+ *  白紙のページは用紙の大きさと、伸びる表が次のページへ続くときの余白を選べる。 */
 import { useRef } from 'react';
 import { ArrowDown, ArrowUp, FilePlus2, Loader2, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSingleFlight } from '@/hooks/use-single-flight';
 import { ApiClientError } from '@/lib/api/type';
 import { cn } from '@/lib/utils';
+
+import { NumberField } from '../canvas-shared/property-fields';
 
 import { getPaperDimensions, ORIENTATION_OPTIONS, PAPER_SIZE_OPTIONS, type Orientation, type PaperSize } from './paper';
 import { createBlankPage, createPageFromAsset } from './venue-element-factory';
@@ -73,7 +76,8 @@ export function VenuePagesPanel({ liveId, editor, assets, onAssetUploaded }: Pro
           <li key={p.id}>
             <div className={cn('flex items-center gap-1 rounded-md border px-2 py-1 text-xs', p.id === page?.id && 'border-primary bg-primary/5')}>
               <button type="button" className="min-w-0 flex-1 truncate text-left" onClick={() => editor.showPage(p.id)}>
-                {index + 1}ページ目{p.background ? '' : '（白紙）'}
+                {index + 1}ページ目
+                {p.background ? null : <span className="ml-1.5 rounded bg-muted px-1 py-px text-[10px] text-muted-foreground">白紙</span>}
               </button>
               <Button variant="ghost" size="icon" className="size-6" onClick={() => editor.movePage(p.id, -1)} disabled={index === 0} aria-label="上へ">
                 <ArrowUp className="size-3.5" />
@@ -89,6 +93,14 @@ export function VenuePagesPanel({ liveId, editor, assets, onAssetUploaded }: Pro
         ))}
       </ol>
       {page && !isPdfBackground ? <PaperSizeSelect page={page} onChange={(size) => editor.updatePage(page.id, size)} /> : null}
+      {page && !page.background ? (
+        <NumberField
+          label="続きのページの上下の余白 (mm)"
+          value={page.marginMm ?? 10}
+          step={1}
+          onChange={(marginMm) => editor.updatePage(page.id, { marginMm: Math.min(Math.max(0, marginMm), Math.min(page.widthMm, page.heightMm) / 3) })}
+        />
+      ) : null}
     </section>
   );
 }
@@ -104,13 +116,13 @@ function PaperSizeSelect({ page, onChange }: { page: VenuePage; onChange: (size:
   return (
     <div className="grid grid-cols-2 gap-2">
       <Select value={size ?? ''} onValueChange={(value) => apply(value as PaperSize, orientation)}>
-        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="用紙" /></SelectTrigger>
+        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="用紙" /></SelectTrigger>
         <SelectContent>
           {PAPER_SIZE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
         </SelectContent>
       </Select>
       <Select value={orientation} onValueChange={(value) => apply(size ?? 'A4', value as Orientation)}>
-        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
           {ORIENTATION_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
         </SelectContent>

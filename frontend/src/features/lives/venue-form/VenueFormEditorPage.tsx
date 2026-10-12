@@ -177,6 +177,12 @@ export const VenueFormEditorPage = () => {
             />
             <div className="relative min-h-0 flex-1">
               <AssistGuide assist={assist} />
+              {editor.selectedIds.size > 0 ? (
+                // 道具の帯に置くと帯が 2 行に割れるので、書式の左下に重ねて出す
+                <span className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-full border bg-background/90 px-2 py-0.5 text-xs text-muted-foreground shadow-sm">
+                  {editor.selectedIds.size}件選択中
+                </span>
+              ) : null}
               <div ref={scrollerRef} data-tour="venue-canvas" className="h-full overflow-auto bg-muted/20 p-6 [scrollbar-gutter:stable]" {...viewport.scrollerProps}>
                 {editor.currentPage ? (
                   <div className="flex w-max min-w-full justify-center">

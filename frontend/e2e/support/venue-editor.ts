@@ -32,7 +32,7 @@ export class VenueEditor {
     return this.page.locator('.react-draggable');
   }
 
-  /** ツールバーの「◯件選択中」。何も選んでいないときは件数が出ないので「選択なし」を返す */
+  /** 書式の左下に出る「◯件選択中」。何も選んでいないときは件数が出ないので「選択なし」を返す */
   async selectionText() {
     const label = this.root().getByText(/件選択中/).first();
     if ((await label.count()) === 0) return '選択なし';

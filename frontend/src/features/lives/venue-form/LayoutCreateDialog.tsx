@@ -53,7 +53,7 @@ export function LayoutCreateDialog({ open, onOpenChange, liveId, defaultName, on
       <DialogContent className="w-[95vw] max-w-md sm:max-w-md">
         <DialogHeader>
           <DialogTitle>書式を作る</DialogTitle>
-          <DialogDescription>作ったあとは、エディタで項目の位置や大きさを変えられます。</DialogDescription>
+          <DialogDescription>作ったあと、エディタで位置や大きさを変えられます。</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">

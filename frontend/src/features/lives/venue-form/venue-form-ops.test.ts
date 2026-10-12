@@ -6,6 +6,7 @@ import {
   layerElements,
   moveElements,
   removePage,
+  updateColumns,
   updateElement,
   updateElements,
 } from './venue-form-ops';
@@ -27,6 +28,28 @@ describe('venue form ops', () => {
   it('stops elements at the page edge when moving them together', () => {
     const doc = moveElements(docWithTwoTexts(), new Set(['a', 'b']), -50, 0);
     expect(doc.elements.map((element) => element.xMm)).toEqual([0, 90]);
+  });
+
+  it('builds grid tables for a group or for listed fields, growing by default', () => {
+    const group = createElement({ kind: 'grid', groupId: 'g', groupLabel: '出演者' }, 'p1', { xMm: 0, yMm: 0 });
+    const fields = createElement({ kind: 'grid', groupId: null }, 'p1', { xMm: 0, yMm: 0 });
+    expect(group).toMatchObject({ kind: 'grid', source: { kind: 'group', groupId: 'g' }, autoGrow: true });
+    expect(fields).toMatchObject({ kind: 'grid', source: { kind: 'fields', fields: [] } });
+    if (fields.kind === 'grid') expect(fields.columns.map((column) => column.fieldId)).toEqual(['__label__', '']);
+  });
+
+  it('changes and duplicates the columns of grid tables too', () => {
+    const grid = { ...createElement({ kind: 'grid', groupId: 'g' }, 'p1', { xMm: 0, yMm: 0 }), id: 'g1' };
+    const base: VenueFormDocument = { pages: [{ ...createBlankPage(), id: 'p1' }], elements: [grid] };
+    const changed = updateColumns(base, 'g1', (columns) => columns.slice(0, 1));
+    expect(changed.elements[0].kind === 'grid' && changed.elements[0].columns).toHaveLength(1);
+    const { doc, newIds } = duplicateElements(base, new Set(['g1']));
+    const copy = doc.elements.find((element) => newIds.has(element.id));
+    if (copy?.kind === 'grid' && grid.kind === 'grid') {
+      expect(copy.columns[0].id).not.toBe(grid.columns[0].id);
+    } else {
+      throw new Error('grid was not duplicated');
+    }
   });
 
   it('duplicates with new ids and fresh column ids for tables', () => {

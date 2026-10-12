@@ -79,7 +79,7 @@ export function PdfExportDialog({ tenantId, liveId, submissionIds, onClose }: Pr
       <DialogContent className="max-h-[90dvh] w-[95vw] max-w-md overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>PDF出力</DialogTitle>
-          <DialogDescription>{count > 1 ? `${count}件を ZIP にまとめて保存します。` : '1件を PDF で保存します。'}使う書式を選んでください。</DialogDescription>
+          <DialogDescription className="[word-break:auto-phrase]">{count > 1 ? `${count}件を ZIP にまとめて保存します。` : '1件を PDF で保存します。'}使う書式を選んでください。</DialogDescription>
         </DialogHeader>
         {layouts === null ? (
           <div className="flex justify-center py-6"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>

@@ -28,7 +28,7 @@ export function VenueTableProperties({ element, catalog, onUpdate, onChangeColum
     <div className="space-y-3">
       <FieldGroup label="書くグループ">
         <Select value={element.groupId} onValueChange={(groupId) => onUpdate({ groupId })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="グループを選ぶ" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="グループを選ぶ" /></SelectTrigger>
           <SelectContent>
             {catalog.groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.pathLabel || g.label}</SelectItem>)}
           </SelectContent>
@@ -73,7 +73,7 @@ export function VenueTableProperties({ element, catalog, onUpdate, onChangeColum
             <NumberField label="幅の比率" value={column.widthRatio} step={0.05} onChange={(v) => onChangeColumns(columnOps.update(column.id, { widthRatio: Math.max(0.01, v) }))} />
             <FieldGroup label="寄せ">
               <Select value={column.align ?? 'left'} onValueChange={(align) => onChangeColumns(columnOps.update(column.id, { align: align as TableColumn['align'] }))}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="left">左</SelectItem>
                   <SelectItem value="center">中央</SelectItem>

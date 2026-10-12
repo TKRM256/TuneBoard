@@ -42,7 +42,7 @@ export function FieldProperties({ element, catalog, onUpdate }: { element: Venue
     <div className="space-y-3">
       <FieldGroup label="項目">
         <Select value={element.fieldId} onValueChange={(fieldId) => onUpdate({ fieldId })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="項目を選ぶ" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="項目を選ぶ" /></SelectTrigger>
           <SelectContent>
             {catalog.fields
               .filter((field) => field.type !== 'STAGE_PLOT')
@@ -103,7 +103,7 @@ export function ShapeProperties({ element, onUpdate }: { element: VenueShapeElem
     <div className="space-y-3">
       <FieldGroup label="形">
         <Select value={element.shape} onValueChange={(shape) => onUpdate({ shape: shape as ShapeKind })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ellipse">丸（楕円）</SelectItem>
             <SelectItem value="rect">四角</SelectItem>
@@ -129,7 +129,7 @@ export function StagePlotProperties({ element, onUpdate }: { element: VenueStage
     <div className="space-y-3">
       <FieldGroup label="描き方">
         <Select value={element.mode} onValueChange={(mode) => onUpdate({ mode: mode as StagePlotMode })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="icons">アイコンだけ</SelectItem>
             <SelectItem value="withBase">下絵ごと描く</SelectItem>

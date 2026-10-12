@@ -50,7 +50,7 @@ export function GridProperties({ element, catalog, onUpdate, onChangeColumns, on
             onUpdate({ source: { kind: 'group', groupId: value, fallbackLabel: findGroup(catalog.groups, value)?.label } });
           }}
         >
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value={FIELDS_SOURCE}>項目を 1 行ずつ並べる</SelectItem>
             {catalog.groups.length > 0 ? (
