@@ -443,7 +443,7 @@ export const LiveSubmissionsPage = () => {
         </CardHeader>
         <CardContent className="px-3 sm:px-4">
           {!hasVisibleColumns ? (
-            <p className="text-sm text-muted-foreground">「表示設定」で「管理」をONにした項目だけがここに表示されます</p>
+            <p className="text-sm text-muted-foreground">「表示設定」で「管理」をONにした項目が表示されます</p>
           ) : visibleDetails.length === 0 ? (
             <p className="text-sm text-muted-foreground">該当する提出はありません。</p>
           ) : (

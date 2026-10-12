@@ -1,6 +1,6 @@
 /** ランディングページの各セクション。 */
 import type { ReactNode } from 'react';
-import { ClipboardList, FileOutput, Link2, ScanLine, Share2, Users } from 'lucide-react';
+import { ClipboardList, FileOutput, ScanLine, Share2, Users } from 'lucide-react';
 
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { AppMock } from './AppMock';
@@ -36,14 +36,7 @@ export function Hero({ isLoading, onLogin }: LoginProps) {
             <div className="space-y-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <GoogleLoginButton isLoading={isLoading} onLogin={onLogin} className="shadow-lg shadow-primary/10" />
-                <p className="text-sm text-muted-foreground">運営の方はこちらからログインします</p>
-              </div>
-              <div className="flex max-w-xl items-start gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3">
-                <Link2 className="mt-0.5 size-5 shrink-0 text-primary" />
-                <p className="text-sm leading-6">
-                  <span className="font-bold">出演者はログイン不要です。</span>
-                  運営がリンクを送るだけで、出演者は開いてそのまま書き込めます。
-                </p>
+                <p className="text-sm text-muted-foreground">運営の方はこちらからログイン</p>
               </div>
             </div>
           </Reveal>
@@ -82,25 +75,25 @@ export function Features() {
     <section className="mx-auto max-w-6xl space-y-14 px-6 py-14">
       <Reveal className="space-y-3 text-center">
         <h2 className="text-3xl font-bold tracking-tight">できること</h2>
-        <p className="text-muted-foreground">フォームづくりから、会場へ渡す書類まで</p>
+        <p className="text-muted-foreground">フォームづくりから、書類づくりまで</p>
       </Reveal>
       <Feature
         icon={<ClipboardList className="size-6" />}
-        title="ライブに合わせて、フォームを作れる"
-        body="文字、選択、はい/いいえ、曲、演奏時間、ステージ配置図を並べて作ります。メンバーや曲のように何件でも書ける欄も作れます。曲と MC のように、種類によって書く項目が変わる欄も置けます。"
+        title="ライブにあわせて、フォームを作る"
+        body="テキスト入力、選択、ステージ配置図など、用途にあわせて入力フォームを作成することができます。繰り返しグループを使えば、メンバーやセットリストなど、可変な項目も作成できます。"
         mock={<FormBuilderMock />}
       />
       <Feature
         reverse
         icon={<FileOutput className="size-6" />}
         title="任意の書式に、回答をそのまま書き込む"
-        body="会場から渡された PDF や画像を背景にして、枠に合わせて回答を置きます。罫線が読み取れる書式なら、表の欄やチェック、丸囲みも数クリックで置けます。出力は、提出ごとの PDF になります。"
+        body="会場から渡された PDF や画像に入力した値を書き込むことができます。出力するPDFをオリジナルで作成することもできます。"
         mock={<VenueFormMock />}
       />
       <Feature
         icon={<ScanLine className="size-6" />}
-        title="曲かぶりを見つける"
-        body="同じ曲を選んだ提出があると知らせます。「小さな恋のうた」と「ちいさなこいのうた」のように表記が違っても、同じ曲として見つけます。iTunes で曲を選ぶと、演奏時間も入ります。"
+        title="かぶった曲を見つける"
+        body="同じ曲を選んだ提出があれば簡単に確認することができます。"
         mock={<DuplicateMock />}
       />
     </section>
@@ -108,10 +101,10 @@ export function Features() {
 }
 
 const steps = [
-  { icon: ClipboardList, title: 'フォームを作る', body: 'ライブを作って、項目を並べます。前のライブから取り込むこともできます。' },
-  { icon: Share2, title: 'リンクを配る', body: '公開ページのリンクを出演者に送ります。ログインは要りません。' },
-  { icon: Users, title: '提出を確かめる', body: '届いた内容を一覧で見て、曲かぶりや足りない項目を確かめます。' },
-  { icon: FileOutput, title: 'PDF を出力する', body: '提出ごとの PDF を、会場へ渡す書類として出力します。出力する前に、プレビューで仕上がりを確かめられます。' },
+  { icon: ClipboardList, title: 'フォームを作る', body: 'ライブを作って、フォームを作成します。以前作成したフォームから取り込むこともできます。' },
+  { icon: Share2, title: 'リンクを配る', body: 'フォームのリンクを出演者に送ります。記入者のログインは要りません。' },
+  { icon: Users, title: '提出を確かめる', body: '提出された内容を一覧で確認できます。' },
+  { icon: FileOutput, title: 'PDF を出力する', body: '提出された内容を PDF として出力します。' },
 ] as const;
 
 export function Flow() {

@@ -91,7 +91,6 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
           <Card className="min-w-0 gap-4 overflow-hidden py-4 text-card-foreground shadow-sm backdrop-blur sm:gap-6 sm:py-6">
             <CardHeader className="space-y-4 px-4 pb-0 sm:px-6 sm:pb-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-[0.35em]">TUNEBOARD</p>
                 <div className="flex items-center gap-2">
                   <ThemeToggle className="shrink-0" />
                   <Badge variant={live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary'}>

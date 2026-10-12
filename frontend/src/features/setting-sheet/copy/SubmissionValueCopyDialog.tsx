@@ -134,7 +134,7 @@ export const SubmissionValueCopyDialog = ({
       return;
     }
     onApply(applyValueCopy(config, currentValues, plan.rows, selectedKeys, sourceValues.itunesLinks));
-    toast.success('前回の入力を取り込みました。内容を確認して送信してください。', { position: 'top-center' });
+    toast.success('前回の入力を取り込みました。', { position: 'top-center' });
     handleOpenChange(false);
   };
 
@@ -145,8 +145,8 @@ export const SubmissionValueCopyDialog = ({
           <DialogTitle>前回の入力を取り込む</DialogTitle>
           <DialogDescription>
             {plan
-              ? `${sourceName} の内容です。取り込む項目を選んでください。反映後はまだ送信されていません。`
-              : '前に提出したシートの「編集用リンク」を貼り付けてください。'}
+              ? `${sourceName} の内容です。取り込む項目を選んでください。`
+              : '取込みたい「編集用リンク」を貼り付けてください。'}
           </DialogDescription>
         </DialogHeader>
 
@@ -157,11 +157,11 @@ export const SubmissionValueCopyDialog = ({
                 items={items}
                 selected={selectedKeys}
                 onToggle={toggle}
-                emptyMessage="このフォームに取り込める項目がありませんでした。"
+                emptyMessage="取込める項目がありませんでした。"
               />
               {plan.unmatchedLabels.length > 0 ? (
                 <p className="text-xs text-muted-foreground wrap-break-word">
-                  取り込み元に内容が無い項目: {plan.unmatchedLabels.join(' / ')}
+                  取込み元に無い項目: {plan.unmatchedLabels.join(' / ')}
                 </p>
               ) : null}
             </div>
@@ -173,9 +173,6 @@ export const SubmissionValueCopyDialog = ({
                 placeholder="https://.../public/lives/xxxx/submissions/xxxx"
                 autoComplete="off"
               />
-              <p className="text-xs text-muted-foreground">
-                前回の提出後に表示された「編集用リンクをコピー」で取得したURLです。
-              </p>
             </div>
           )}
         </div>
