@@ -3,9 +3,8 @@
  *  layout. Reuses the same useCanvasEditor / pdf-api / canvas-storage so the
  *  generated PDF and persisted state are identical to the desktop page. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  ChevronLeft,
   Copy,
   CopyPlus,
   Download,
@@ -20,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { BackButton } from '@/components/original/PageHeader';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/original/ConfirmDialog';
 import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
@@ -243,12 +243,7 @@ export const PdfPreviewPageMobile = () => {
       <div className="flex h-full w-full flex-col">
         {/* Compact header */}
         <header className="flex shrink-0 items-center justify-between gap-2 border-b bg-background px-2 py-1.5">
-          <Button asChild variant="ghost" size="sm" className="px-2">
-            <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`} aria-label="戻る">
-              <ChevronLeft className="size-4" />
-              戻る
-            </Link>
-          </Button>
+          <BackButton to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
           <div className="min-w-0 flex-1 truncate text-center text-xs text-muted-foreground">
             {live.name} / {headerSubtitle}
           </div>

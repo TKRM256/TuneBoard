@@ -1,17 +1,10 @@
 /** Live submissions list with detail dialog and song duplicate detection. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, FileDown, FileText, Search } from 'lucide-react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { FileDown, FileText, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+import { PageHeader } from '@/components/original/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -329,75 +322,46 @@ export const LiveSubmissionsPage = () => {
 
   return (
     <div className="space-y-4">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/tenants">テナント一覧</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/tenants/${tenantId}/lives`}>{live.tenantName}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/tenants/${tenantId}/lives/${liveId}`}>{live.name}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>提出確認</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <div className="space-y-1">
-              <h1 className="text-lg font-semibold sm:text-2xl">提出済みフォーム</h1>
-              <p className="text-xs text-muted-foreground sm:text-sm">{live.name} / {formatLiveDate(live.date)} / 全{details.length}件</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <TourButton steps={SUBMISSIONS_TOUR} />
-              <Button
-                variant="outline"
-                size="sm"
-                data-tour="submissions-pdf"
-                onClick={handleClickBulkPdf}
-                disabled={visibleDetails.length === 0}
-                title={visibleSelectedCount > 0
-                  ? `選択中の${visibleSelectedCount}件をPDFで出力します`
-                  : '一覧の全件をPDFで出力します'}
-              >
-                <FileDown className="size-4" />
-                {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF` : 'PDF一括出力'}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                data-tour="submissions-venue-pdf"
-                onClick={() => exportVenueForm(targetIds())}
-                disabled={visibleDetails.length === 0 || isExporting}
-                title="会場の書式に書き込んだPDFを出力します"
-              >
-                <FileText className="size-4" />
-                会場書式PDF
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
-                  <ChevronLeft className="size-4" />
-                  戻る
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        crumbs={[
+          { label: 'テナント一覧', to: '/tenants' },
+          { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
+          { label: live.name, to: `/tenants/${tenantId}/lives/${liveId}` },
+          { label: '提出確認' },
+        ]}
+        backTo={`/tenants/${tenantId}/lives/${liveId}`}
+        title="提出済みフォーム"
+        description={`${live.name} / ${formatLiveDate(live.date)} / 全${details.length}件`}
+        actions={(
+          <>
+            <TourButton steps={SUBMISSIONS_TOUR} />
+            <Button
+              variant="outline"
+              size="sm"
+              data-tour="submissions-pdf"
+              onClick={handleClickBulkPdf}
+              disabled={visibleDetails.length === 0}
+              title={visibleSelectedCount > 0
+                ? `選択中の${visibleSelectedCount}件をPDFで出力します`
+                : '一覧の全件をPDFで出力します'}
+            >
+              <FileDown className="size-4" />
+              {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF` : 'PDF一括出力'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              data-tour="submissions-venue-pdf"
+              onClick={() => exportVenueForm(targetIds())}
+              disabled={visibleDetails.length === 0 || isExporting}
+              title="会場の書式に書き込んだPDFを出力します"
+            >
+              <FileText className="size-4" />
+              会場書式PDF
+            </Button>
+          </>
+        )}
+      />
 
       <div data-tour="submissions-duplicates">
       <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={isAdmin ? handleDismiss : undefined} isDismissing={(normalizedTitle) => isDuplicateDismissRunning(getDuplicateActionKey(normalizedTitle))} isAdmin={isAdmin} />

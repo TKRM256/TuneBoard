@@ -1,7 +1,7 @@
 /** 会場書式エディタの上の帯（戻る・見本の提出・取り込み・保存・プレビュー・出力）。 */
-import { Link } from 'react-router-dom';
-import { ChevronLeft, CopyPlus, Download, Eye, Loader2, Save } from 'lucide-react';
+import { CopyPlus, Download, Eye, Loader2, Save } from 'lucide-react';
 
+import { BackButton } from '@/components/original/PageHeader';
 import { Button } from '@/components/ui/button';
 import { TourButton } from '@/features/tutorial/TourButton';
 import { VENUE_FORM_TOUR } from '@/features/tutorial/tours/venue-form-tour';
@@ -46,9 +46,7 @@ export function VenueEditorHeader({
   return (
     <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-background px-4 py-2">
       <div className="flex items-center gap-3">
-        <Button asChild variant="ghost" size="sm">
-          <Link to={backTo}><ChevronLeft className="size-4" />戻る</Link>
-        </Button>
+        <BackButton to={backTo} />
         <div>
           <h1 className="text-base font-semibold">会場書式</h1>
           <p className="text-xs text-muted-foreground">{liveName}</p>

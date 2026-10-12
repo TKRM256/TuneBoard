@@ -1,15 +1,19 @@
 /** ステージ設定（管理者）。下絵と、出演者が置けるアイコンの一覧・大きさを決める。 */
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, CopyPlus, Loader2, Save } from 'lucide-react';
+import { Navigate, useParams } from 'react-router-dom';
+import { CopyPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { PageHeader } from '@/components/original/PageHeader';
+import { SaveBar } from '@/components/original/SaveBar';
+import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useSingleFlight } from '@/hooks/use-single-flight';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { apiClient } from '@/lib/api/client';
 import { ApiClientError } from '@/lib/api/type';
 import { useAuthedObjectUrl } from '@/hooks/use-authed-object-url';
@@ -45,6 +49,8 @@ export const StagePlotSettingsPage = () => {
   const [copyOpen, setCopyOpen] = useState(false);
   const save = useSingleFlight();
   const { url: baseUrl } = useAuthedObjectUrl(stagePlot?.base && liveId ? adminStageBasePath(liveId, stagePlot.base.id) : null);
+  const isDirty = stagePlot !== null && draft !== null && JSON.stringify(draft) !== JSON.stringify(toDraft(stagePlot));
+  const leaveGuard = useUnsavedChangesWarning(isDirty);
 
   useEffect(() => {
     if (!tenantId || !liveId) return;
@@ -82,7 +88,10 @@ export const StagePlotSettingsPage = () => {
   const handleSave = () => void save.run(async () => {
     try {
       const response = await saveStagePlot(liveId, draft);
-      if (response) setStagePlot(response);
+      if (response) {
+        setStagePlot(response);
+        setDraft(toDraft(response));
+      }
       toast.success('ステージ設定を保存しました', { position: 'top-center' });
     } catch (error) {
       toast.error(error instanceof ApiClientError && error.apiError?.message ? error.apiError.message : '保存に失敗しました', { position: 'top-center' });
@@ -115,24 +124,24 @@ export const StagePlotSettingsPage = () => {
   }));
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm"><Link to={`/tenants/${tenantId}/lives/${liveId}`}><ChevronLeft className="size-4" />戻る</Link></Button>
-          <div>
-            <h1 className="text-lg font-semibold">ステージ設定</h1>
-            <p className="text-xs text-muted-foreground">{live.name}</p>
-          </div>
-        </div>
-        {isAdmin ? (
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="gap-1" onClick={() => setCopyOpen(true)}><CopyPlus className="size-4" />他のライブから取り込む</Button>
-            <Button size="sm" className="gap-1" onClick={handleSave} disabled={save.isRunning}>
-              {save.isRunning ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}保存
-            </Button>
-          </div>
+    <div className="space-y-4">
+      <UnsavedChangesDialog guard={leaveGuard} />
+      <PageHeader
+        crumbs={[
+          { label: 'テナント一覧', to: '/tenants' },
+          { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
+          { label: live.name, to: `/tenants/${tenantId}/lives/${liveId}` },
+          { label: 'ステージ設定' },
+        ]}
+        backTo={`/tenants/${tenantId}/lives/${liveId}`}
+        title="ステージ設定"
+        description={live.name}
+        actions={isAdmin ? (
+          <Button variant="outline" size="sm" onClick={() => setCopyOpen(true)}>
+            <CopyPlus className="size-4" />他のライブから取り込む
+          </Button>
         ) : null}
-      </div>
+      />
 
       <Card>
         <CardHeader>
@@ -164,6 +173,8 @@ export const StagePlotSettingsPage = () => {
           <StagePlotCanvas palette={draft.palette} iconScale={draft.iconScale} aspectRatio={aspectRatio} baseUrl={baseUrl} items={sampleItems} />
         </CardContent>
       </Card>
+
+      {isAdmin ? <SaveBar isDirty={isDirty} isSaving={save.isRunning} onSave={handleSave} /> : null}
 
       <LiveCopyFromDialog
         open={copyOpen}

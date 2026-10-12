@@ -1,19 +1,12 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Copy, ExternalLink, FileCheck2, FileText, LayoutGrid, Settings2, Wrench } from 'lucide-react';
+import { Copy, ExternalLink, FileCheck2, FileText, LayoutGrid, Settings2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+import { PageHeader } from '@/components/original/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { apiClient } from '@/lib/api/client';
 import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import {
@@ -109,46 +102,17 @@ export const LiveManagementPage = () => {
 
   return (
     <div className="space-y-4">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/tenants">テナント一覧</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/tenants/${tenantId}/lives`}>{live.tenantName}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{live.name}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg font-semibold sm:text-2xl">{live.name}</h1>
-                <Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground sm:text-sm">{formatLiveDate(live.date)} · {formatOptionalText(live.location)}</p>
-            </div>
-            <Button asChild variant="outline" size="sm" className="shrink-0">
-              <Link to={`/tenants/${tenantId}/lives`}>
-                <ChevronLeft className="size-4" />
-                戻る
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        crumbs={[
+          { label: 'テナント一覧', to: '/tenants' },
+          { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
+          { label: live.name },
+        ]}
+        backTo={`/tenants/${tenantId}/lives`}
+        title={live.name}
+        badge={<Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>}
+        description={`${formatLiveDate(live.date)} · ${formatOptionalText(live.location)}`}
+      />
 
       {/* リンク */}
       <Card>

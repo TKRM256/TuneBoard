@@ -4,6 +4,7 @@ import type { TenantsResponse } from "@/features/tenants/types/tenant-types";
 import { apiClient } from "@/lib/api/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/original/PageHeader";
 import { TrashButton, TrashSheet } from "@/components/original/TrashSheet";
 import { useKeyedSingleFlight } from "@/hooks/use-single-flight";
 
@@ -91,6 +92,7 @@ export const TenantsPage = () => {
 
   return (
     <div className="space-y-4">
+      <PageHeader title="テナント" />
       <CreateTenantsCard onCreateSuccess={onCreateSuccess} />
       <ListTenantsCard
         tenants={tenants}

@@ -2,10 +2,11 @@
  *  non-modal slide-in drawers (overlaying the canvas), and preview pinned to
  *  the right as the only resizable panel. Compile regenerates PDF on demand. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, CopyPlus, Download, Loader2, RefreshCw, RotateCcw, Save, Smartphone } from 'lucide-react';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { CopyPlus, Download, Loader2, RefreshCw, RotateCcw, Save, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { BackButton } from '@/components/original/PageHeader';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/original/ConfirmDialog';
 import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
@@ -221,12 +222,7 @@ export const PdfPreviewPage = () => {
     <div className="flex w-full h-full flex-col">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-background px-4 py-2 sm:px-6">
         <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="sm">
-            <Link to={`/tenants/${tenantId}/lives/${liveId}/submissions`}>
-              <ChevronLeft className="size-4" />
-              戻る
-            </Link>
-          </Button>
+          <BackButton to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
           <div>
             <h1 className="text-base font-semibold sm:text-lg">PDFデザイン</h1>
             <p className="text-xs text-muted-foreground">{live.name} / {headerSubtitle}</p>

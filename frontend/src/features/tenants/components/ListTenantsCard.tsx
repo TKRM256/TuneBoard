@@ -8,7 +8,7 @@ export const ListTenantsCard = ({ tenants, onUpdateSuccess, onDelete, onRestore,
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">テナント一覧</h3>
+                        <h2 className="text-lg font-semibold">テナント一覧</h2>
                         {trashTrigger}
                     </div>
                 </CardHeader>

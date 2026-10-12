@@ -1,9 +1,9 @@
 /** 会場書式エディタ（PC 用）。左にページと要素、中央に書式、右に設定を並べる。 */
 import { useMemo, useState } from 'react';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/original/PageHeader';
 import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSingleFlight } from '@/hooks/use-single-flight';
@@ -104,9 +104,8 @@ export const VenueFormEditorPage = () => {
 
   if (isMobile) {
     return (
-      <div className="space-y-3 p-6 text-sm">
-        <p>PCのみ対応しております</p>
-        <Button asChild variant="outline" size="sm"><Link to={backTo}>戻る</Link></Button>
+      <div className="p-3">
+        <PageHeader backTo={backTo} title="会場書式" description="PCのみ対応しております" />
       </div>
     );
   }

@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+import { PageHeader } from '@/components/original/PageHeader';
+import { SaveBar } from '@/components/original/SaveBar';
+import { TourButton } from '@/features/tutorial/TourButton';
+import { FORM_EDITOR_TOUR } from '@/features/tutorial/tours/form-editor-tour';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
@@ -76,9 +72,8 @@ export const LiveFormEditorPage = () => {
     [config?.blocks],
   );
 
-  const leaveGuard = useUnsavedChangesWarning(
-    config !== null && savedSignature !== null && JSON.stringify(config) !== savedSignature,
-  );
+  const isDirty = config !== null && savedSignature !== null && JSON.stringify(config) !== savedSignature;
+  const leaveGuard = useUnsavedChangesWarning(isDirty);
 
   if (!tenantId || !liveId) {
     return <Navigate to="/tenants" replace />;
@@ -213,42 +208,26 @@ export const LiveFormEditorPage = () => {
   return (
     <div className="space-y-4">
       <UnsavedChangesDialog guard={leaveGuard} />
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/tenants">テナント一覧</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/tenants/${tenantId}/lives`}>{live.tenantName}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/tenants/${tenantId}/lives/${liveId}`}>{live.name}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>ライブフォーム作成</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <PageHeader
+        crumbs={[
+          { label: 'テナント一覧', to: '/tenants' },
+          { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
+          { label: live.name, to: `/tenants/${tenantId}/lives/${liveId}` },
+          { label: 'ライブフォーム作成' },
+        ]}
+        backTo={`/tenants/${tenantId}/lives/${liveId}`}
+        title="ライブフォーム作成"
+        description={live.name}
+        actions={<TourButton steps={FORM_EDITOR_TOUR} />}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
           <FormEditorSidebar
-            tenantId={tenantId}
             liveId={liveId}
             config={config}
-            isSaving={isSaving}
             setConfig={setConfig}
             onResetToDefault={resetToDefault}
-            onSave={saveConfig}
           />
         </aside>
 
@@ -274,6 +253,8 @@ export const LiveFormEditorPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      <SaveBar isDirty={isDirty} isSaving={isSaving} onSave={saveConfig} dataTour="form-save" />
     </div>
   );
 };
