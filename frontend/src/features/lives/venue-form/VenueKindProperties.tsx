@@ -2,6 +2,8 @@
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { IconPicker } from '@/features/stage-plot/IconPicker';
 import { SvgIconNodes } from '@/features/stage-plot/SvgIconNodes';
@@ -28,6 +30,7 @@ export function TextProperties({ element, catalog, onUpdate }: { element: VenueT
         <ExpressionTextarea catalog={catalog} value={element.content} onChange={(content) => onUpdate({ content })} rows={3} title="テキスト" />
       </FieldGroup>
       <TypographyGroup {...typography(element)} onUpdate={onUpdate as (patch: Record<string, unknown>) => void} />
+      <ShrinkToFitSwitch checked={element.shrinkToFit === true} onChange={(shrinkToFit) => onUpdate({ shrinkToFit })} />
     </div>
   );
 }
@@ -46,6 +49,17 @@ export function FieldProperties({ element, catalog, onUpdate }: { element: Venue
         </Select>
       </FieldGroup>
       <TypographyGroup {...typography(element)} onUpdate={onUpdate as (patch: Record<string, unknown>) => void} />
+      <ShrinkToFitSwitch checked={element.shrinkToFit === true} onChange={(shrinkToFit) => onUpdate({ shrinkToFit })} />
+    </div>
+  );
+}
+
+/** 折り返さずに 1 行で枠の幅に収まるまで文字を小さくするか。 */
+export function ShrinkToFitSwitch({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Switch id="shrink-to-fit" checked={checked} onCheckedChange={onChange} />
+      <Label htmlFor="shrink-to-fit" className="text-xs">1 行に縮めて収める</Label>
     </div>
   );
 }

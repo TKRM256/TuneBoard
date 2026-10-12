@@ -54,15 +54,18 @@ public final class VenueFormSchema {
         /** JEXL の表示条件。空なら常に描く。 */
         String condition();
 
-        /** 固定の文字、または {@code ${...}} の式を含む文字。 */
+        /**
+         * 固定の文字、または {@code ${...}} の式を含む文字。
+         * shrinkToFit なら、折り返さずに 1 行で枠の幅に収まるまで文字を小さくする（下限あり）。
+         */
         record TextElement(String id, String pageId, Float xMm, Float yMm, Float wMm, Float hMm, String condition,
-                String content, Float fontSizePt, Boolean bold, String align, String verticalAlign, String color)
-                implements VenueElement {
+                String content, Float fontSizePt, Boolean bold, String align, String verticalAlign, String color,
+                Boolean shrinkToFit) implements VenueElement {
         }
 
         record FieldElement(String id, String pageId, Float xMm, Float yMm, Float wMm, Float hMm, String condition,
-                String fieldId, Float fontSizePt, Boolean bold, String align, String verticalAlign, String color)
-                implements VenueElement {
+                String fieldId, Float fontSizePt, Boolean bold, String align, String verticalAlign, String color,
+                Boolean shrinkToFit) implements VenueElement {
         }
 
         /**

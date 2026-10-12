@@ -1,14 +1,23 @@
 /** エディタ上での要素の見た目。書式の上で位置を合わせやすいよう、文字の大きさも縮尺どおりにする。 */
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Filter, LayoutGrid } from 'lucide-react';
 
 import { SvgIconNodes } from '@/features/stage-plot/SvgIconNodes';
 
 import type { FieldCatalog } from '../canvas-shared/field-catalog';
+import { ShrinkToFitLine } from './ShrinkToFitLine';
 import { ConditionDim, LiveText } from './VenueLivePreview';
-import { DEFAULT_TEXT_COLOR, type VenueElement, type VenueTableElement } from './venue-form-schema';
+import {
+  DEFAULT_TEXT_COLOR,
+  type VenueElement,
+  type VenueFieldElement,
+  type VenueTableElement,
+  type VenueTextElement,
+} from './venue-form-schema';
 
 const MM_PER_PT = 25.4 / 72;
+/** 1 行に縮めるときの下限（出力と同じ）。 */
+const MIN_SHRINK_PT = 4;
 
 interface Props {
   element: VenueElement;
@@ -37,17 +46,17 @@ function ElementBody({ element, catalog, pxPerMm }: { element: VenueElement; cat
   switch (element.kind) {
     case 'text':
       return (
-        <div style={textStyle(element, fontPx(element.fontSizePt))}>
+        <TextBody element={element} fontPx={fontPx(element.fontSizePt)} minFontPx={fontPx(MIN_SHRINK_PT)}>
           {element.content ? <LiveText template={element.content} catalog={catalog} /> : <span className="italic text-muted-foreground">(テキスト)</span>}
-        </div>
+        </TextBody>
       );
     case 'field':
       return (
-        <div style={textStyle(element, fontPx(element.fontSizePt))}>
+        <TextBody element={element} fontPx={fontPx(element.fontSizePt)} minFontPx={fontPx(MIN_SHRINK_PT)}>
           {element.fieldId
             ? <LiveText template={`\${fields['${element.fieldId}'].value}`} catalog={catalog} />
             : '(項目未設定)'}
-        </div>
+        </TextBody>
       );
     case 'table':
       return <TableGuide element={element} catalog={catalog} fontPx={fontPx(element.fontSizePt)} />;
@@ -79,6 +88,22 @@ function ElementBody({ element, catalog, pxPerMm }: { element: VenueElement; cat
       );
     }
   }
+}
+
+/** テキスト・項目の中身。1 行に縮める設定なら折り返さずに縮めて見せる。 */
+function TextBody({ element, fontPx, minFontPx, children }: {
+  element: VenueTextElement | VenueFieldElement;
+  fontPx: number;
+  minFontPx: number;
+  children: ReactNode;
+}) {
+  return (
+    <div style={textStyle(element, fontPx)}>
+      {element.shrinkToFit
+        ? <ShrinkToFitLine fontPx={fontPx} minFontPx={minFontPx} align={element.align}>{children}</ShrinkToFitLine>
+        : children}
+    </div>
+  );
 }
 
 function TableGuide({ element, catalog, fontPx }: { element: VenueTableElement; catalog: FieldCatalog; fontPx: number }) {

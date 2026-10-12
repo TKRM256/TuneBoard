@@ -129,6 +129,19 @@ class VenueFormRendererTest {
     }
 
     @Test
+    void 一行に縮める設定の文字は枠の幅に収まるよう小さくして折り返さない() throws IOException {
+        LiveAsset background = backgroundAsset();
+        String alphabet = "ABCDEFGHIJKL";
+        String shrunk = render(document(background.getId(), List.of(narrowText("s1", alphabet, true))), background,
+                new RenderWarnings());
+        String wrapped = render(document(background.getId(), List.of(narrowText("s2", alphabet, false))), background,
+                new RenderWarnings());
+
+        assertThat(shrunk).contains(alphabet);
+        assertThat(wrapped).doesNotContain(alphabet);
+    }
+
+    @Test
     void 書き間違えた条件式は描かずに警告にする() throws IOException {
         LiveAsset background = backgroundAsset();
         RenderWarnings warnings = new RenderWarnings();
@@ -193,9 +206,14 @@ class VenueFormRendererTest {
                 elements);
     }
 
+    private static VenueElement.TextElement narrowText(String id, String content, boolean shrinkToFit) {
+        return new VenueElement.TextElement(id, "p1", 10f, 60f, 25f, 8f, null, content, 10f, false, "left", "middle",
+                "#111827", shrinkToFit);
+    }
+
     private static VenueElement.TextElement text(String id, String content, String condition) {
         return new VenueElement.TextElement(id, "p1", 10f, 30f + id.hashCode() % 5 * 10f, 150f, 8f, condition,
-                content, 10f, false, "left", "middle", "#111827");
+                content, 10f, false, "left", "middle", "#111827", null);
     }
 
     private static VenueElement.TableElement table(String id, int startIndex, int maxRows) {

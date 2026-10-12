@@ -50,6 +50,7 @@ describe('buildCellTexts', () => {
     expect(texts[0]).toMatchObject({ align: 'center', condition: "${count(groups['members'].items) >= 2}" });
     expect(texts[1].condition).toBeUndefined();
     expect(new Set(texts.map((t) => t.fontSizePt)).size).toBe(1);
+    expect(texts.every((t) => t.shrinkToFit)).toBe(true);
   });
 
   it('見出しの行数が多すぎても 1 行は残す', () => {

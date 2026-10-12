@@ -33,6 +33,8 @@ export interface VenueTextElement extends BaseElement {
   align?: HAlign;
   verticalAlign?: VAlign;
   color?: string;
+  /** 折り返さずに 1 行で枠の幅に収まるまで文字を小さくする */
+  shrinkToFit?: boolean;
 }
 
 export interface VenueFieldElement extends BaseElement {
@@ -43,6 +45,8 @@ export interface VenueFieldElement extends BaseElement {
   align?: HAlign;
   verticalAlign?: VAlign;
   color?: string;
+  /** 折り返さずに 1 行で枠の幅に収まるまで文字を小さくする */
+  shrinkToFit?: boolean;
 }
 
 /** グループの回答を行ごとに書く。枠線や見出しは書式側にあるので描かない。行の高さは hMm / maxRows。 */

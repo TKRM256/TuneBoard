@@ -87,6 +87,15 @@ function TextSection({ elements, onUpdate }: { elements: VenueElement[]; onUpdat
               </ToggleGroup>
             </div>
             <ToggleGroup
+              type="multiple"
+              size="sm"
+              variant="outline"
+              value={commonValue(textOnly, (e) => e.shrinkToFit === true) ? ['shrink'] : []}
+              onValueChange={(values) => onUpdate({ shrinkToFit: values.includes('shrink') })}
+            >
+              <ToggleGroupItem value="shrink" className="text-[10px]">1 行に縮めて収める</ToggleGroupItem>
+            </ToggleGroup>
+            <ToggleGroup
               type="single"
               size="sm"
               variant="outline"

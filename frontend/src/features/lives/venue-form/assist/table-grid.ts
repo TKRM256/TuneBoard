@@ -81,7 +81,7 @@ export function itemValueExpression(groupId: string, index: number, fieldId: str
 /**
  * 見出しを除いた行・列のマスごとに、何件目の項目の値を書くテキストを作る。マスは罫線どおりの位置なので、
  * 行の高さが揃っていない表でもずれない。番号の列は、その件があるときだけ番号を書く。
- * 文字の大きさはいちばん低い行に収まる大きさで揃える。
+ * 文字の大きさはいちばん低い行に収まる大きさで揃え、欄の幅に入らない回答は 1 行に縮めて収める。
  */
 export function buildCellTexts(grid: TableGrid, options: TableOptions, pageId: string): VenueTextElement[] {
   const rows = grid.rows.slice(Math.min(options.headerRows, grid.rows.length - 2));
@@ -103,6 +103,7 @@ export function buildCellTexts(grid: TableGrid, options: TableOptions, pageId: s
         condition: isNumber ? `\${count(groups['${options.groupId}'].items) >= ${index + 1}}` : undefined,
         fontSizePt,
         align: isNumber ? 'center' : 'left',
+        shrinkToFit: true,
       });
     });
   });
