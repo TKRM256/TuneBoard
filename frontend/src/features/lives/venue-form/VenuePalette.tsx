@@ -26,7 +26,7 @@ export function VenuePalette({ catalog, disabled, onInsert }: Props) {
   ];
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-3" data-tour="venue-palette">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">要素を置く</h2>
       <div className="grid grid-cols-2 gap-2">
         <Button size="sm" variant="outline" className="gap-1" disabled={disabled} onClick={() => onInsert({ kind: 'text' })}>

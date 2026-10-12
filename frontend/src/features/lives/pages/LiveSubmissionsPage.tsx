@@ -35,6 +35,8 @@ import { SubmissionsTable } from '../components/SubmissionsTable';
 import { collectColumns } from '../helpers/submission-table-helpers';
 import { ALL_COLUMNS_VALUE, useSubmissionTableView } from '../hooks/use-submission-table-view';
 import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
+import { TourButton } from '@/features/tutorial/TourButton';
+import { SUBMISSIONS_TOUR } from '@/features/tutorial/tours/submissions-tour';
 import { useKeyedSingleFlight, useSingleFlight } from '@/hooks/use-single-flight';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -361,9 +363,11 @@ export const LiveSubmissionsPage = () => {
               <p className="text-xs text-muted-foreground sm:text-sm">{live.name} / {formatLiveDate(live.date)} / 全{details.length}件</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <TourButton steps={SUBMISSIONS_TOUR} />
               <Button
                 variant="outline"
                 size="sm"
+                data-tour="submissions-pdf"
                 onClick={handleClickBulkPdf}
                 disabled={visibleDetails.length === 0}
                 title={visibleSelectedCount > 0
@@ -376,6 +380,7 @@ export const LiveSubmissionsPage = () => {
               <Button
                 variant="outline"
                 size="sm"
+                data-tour="submissions-venue-pdf"
                 onClick={() => exportVenueForm(targetIds())}
                 disabled={visibleDetails.length === 0 || isExporting}
                 title="会場の書式に書き込んだPDFを出力します"
@@ -394,17 +399,19 @@ export const LiveSubmissionsPage = () => {
         </CardHeader>
       </Card>
 
+      <div data-tour="submissions-duplicates">
       <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={isAdmin ? handleDismiss : undefined} isDismissing={(normalizedTitle) => isDuplicateDismissRunning(getDuplicateActionKey(normalizedTitle))} isAdmin={isAdmin} />
+      </div>
 
       {/* テーブルの表示幅を稼ぐため、このカードだけ左右の余白を詰める */}
-      <Card>
+      <Card data-tour="submissions-list">
         <CardHeader className="px-3 sm:px-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
               </div>
-              {isAdmin && <TrashButton onClick={handleOpenTrash} count={trashedDetails.length} />}
+              {isAdmin && <span data-tour="submissions-trash"><TrashButton onClick={handleOpenTrash} count={trashedDetails.length} /></span>}
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative w-full sm:max-w-sm">

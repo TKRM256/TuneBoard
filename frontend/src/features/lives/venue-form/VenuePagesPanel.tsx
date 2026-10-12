@@ -59,7 +59,7 @@ export function VenuePagesPanel({ liveId, editor, assets, onAssetUploaded }: Pro
         onChange={(event) => handleFile(event.target.files?.[0])}
       />
       <div className="grid grid-cols-2 gap-2">
-        <Button size="sm" variant="outline" className="gap-1" onClick={() => fileRef.current?.click()} disabled={isRunning}>
+        <Button size="sm" variant="outline" className="gap-1" onClick={() => fileRef.current?.click()} disabled={isRunning} data-tour="venue-import">
           {isRunning ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
           書式を取り込む
         </Button>

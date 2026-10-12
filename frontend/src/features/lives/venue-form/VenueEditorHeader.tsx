@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, CopyPlus, Download, Eye, Loader2, Save } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { TourButton } from '@/features/tutorial/TourButton';
+import { VENUE_FORM_TOUR } from '@/features/tutorial/tours/venue-form-tour';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import type { SettingSheetSubmissionResponse } from '../types/live-types';
@@ -53,8 +55,9 @@ export function VenueEditorHeader({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <TourButton steps={VENUE_FORM_TOUR} />
         <Select value={previewSubmissionId ?? ''} onValueChange={onChangePreviewSubmission} disabled={submissions.length === 0}>
-          <SelectTrigger className="h-8 w-48 text-xs" aria-label="見本に使う提出">
+          <SelectTrigger className="h-8 w-48 text-xs" aria-label="見本に使う提出" data-tour="venue-sample">
             <SelectValue placeholder={submissions.length === 0 ? '提出がありません' : '見本の提出'} />
           </SelectTrigger>
           <SelectContent>
@@ -67,12 +70,12 @@ export function VenueEditorHeader({
           </Button>
         ) : null}
         {canEdit ? (
-          <Button variant="outline" size="sm" className="gap-1" onClick={onSave} disabled={isSaving}>
+          <Button variant="outline" size="sm" className="gap-1" onClick={onSave} disabled={isSaving} data-tour="venue-save">
             {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             {isDirty ? '保存 *' : '保存'}
           </Button>
         ) : null}
-        <Button size="sm" className="gap-1" onClick={onOpenPreview} disabled={!previewSubmissionId}>
+        <Button size="sm" className="gap-1" onClick={onOpenPreview} disabled={!previewSubmissionId} data-tour="venue-preview">
           <Eye className="size-4" />プレビュー
         </Button>
         {downloadCount > 0 ? (

@@ -167,7 +167,7 @@ export const VenueFormEditorPage = () => {
             />
             <div className="relative min-h-0 flex-1">
               <AssistGuide assist={assist} />
-              <div ref={scrollerRef} className="h-full overflow-auto bg-muted/20 p-6 [scrollbar-gutter:stable]" {...viewport.scrollerProps}>
+              <div ref={scrollerRef} data-tour="venue-canvas" className="h-full overflow-auto bg-muted/20 p-6 [scrollbar-gutter:stable]" {...viewport.scrollerProps}>
                 {editor.currentPage ? (
                   <div className="flex w-max min-w-full justify-center">
                     <VenueCanvas
@@ -194,7 +194,7 @@ export const VenueFormEditorPage = () => {
               </div>
             </div>
           </main>
-          <aside className="w-80 shrink-0 border-l">
+          <aside className="w-80 shrink-0 border-l" data-tour="venue-properties">
             <VenuePropertyPanel
               key={[...editor.selectedIds].join(',') || 'none'}
               element={editor.selectedElement}

@@ -46,7 +46,7 @@ export const BlockEditorTree = ({
 
     return (
       <Accordion key={block.id} type="single" collapsible className="w-full" defaultValue={depth === 0 && index === 0 ? 'details' : undefined}>
-        <div className="rounded-2xl border bg-background p-2 shadow-sm sm:p-4" style={{ marginLeft: Math.min(depth * 12, 36) }}>
+        <div className="rounded-2xl border bg-background p-2 shadow-sm sm:p-4" style={{ marginLeft: Math.min(depth * 12, 36) }} data-tour={isFirstRoot(depth, index) ? 'form-block' : undefined}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -60,7 +60,7 @@ export const BlockEditorTree = ({
                 <p className="mt-1 text-xs text-muted-foreground">{summarizeBlock(block)}</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 sm:flex">
+            <div className="grid grid-cols-3 gap-2 sm:flex" data-tour={isFirstRoot(depth, index) ? 'form-block-actions' : undefined}>
               <Button type="button" variant="outline" size="sm" onClick={() => onMove(parentId, index, 'up')} disabled={index === 0}>
                 <ArrowUp className="size-4" />
               </Button>
@@ -74,7 +74,7 @@ export const BlockEditorTree = ({
           </div>
 
           <AccordionItem value="details" className="mt-3 border-none">
-            <AccordionTrigger className="rounded-xl border px-3 py-2 text-sm hover:bg-muted/40 hover:no-underline">
+            <AccordionTrigger className="rounded-xl border px-3 py-2 text-sm hover:bg-muted/40 hover:no-underline" data-tour={isFirstRoot(depth, index) ? 'form-block-settings' : undefined}>
               設定を開く
             </AccordionTrigger>
             <AccordionContent className="pt-3">
@@ -110,7 +110,7 @@ export const BlockEditorTree = ({
         {blocks.length > 0 ? blocks.map((block, index) => (
           <div key={block.id}>
             {renderBlockEditor(block, index, null)}
-            <div className="mt-2 flex justify-end">
+            <div className="mt-2 flex justify-end" data-tour={index === 0 ? 'form-add-block' : undefined}>
                 <AddBlockMenu
                     options={SETTING_SHEET_BLOCK_OPTIONS}
                     onSelect={(type) => onInsert(null, index + 1, type)}
@@ -119,7 +119,7 @@ export const BlockEditorTree = ({
               </div>
           </div>
         )):
-        <div className="mt-2 flex justify-end">
+        <div className="mt-2 flex justify-end" data-tour="form-add-block">
           <AddBlockMenu
             options={SETTING_SHEET_BLOCK_OPTIONS}
             onSelect={(type) => onInsert(null, 0, type)}
@@ -130,3 +130,8 @@ export const BlockEditorTree = ({
       </div>
   );
 };
+
+/** 案内で指し示す、いちばん上のブロック */
+function isFirstRoot(depth: number, index: number) {
+  return depth === 0 && index === 0;
+}

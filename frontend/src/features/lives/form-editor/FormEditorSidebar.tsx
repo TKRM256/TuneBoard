@@ -3,6 +3,8 @@ import { ChevronLeft, CopyPlus, RotateCcw, Save, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
+import { TourButton } from '@/features/tutorial/TourButton';
+import { FORM_EDITOR_TOUR } from '@/features/tutorial/tours/form-editor-tour';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,6 +42,7 @@ export const FormEditorSidebar = ({
             <div>
               <h1 className="text-xl font-semibold">ライブフォーム作成</h1>
             </div>
+            <TourButton steps={FORM_EDITOR_TOUR} className="ml-auto" />
           </div>
           <Button asChild variant="outline" className="w-full justify-start">
             <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
@@ -51,7 +54,7 @@ export const FormEditorSidebar = ({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <Card>
+        <Card data-tour="form-settings">
           <CardContent className="space-y-2">
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={onResetToDefault}>
@@ -69,7 +72,7 @@ export const FormEditorSidebar = ({
                 空から作る
               </Button>
             </div>
-            <Button type="button" variant="outline" className="w-full justify-start" onClick={() => setIsCopyOpen(true)}>
+            <Button type="button" variant="outline" className="w-full justify-start" onClick={() => setIsCopyOpen(true)} data-tour="form-copy">
               <CopyPlus className="size-4" />
               他のライブから取り込む
             </Button>
@@ -88,7 +91,7 @@ export const FormEditorSidebar = ({
           </CardContent>
         </Card>
 
-        <Button type="button" onClick={onSave} disabled={isSaving} className="w-full">
+        <Button type="button" onClick={onSave} disabled={isSaving} className="w-full" data-tour="form-save">
           <Save className="size-4" />
           {isSaving ? '保存中...' : 'フォーム設定を保存'}
         </Button>

@@ -21,6 +21,7 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, tool, o
     <>
       <AssistToggle
         label="罫線を表示"
+        tour="venue-lines"
         tooltip={noLines ? '罫線が見つかりません' : '罫線を表示'}
         pressed={showLines}
         disabled={noLines}
@@ -30,6 +31,7 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, tool, o
       </AssistToggle>
       <AssistToggle
         label="表の欄に項目を並べる"
+        tour="venue-table-tool"
         tooltip={noLines ? '罫線が見つかりません' : '表の欄に項目を並べる'}
         pressed={tool === 'table'}
         disabled={noLines}
@@ -39,6 +41,7 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, tool, o
       </AssistToggle>
       <AssistToggle
         label="選択肢の印を置く"
+        tour="venue-marker-tool"
         tooltip="選択肢の印を置く"
         pressed={tool === 'marker'}
         disabled={false}
@@ -52,6 +55,8 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, tool, o
 
 interface ToggleProps {
   label: string;
+  /** 案内（チュートリアル）で指し示すときの名前 */
+  tour: string;
   tooltip: string;
   pressed: boolean;
   disabled: boolean;
@@ -59,12 +64,12 @@ interface ToggleProps {
   children: ReactNode;
 }
 
-function AssistToggle({ label, tooltip, pressed, disabled, onPressedChange, children }: ToggleProps) {
+function AssistToggle({ label, tour, tooltip, pressed, disabled, onPressedChange, children }: ToggleProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         {/* 押せないときもツールチップで理由を見せるため span で包む */}
-        <span>
+        <span data-tour={tour}>
           <Toggle size="sm" className="h-7 min-w-7 px-1.5" pressed={pressed} onPressedChange={onPressedChange} disabled={disabled} aria-label={label}>
             {children}
           </Toggle>
