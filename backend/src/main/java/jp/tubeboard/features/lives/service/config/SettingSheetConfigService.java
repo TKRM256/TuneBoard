@@ -27,7 +27,7 @@ public class SettingSheetConfigService {
                 List<FormBlockResponse> memberFields = List.of(
                                 formBuilderHelper.textBlock("member-name", "氏名", true,
                                                 formBuilderHelper.layoutTwoThirds(1)),
-                                formBuilderHelper.booleanBlock("member-representative", "代表者", "代表者にチェックを入れてください。",
+                                formBuilderHelper.booleanBlock("member-representative", "代表者", "",
                                                 formBuilderHelper.layoutThird(1)),
                                 formBuilderHelper.selectBlock("member-parts", SettingSheetConstants.BLOCK_MULTI_SELECT,
                                                 "担当パート", true,
@@ -58,7 +58,7 @@ public class SettingSheetConfigService {
                                                 formBuilderHelper.layoutHalf(1)),
                                 formBuilderHelper.longTextBlock("song-note-other", "備考", false,
                                                 formBuilderHelper.layoutFull(1)),
-                                formBuilderHelper.groupBlock("song-mics", "使うマイク", "誰がどのマイクを使うか入力します。", false, true, 0,
+                                formBuilderHelper.groupBlock("song-mics", "使うマイク", "", false, true, 0,
                                                 "マイク追加", "マイク",
                                                 "mic-member", formBuilderHelper.layoutFull(1), songMicFields));
 
@@ -74,7 +74,7 @@ public class SettingSheetConfigService {
 
                 List<FormBlockResponse> mcVariantFields = List.of(
                                 formBuilderHelper.groupBlock("mc-mics", "使うマイク",
-                                                "MC中に使うマイクと担当者を入力します。", false, true, 0,
+                                                "", false, true, 0,
                                                 "マイク追加", "マイク",
                                                 "mc-mic-member", formBuilderHelper.layoutFull(1), mcMicFields));
 
@@ -90,19 +90,19 @@ public class SettingSheetConfigService {
 
                 return new SettingSheetConfigResponse(
                                 "バンド申請フォーム",
-                                "出演情報、メンバー、演奏曲を入力してください。",
+                                "",
                                 "送信する",
                                 true,
                                 List.of(
                                                 formBuilderHelper.sectionBlock("section-band", "バンド基本情報",
-                                                                "バンド名、提出状況、備考を入力します。", bandFields),
-                                                formBuilderHelper.groupBlock("members", "出演者", "出演者と担当パートを入力します。", true,
+                                                                "", bandFields),
+                                                formBuilderHelper.groupBlock("members", "出演者", "", true,
                                                                 true, 1, "メンバー追加",
                                                                 "メンバー",
                                                                 "member-name", formBuilderHelper.layoutFull(1),
                                                                 memberFields),
                                                 formBuilderHelper.variantGroupBlock("setlist", "セットリスト",
-                                                                "曲やMCなどの演出順を入力します。",
+                                                                "",
                                                                 true, true, 1, "追加", "項目",
                                                                 "song", formBuilderHelper.layoutFull(1),
                                                                 List.of(
@@ -114,7 +114,7 @@ public class SettingSheetConfigService {
                                                                                                 mcVariantFields))),
                                                 formBuilderHelper.plainBlock("stage-plot",
                                                                 SettingSheetConstants.BLOCK_STAGE_PLOT, "ステージ配置図",
-                                                                "メンバーや機材の立ち位置を置いてください。",
+                                                                "",
                                                                 formBuilderHelper.layoutFull(1))));
         }
 
@@ -128,8 +128,7 @@ public class SettingSheetConfigService {
                         SettingSheetConfigResponse defaults = defaultSettingSheetConfig();
                         return new SettingSheetConfigResponse(
                                         formBuilderHelper.safeTextOrDefault(parsed.title(), defaults.title()),
-                                        formBuilderHelper.safeTextOrDefault(parsed.description(),
-                                                        defaults.description()),
+                                        formBuilderHelper.safeText(parsed.description()),
                                         formBuilderHelper.safeTextOrDefault(parsed.submitButtonLabel(),
                                                         defaults.submitButtonLabel()),
                                         parsed.publicSubmissionEnabled() == null
@@ -157,7 +156,7 @@ public class SettingSheetConfigService {
                                 : defaults.publicSubmissionEnabled();
                 return new SettingSheetConfigResponse(
                                 formBuilderHelper.safeTextOrDefault(request.title(), "バンド申請フォーム"),
-                                formBuilderHelper.safeTextOrDefault(request.description(), "出演情報、メンバー、演奏曲を入力してください。"),
+                                formBuilderHelper.safeText(request.description()),
                                 formBuilderHelper.safeTextOrDefault(request.submitButtonLabel(), "送信する"),
                                 publicSubmissionEnabled,
                                 helper.normalizeBlocks(request.blocks(), defaults));
