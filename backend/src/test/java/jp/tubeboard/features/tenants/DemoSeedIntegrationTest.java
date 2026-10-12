@@ -72,7 +72,10 @@ class DemoSeedIntegrationTest {
     }
 
     private void checkVenueForm(String liveId, String liveName) throws Exception {
-        JsonNode venueForm = getJson("/api/lives/" + liveId + "/venue-form");
+        JsonNode layouts = getJson("/api/lives/" + liveId + "/pdf-layouts");
+        assertThat(layouts.size()).as(liveName).isEqualTo(1);
+        String layoutId = layouts.get(0).get("id").asText();
+        JsonNode venueForm = getJson("/api/lives/" + liveId + "/pdf-layouts/" + layoutId);
         JsonNode document = venueForm.get("document");
         assertThat(document.get("elements").size()).as(liveName).isGreaterThan(10);
         assertThat(venueForm.get("assets").size()).isEqualTo(1);
@@ -82,7 +85,7 @@ class DemoSeedIntegrationTest {
         for (JsonNode submission : submissions) {
             String submissionId = submission.get("id").asText();
             String body = objectMapper.writeValueAsString(Map.of("submissionId", submissionId, "document", document));
-            JsonNode check = objectMapper.readTree(mockMvc.perform(post("/api/lives/" + liveId + "/venue-form/check")
+            JsonNode check = objectMapper.readTree(mockMvc.perform(post("/api/lives/" + liveId + "/pdf-layouts/check")
                     .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(body))
                     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
             // 書式の行数より多い件（出演者 6 人など）は書ききれない警告が出てよい。それ以外の警告（式のエラーなど）は無いこと
@@ -92,8 +95,9 @@ class DemoSeedIntegrationTest {
         }
 
         String firstId = submissions.get(0).get("id").asText();
-        byte[] pdf = mockMvc.perform(post("/api/lives/" + liveId + "/venue-form/submissions/" + firstId + "/pdf")
-                .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        byte[] pdf = mockMvc.perform(post("/api/lives/" + liveId + "/pdf-layouts/submissions/" + firstId + "/pdf")
+                .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("layoutId", layoutId))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
         assertThat(new String(pdf, 0, 4)).isEqualTo("%PDF");
     }

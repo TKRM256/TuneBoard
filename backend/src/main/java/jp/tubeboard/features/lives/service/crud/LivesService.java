@@ -38,9 +38,8 @@ import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
 import jp.tubeboard.features.lives.service.config.AdminOnlyBlocks;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
-import jp.tubeboard.features.lives.service.pdf.LivePdfCanvasService;
 import jp.tubeboard.features.lives.stageplot.StagePlotService;
-import jp.tubeboard.features.lives.venueform.VenueFormService;
+import jp.tubeboard.features.lives.venueform.LivePdfLayoutRepository;
 import jp.tubeboard.features.tenants.model.Tenants;
 import lombok.AllArgsConstructor;
 
@@ -57,8 +56,7 @@ public class LivesService implements ILivesService {
         private final SettingSheetSubmissionService settingSheetSubmissionService;
         private final SettingSheetSubmissionRepository settingSheetSubmissionRepository;
         private final SongDuplicateDetectionService songDuplicateDetectionService;
-        private final LivePdfCanvasService livePdfCanvasService;
-        private final VenueFormService venueFormService;
+        private final LivePdfLayoutRepository pdfLayoutRepository;
         private final StagePlotService stagePlotService;
         private final AdminAnswerService adminAnswerService;
 
@@ -127,8 +125,7 @@ public class LivesService implements ILivesService {
                                                 live.getDate(),
                                                 live.getStatus(),
                                                 live.getSettingsJson() != null && !live.getSettingsJson().isBlank(),
-                                                livePdfCanvasService.hasPdfCanvas(live),
-                                                venueFormService.hasVenueForm(live),
+                                                (int) pdfLayoutRepository.countByLiveIdAndDeletedAtIsNull(live.getId()),
                                                 stagePlotService.hasSettings(live)))
                                 .toList();
         }

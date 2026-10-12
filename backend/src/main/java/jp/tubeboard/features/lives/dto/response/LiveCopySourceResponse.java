@@ -6,7 +6,7 @@ import java.util.UUID;
 import jp.tubeboard.features.lives.model.LiveStatus;
 
 /**
- * フォーム設定・PDFレイアウト・会場書式・ステージ設定のコピー元候補となるライブ。
+ * フォーム設定・PDF 書式・ステージ設定のコピー元候補となるライブ。
  * 現在のユーザーがアクセスできる全テナントのライブが対象。
  */
 public record LiveCopySourceResponse(
@@ -17,7 +17,6 @@ public record LiveCopySourceResponse(
         LocalDate date,
         LiveStatus status,
         boolean hasSettingSheetConfig,
-        boolean hasPdfCanvas,
-        boolean hasVenueForm,
+        int pdfLayoutCount,
         boolean hasStagePlot) {
 }

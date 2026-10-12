@@ -1,4 +1,4 @@
-package jp.tubeboard.features.lives.pdf.canvas;
+package jp.tubeboard.features.lives.venueform;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,6 +10,7 @@ import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.pdfbox.Loader;
@@ -37,13 +38,14 @@ import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasElement;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasPage;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableColumn;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableSource;
+import jp.tubeboard.features.lives.venueform.render.RenderWarnings;
+import jp.tubeboard.features.lives.venueform.render.VenueFormRenderer;
 
 /**
- * Renders a synthetic canvas through the full pipeline and asserts the PDF
- * contains the expected text. Catches regressions in the pdf primitives,
- * coordinate flipping, and JEXL interpolation.
+ * 統合前の形のレイアウトを今の形に直して描き、PDF に期待どおりの文字が出るかを確かめる。
+ * 本番に残っている PDF レイアウトが統合後も同じように出力されることを守る。
  */
-class CanvasRendererTest {
+class LegacyCanvasRenderingTest {
 
     private static final LayoutResponse LAYOUT_HALF = new LayoutResponse("half", 1, false);
 
@@ -253,8 +255,10 @@ class CanvasRendererTest {
             throws IOException {
         PDDocument pdf = new PDDocument();
         FontChain fontChain = fontLoader.loadFontChain(pdf);
-        CanvasRenderer renderer = new CanvasRenderer(evaluator, sampleLive(), sampleConfig(), submission);
-        renderer.render(doc, pdf, fontChain);
+        try (VenueFormRenderer renderer = new VenueFormRenderer(evaluator, sampleLive(), sampleConfig(), submission,
+                new VenueFormRenderer.Resources(Map.of(), null, null))) {
+            renderer.render(LegacyCanvasConverter.convert(doc), pdf, fontChain, new RenderWarnings());
+        }
         return pdf;
     }
 

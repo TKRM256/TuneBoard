@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import jp.tubeboard.common.exception.BadRequestException;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableColumn;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableSource;
 import jp.tubeboard.features.lives.stageplot.icon.IconNode;
 import jp.tubeboard.features.lives.stageplot.icon.IconNodeValidator;
 import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenueElement;
@@ -17,7 +18,7 @@ import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenueFormDocument;
 import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenuePage;
 
 /**
- * 保存・出力の前に会場書式の形を確かめる。公開されていない API とはいえ、
+ * 保存・出力の前に PDF 書式の形を確かめる。公開されていない API とはいえ、
  * 巨大な値や壊れた参照で描画が落ちたりメモリを使い切ったりしないよう上限を設ける。
  */
 @Component
@@ -70,6 +71,9 @@ public class VenueFormValidator {
         requireText(page.id(), MAX_ID, "ページのID");
         requireRange(page.widthMm(), 10f, 1500f, "ページの幅");
         requireRange(page.heightMm(), 10f, 1500f, "ページの高さ");
+        if (page.marginMm() != null) {
+            requireRange(page.marginMm(), 0f, Math.min(page.widthMm(), page.heightMm()) / 3f, "ページの余白");
+        }
         if (page.background() == null) {
             return;
         }
@@ -99,6 +103,7 @@ public class VenueFormValidator {
             case VenueElement.TextElement t -> optionalText(t.content(), MAX_CONTENT, "テキスト");
             case VenueElement.FieldElement f -> optionalText(f.fieldId(), MAX_REF, "項目");
             case VenueElement.TableElement t -> validateTable(t);
+            case VenueElement.GridElement g -> validateGrid(g);
             case VenueElement.IconElement i -> validateIcon(i.iconName(), i.nodes());
             case VenueElement.ShapeElement s -> {
                 if (s.shape() == null || !SHAPES.contains(s.shape())) {
@@ -120,7 +125,17 @@ public class VenueFormValidator {
 
     private void validateTable(VenueElement.TableElement table) {
         optionalText(table.groupId(), MAX_REF, "表のグループ");
-        List<TableColumn> columns = table.columns() == null ? List.of() : table.columns();
+        validateColumns(table.columns());
+        if (table.maxRows() == null || table.maxRows() < 1 || table.maxRows() > MAX_ROWS) {
+            throw invalid("表の行数は1〜" + MAX_ROWS + "にしてください");
+        }
+        if (table.startIndex() != null && (table.startIndex() < 1 || table.startIndex() > 1000)) {
+            throw invalid("表の開始位置が正しくありません");
+        }
+    }
+
+    private void validateColumns(List<TableColumn> nullableColumns) {
+        List<TableColumn> columns = nullableColumns == null ? List.of() : nullableColumns;
         if (columns.size() > MAX_COLUMNS) {
             throw invalid("表の列は" + MAX_COLUMNS + "列までです");
         }
@@ -130,13 +145,28 @@ public class VenueFormValidator {
             }
             optionalText(column.fieldId(), MAX_REF, "列の項目");
             optionalText(column.format(), MAX_CONDITION, "列の書式");
+            optionalText(column.header(), MAX_REF, "列の見出し");
         }
-        if (table.maxRows() == null || table.maxRows() < 1 || table.maxRows() > MAX_ROWS) {
-            throw invalid("表の行数は1〜" + MAX_ROWS + "にしてください");
+    }
+
+    private void validateGrid(VenueElement.GridElement grid) {
+        switch (grid.source()) {
+            case null -> throw invalid("表に書く内容が選ばれていません");
+            case TableSource.GroupSource group -> optionalText(group.groupId(), MAX_REF, "表のグループ");
+            case TableSource.FieldsSource fields -> {
+                List<TableSource.FieldRef> refs = fields.fields() == null ? List.of() : fields.fields();
+                if (refs.size() > MAX_ROWS) {
+                    throw invalid("表の行は" + MAX_ROWS + "行までです");
+                }
+                for (TableSource.FieldRef ref : refs) {
+                    if (ref == null) {
+                        throw invalid("空の行があります");
+                    }
+                    optionalText(ref.fieldId(), MAX_REF, "行の項目");
+                }
+            }
         }
-        if (table.startIndex() != null && (table.startIndex() < 1 || table.startIndex() > 1000)) {
-            throw invalid("表の開始位置が正しくありません");
-        }
+        validateColumns(grid.columns());
     }
 
     private void validateIcon(String iconName, List<IconNode> nodes) {
@@ -165,6 +195,6 @@ public class VenueFormValidator {
     }
 
     private static BadRequestException invalid(String detail) {
-        return new BadRequestException("会場書式の形式が正しくありません: " + detail);
+        return new BadRequestException("書式の形式が正しくありません: " + detail);
     }
 }

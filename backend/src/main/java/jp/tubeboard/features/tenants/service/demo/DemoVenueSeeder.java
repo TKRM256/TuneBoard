@@ -16,8 +16,8 @@ import jp.tubeboard.features.lives.asset.LiveAssetService;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.stageplot.StagePlotSettingsReader;
-import jp.tubeboard.features.lives.venueform.LiveVenueForm;
-import jp.tubeboard.features.lives.venueform.LiveVenueFormRepository;
+import jp.tubeboard.features.lives.venueform.LivePdfLayout;
+import jp.tubeboard.features.lives.venueform.LivePdfLayoutRepository;
 import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenueFormDocument;
 import jp.tubeboard.features.tenants.service.demo.DemoStagePlots.Kind;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class DemoVenueSeeder {
 
     private final LiveAssetService assetService;
     private final LiveRepository liveRepository;
-    private final LiveVenueFormRepository venueFormRepository;
+    private final LivePdfLayoutRepository layoutRepository;
     private final StagePlotSettingsReader settingsReader;
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
@@ -56,7 +56,8 @@ public class DemoVenueSeeder {
         };
         VenueFormDocument document = layout.build(background.getId(), DemoVenueLayouts.PAGE_WIDTH_MM,
                 DemoVenueLayouts.PAGE_HEIGHT_MM);
-        venueFormRepository.save(LiveVenueForm.builder().live(live).layoutJson(toJson(document)).build());
+        layoutRepository.save(LivePdfLayout.builder().live(live).name("会場書式").sortOrder(0)
+                .format(LivePdfLayout.FORMAT_V2).layoutJson(toJson(document)).build());
     }
 
     private static byte[] readPdf(String fileName) {

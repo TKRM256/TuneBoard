@@ -48,7 +48,7 @@ public class StagePlotController {
     public ResponseEntity<StagePlotResponse> uploadBase(@PathVariable(name = "id") UUID id,
             @RequestParam(name = "file") MultipartFile file) {
         return ResponseEntity.ok(stagePlotService.uploadBase(id, file.getOriginalFilename(),
-                VenueFormController.readBytes(file)));
+                PdfLayoutController.readBytes(file)));
     }
 
     @PostMapping("/base/from-venue-form")

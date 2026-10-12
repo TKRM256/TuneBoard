@@ -94,7 +94,7 @@ class VenueFormLinesIntegrationTest {
         UUID assetId = upload(pdfWithBox());
 
         for (int i = 0; i < 2; i++) {
-            mockMvc.perform(get("/api/lives/{id}/venue-form/assets/{assetId}/pages/0/lines", live.getId(), assetId)
+            mockMvc.perform(get("/api/lives/{id}/pdf-layouts/assets/{assetId}/pages/0/lines", live.getId(), assetId)
                     .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.lines.length()").value(4))
@@ -107,13 +107,13 @@ class VenueFormLinesIntegrationTest {
     void 無いページは400を返す() throws Exception {
         UUID assetId = upload(pdfWithBox());
 
-        mockMvc.perform(get("/api/lives/{id}/venue-form/assets/{assetId}/pages/3/lines", live.getId(), assetId)
+        mockMvc.perform(get("/api/lives/{id}/pdf-layouts/assets/{assetId}/pages/3/lines", live.getId(), assetId)
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest());
     }
 
     private UUID upload(byte[] pdf) throws Exception {
-        MvcResult result = mockMvc.perform(multipart("/api/lives/{id}/venue-form/assets", live.getId())
+        MvcResult result = mockMvc.perform(multipart("/api/lives/{id}/pdf-layouts/assets", live.getId())
                 .file(new MockMultipartFile("file", "venue.pdf", "application/pdf", pdf))
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())

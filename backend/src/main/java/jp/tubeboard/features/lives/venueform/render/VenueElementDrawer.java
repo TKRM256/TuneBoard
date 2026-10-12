@@ -40,20 +40,31 @@ final class VenueElementDrawer {
     void drawText(PDPageContentStream stream, FontChain fontChain, VenueElement.TextElement t, PdfBox box,
             Map<String, Object> namespace, Consumer<String> onError) throws IOException {
         String content = evaluator.interpolate(t.content() == null ? "" : t.content(), namespace, onError);
+        TextBoxDrawer.drawBackgroundAndBorder(stream, box, t.backgroundColor(), t.borderColor(), t.borderThicknessPt());
         float size = fittedSize(fontChain, content, box, fontSize(t.fontSizePt()), t.shrinkToFit());
         TextBoxDrawer.drawTextBox(stream, fontChain, content, box, size, t.align(),
                 t.verticalAlign(), color(t.color()), Boolean.TRUE.equals(t.bold()));
     }
 
-    /** @return 項目が見つかったか */
+    /**
+     * @param formLabel フォームでの項目名。名前を付けて書く設定で、名前を変えていないときに使う
+     * @return 項目が見つかったか
+     */
     boolean drawField(PDPageContentStream stream, FontChain fontChain, VenueElement.FieldElement f, PdfBox box,
-            Map<String, Object> namespace) throws IOException {
+            Map<String, Object> namespace, String formLabel) throws IOException {
         if (!(namespace.get("fields") instanceof Map<?, ?> fields)
                 || !(fields.get(f.fieldId()) instanceof CanvasContext.FieldRef ref)) {
             return false;
         }
-        float size = fittedSize(fontChain, ref.getValue(), box, fontSize(f.fontSizePt()), f.shrinkToFit());
-        TextBoxDrawer.drawTextBox(stream, fontChain, ref.getValue(), box, size, f.align(),
+        TextBoxDrawer.drawBackgroundAndBorder(stream, box, f.backgroundColor(), f.borderColor(), f.borderThicknessPt());
+        String text = ref.getValue();
+        if (Boolean.TRUE.equals(f.showLabel())) {
+            String label = f.labelOverride() != null && !f.labelOverride().isBlank() ? f.labelOverride()
+                    : formLabel != null ? formLabel : f.fieldId();
+            text = label + ": " + (text == null ? "" : text);
+        }
+        float size = fittedSize(fontChain, text, box, fontSize(f.fontSizePt()), f.shrinkToFit());
+        TextBoxDrawer.drawTextBox(stream, fontChain, text, box, size, f.align(),
                 f.verticalAlign(), color(f.color()), Boolean.TRUE.equals(f.bold()));
         return true;
     }

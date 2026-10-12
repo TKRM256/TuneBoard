@@ -6,12 +6,14 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasElement;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableColumn;
+import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableSource;
 import jp.tubeboard.features.lives.stageplot.icon.IconNode;
 
 /**
- * 会場書式のレイアウト。フロントの venue-form-schema.ts と同じ形にする。
- * 座標は各ページの左上を原点とした mm。
+ * PDF 書式のレイアウト。フロントの venue-form-schema.ts と同じ形にする。
+ * 座標は各ページの左上を原点とした mm。背景（会場の書式）を敷いたページも、白紙のページも同じ形で表す。
  */
 public final class VenueFormSchema {
 
@@ -21,7 +23,10 @@ public final class VenueFormSchema {
     public record VenueFormDocument(List<VenuePage> pages, List<VenueElement> elements) {
     }
 
-    public record VenuePage(String id, Float widthMm, Float heightMm, PageBackground background) {
+    /**
+     * @param marginMm 伸びる表が次のページへ続くときの上下の余白。空なら 10mm
+     */
+    public record VenuePage(String id, Float widthMm, Float heightMm, PageBackground background, Float marginMm) {
     }
 
     /** 背景に使うファイルとそのページ（画像は 0 のみ）。 */
@@ -33,6 +38,7 @@ public final class VenueFormSchema {
             @JsonSubTypes.Type(value = VenueElement.TextElement.class, name = "text"),
             @JsonSubTypes.Type(value = VenueElement.FieldElement.class, name = "field"),
             @JsonSubTypes.Type(value = VenueElement.TableElement.class, name = "table"),
+            @JsonSubTypes.Type(value = VenueElement.GridElement.class, name = "grid"),
             @JsonSubTypes.Type(value = VenueElement.IconElement.class, name = "icon"),
             @JsonSubTypes.Type(value = VenueElement.ShapeElement.class, name = "shape"),
             @JsonSubTypes.Type(value = VenueElement.StagePlotElement.class, name = "stagePlot"),
@@ -60,12 +66,15 @@ public final class VenueFormSchema {
          */
         record TextElement(String id, String pageId, Float xMm, Float yMm, Float wMm, Float hMm, String condition,
                 String content, Float fontSizePt, Boolean bold, String align, String verticalAlign, String color,
-                Boolean shrinkToFit) implements VenueElement {
+                Boolean shrinkToFit, String backgroundColor, String borderColor, Float borderThicknessPt)
+                implements VenueElement {
         }
 
+        /** @param showLabel 「氏名: 田中」のように項目名を前に付ける。名前は labelOverride、空ならフォームの項目名 */
         record FieldElement(String id, String pageId, Float xMm, Float yMm, Float wMm, Float hMm, String condition,
                 String fieldId, Float fontSizePt, Boolean bold, String align, String verticalAlign, String color,
-                Boolean shrinkToFit) implements VenueElement {
+                Boolean shrinkToFit, String backgroundColor, String borderColor, Float borderThicknessPt,
+                Boolean showLabel, String labelOverride) implements VenueElement {
         }
 
         /**
@@ -78,6 +87,24 @@ public final class VenueFormSchema {
                 String groupId, List<TableColumn> columns, Integer startIndex, Integer maxRows, Float fontSizePt,
                 String color)
                 implements VenueElement {
+        }
+
+        /**
+         * 罫線と見出しのある表。行の高さは中身に合わせて決まる。
+         *
+         * @param autoGrow 空でなければ、行が枠に入りきらないときに下へ伸び、下の要素を押し下げ、
+         *                 ページに収まらない分は次のページに続ける。このとき hMm は最低の高さになる
+         */
+        record GridElement(String id, String pageId, Float xMm, Float yMm, Float wMm, Float hMm, String condition,
+                TableSource source, List<TableColumn> columns, Boolean showHeader, Float fontSizePt,
+                String headerFill, String borderColor, Boolean zebra, Boolean autoGrow)
+                implements VenueElement {
+
+            /** 測る・描く処理は旧来の表と共通なので、その形に直して渡す。 */
+            public CanvasElement.TableElement toTable() {
+                return new CanvasElement.TableElement(id, xMm, yMm, wMm, hMm, source, columns, showHeader,
+                        fontSizePt, headerFill, borderColor, zebra, autoGrow);
+            }
         }
 
         record IconElement(String id, String pageId, Float xMm, Float yMm, Float wMm, Float hMm, String condition,

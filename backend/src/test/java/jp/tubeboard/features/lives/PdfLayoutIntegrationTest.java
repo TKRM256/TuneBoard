@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,6 +46,8 @@ import jp.tubeboard.features.lives.model.LiveStatus;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
+import jp.tubeboard.features.lives.venueform.LivePdfLayout;
+import jp.tubeboard.features.lives.venueform.LivePdfLayoutRepository;
 import jp.tubeboard.features.tenants.model.TenantRole;
 import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.model.UserTenant;
@@ -53,7 +56,7 @@ import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 
 @IntegrationTest
 @AutoConfigureMockMvc
-class VenueFormIntegrationTest {
+class PdfLayoutIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -69,6 +72,8 @@ class VenueFormIntegrationTest {
     private SettingSheetSubmissionRepository submissionRepository;
     @Autowired
     private LiveAssetRepository assetRepository;
+    @Autowired
+    private LivePdfLayoutRepository layoutRepository;
     @Autowired
     private JwtTokenService jwtTokenService;
 
@@ -92,7 +97,7 @@ class VenueFormIntegrationTest {
                 .name("Admin").picture("").build());
         User member = userRepository.save(User.builder().sub("vf-member").email("vf-member@example.com")
                 .name("Member").picture("").build());
-        tenant = tenantsRepository.save(Tenants.builder().name("会場書式テナント").user(admin).build());
+        tenant = tenantsRepository.save(Tenants.builder().name("書式テナント").user(admin).build());
         userTenantRepository.save(UserTenant.builder().user(admin).tenant(tenant).role(TenantRole.ADMIN).build());
         userTenantRepository.save(UserTenant.builder().user(member).tenant(tenant).role(TenantRole.MEMBER).build());
         live = createLive("新歓ライブ");
@@ -109,42 +114,98 @@ class VenueFormIntegrationTest {
     @Test
     void 背景をアップロードし書式を保存してPDFに出力できる() throws Exception {
         UUID assetId = uploadBackground(live, adminToken);
+        UUID layoutId = createLayout(live, "会場書式", "BLANK");
 
-        mockMvc.perform(post("/api/lives/{id}/venue-form", live.getId())
+        mockMvc.perform(put("/api/lives/{id}/pdf-layouts/{layoutId}", live.getId(), layoutId)
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Map.of("document", document(assetId)))))
+                .content(objectMapper.writeValueAsString(Map.of("name", "会場の申込書", "document", document(assetId)))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.document.pages[0].background.assetId").value(assetId.toString()));
 
-        mockMvc.perform(get("/api/lives/{id}/venue-form", live.getId())
+        mockMvc.perform(get("/api/lives/{id}/pdf-layouts/{layoutId}", live.getId(), layoutId)
                 .header("Authorization", "Bearer " + memberToken))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("会場の申込書"))
                 .andExpect(jsonPath("$.assets[0].pages[0].widthMm").value(210.0))
                 .andExpect(jsonPath("$.document.elements[0].kind").value("text"));
 
-        mockMvc.perform(get("/api/lives/{id}/venue-form/assets/{assetId}/pages/0", live.getId(), assetId)
+        mockMvc.perform(get("/api/lives/{id}/pdf-layouts/assets/{assetId}/pages/0", live.getId(), assetId)
                 .header("Authorization", "Bearer " + memberToken))
                 .andExpect(status().isOk())
                 .andExpect(result -> assertThat(result.getResponse().getContentType()).isEqualTo("image/png"));
 
-        MvcResult pdf = mockMvc.perform(post("/api/lives/{id}/venue-form/submissions/{sid}/pdf", live.getId(),
-                submission.getId())
-                .header("Authorization", "Bearer " + memberToken)
-                .contentType(APPLICATION_JSON)
-                .content("{}"))
-                .andExpect(status().isOk())
-                .andReturn();
-        try (PDDocument doc = Loader.loadPDF(pdf.getResponse().getContentAsByteArray())) {
-            assertThat(new PDFTextStripper().getText(doc)).contains("Band A");
-        }
+        assertThat(pdfText(Map.of("layoutId", layoutId))).contains("Band A");
 
-        mockMvc.perform(post("/api/lives/{id}/venue-form/submissions/zip", live.getId())
+        mockMvc.perform(post("/api/lives/{id}/pdf-layouts/submissions/zip", live.getId())
                 .header("Authorization", "Bearer " + memberToken)
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Map.of("submissionIds", List.of(submission.getId())))))
+                .content(objectMapper.writeValueAsString(Map.of("submissionIds", List.of(submission.getId()),
+                        "layoutId", layoutId))))
                 .andExpect(status().isOk())
                 .andExpect(result -> assertThat(result.getResponse().getContentType()).isEqualTo("application/zip"));
+    }
+
+    @Test
+    void 書式は複数持てて一覧に並び消すと一覧から外れる() throws Exception {
+        UUID first = createLayout(live, "標準", "FORM");
+        UUID second = createLayout(live, "会場書式", "BLANK");
+
+        mockMvc.perform(get("/api/lives/{id}/pdf-layouts", live.getId())
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(first.toString()))
+                .andExpect(jsonPath("$[0].pageCount").value(1))
+                .andExpect(jsonPath("$[1].name").value("会場書式"))
+                .andExpect(jsonPath("$[1].pageCount").value(0));
+
+        mockMvc.perform(delete("/api/lives/{id}/pdf-layouts/{layoutId}", live.getId(), second)
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/lives/{id}/pdf-layouts", live.getId())
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
+    void 統合前のPDFレイアウトは今の形に直して読め出力できる() throws Exception {
+        // 本番の lives.pdf_canvas_json は、V20 でこの形のまま移される
+        LivePdfLayout legacy = layoutRepository.save(LivePdfLayout.builder().live(live).name("標準").sortOrder(0)
+                .format(LivePdfLayout.FORMAT_CANVAS_V1)
+                .layoutJson("""
+                        {"page":{"size":"B5","orientation":"PORTRAIT","marginMm":8,"baseFontSizePt":9},
+                         "elements":[
+                          {"kind":"text","id":"t1","xMm":10,"yMm":10,"wMm":100,"hMm":10,
+                           "content":"${live.name}","fontSizePt":14},
+                          {"kind":"divider","id":"d1","xMm":10,"yMm":22,"wMm":100,"hMm":1,
+                           "color":"#cccccc","thicknessPt":1},
+                          {"kind":"spacer","id":"s1","xMm":10,"yMm":30,"wMm":10,"hMm":10},
+                          {"kind":"table","id":"g1","xMm":10,"yMm":40,"wMm":150,"hMm":20,
+                           "source":{"kind":"fields","fields":[{"fieldId":"band-name","fallbackLabel":"バンド名"}]},
+                           "columns":[{"id":"c1","header":"項目","fieldId":"__label__","widthRatio":0.3},
+                                      {"id":"c2","header":"内容","fieldId":"","widthRatio":0.7}],
+                           "showHeader":true,"fontSizePt":9,"autoGrow":true}]}
+                        """)
+                .build());
+
+        mockMvc.perform(get("/api/lives/{id}/pdf-layouts/{layoutId}", live.getId(), legacy.getId())
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.document.pages.length()").value(1))
+                .andExpect(jsonPath("$.document.pages[0].widthMm").value(182.0))
+                .andExpect(jsonPath("$.document.pages[0].marginMm").value(8.0))
+                .andExpect(jsonPath("$.document.elements.length()").value(3))
+                .andExpect(jsonPath("$.document.elements[1].kind").value("shape"))
+                .andExpect(jsonPath("$.document.elements[2].kind").value("grid"));
+
+        assertThat(pdfText(Map.of("layoutId", legacy.getId()))).contains("新歓ライブ").contains("Band A");
+    }
+
+    @Test
+    void 書式を選ばなければフォームの項目を並べた書式で出力する() throws Exception {
+        assertThat(pdfText(Map.of())).contains("新歓ライブ");
     }
 
     @Test
@@ -155,7 +216,7 @@ class VenueFormIntegrationTest {
                 "elements", List.of(Map.of("kind", "text", "id", "e1", "pageId", "p1", "xMm", 10, "yMm", 10,
                         "wMm", 50, "hMm", 8, "content", "x", "condition", "contains(")));
 
-        mockMvc.perform(post("/api/lives/{id}/venue-form/check", live.getId())
+        mockMvc.perform(post("/api/lives/{id}/pdf-layouts/check", live.getId())
                 .header("Authorization", "Bearer " + memberToken)
                 .contentType(APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("submissionId", submission.getId(), "document", doc))))
@@ -164,15 +225,14 @@ class VenueFormIntegrationTest {
     }
 
     @Test
-    void メンバーは書式を保存できず背景もアップロードできない() throws Exception {
-        mockMvc.perform(post("/api/lives/{id}/venue-form", live.getId())
+    void メンバーは書式を作れず背景もアップロードできない() throws Exception {
+        mockMvc.perform(post("/api/lives/{id}/pdf-layouts", live.getId())
                 .header("Authorization", "Bearer " + memberToken)
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Map.of("document",
-                        Map.of("pages", List.of(), "elements", List.of())))))
+                .content(objectMapper.writeValueAsString(Map.of("name", "x", "source", "BLANK"))))
                 .andExpect(status().isNotFound());
 
-        mockMvc.perform(multipart("/api/lives/{id}/venue-form/assets", live.getId())
+        mockMvc.perform(multipart("/api/lives/{id}/pdf-layouts/assets", live.getId())
                 .file(new MockMultipartFile("file", "a.pdf", "application/pdf", pdf()))
                 .header("Authorization", "Bearer " + memberToken))
                 .andExpect(status().isNotFound());
@@ -182,39 +242,62 @@ class VenueFormIntegrationTest {
     void 他のライブの背景は参照できない() throws Exception {
         Live other = createLive("別のライブ");
         UUID otherAsset = uploadBackground(other, adminToken);
+        UUID layoutId = createLayout(live, "会場書式", "BLANK");
 
-        mockMvc.perform(post("/api/lives/{id}/venue-form", live.getId())
+        mockMvc.perform(put("/api/lives/{id}/pdf-layouts/{layoutId}", live.getId(), layoutId)
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Map.of("document", document(otherAsset)))))
+                .content(objectMapper.writeValueAsString(Map.of("name", "会場書式", "document", document(otherAsset)))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("背景のファイル")));
     }
 
     @Test
-    void 他のライブから背景ごとコピーでき差し替えた古い背景は消える() throws Exception {
+    void 他のライブから背景ごとコピーでき使われない背景は消える() throws Exception {
         Live source = createLive("コピー元");
         UUID sourceAsset = uploadBackground(source, adminToken);
-        mockMvc.perform(post("/api/lives/{id}/venue-form", source.getId())
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Map.of("document", document(sourceAsset)))))
-                .andExpect(status().isOk());
-        UUID oldAsset = uploadBackground(live, adminToken);
+        UUID sourceLayout = createLayout(source, "会場書式", "BLANK");
+        save(source, sourceLayout, Map.of("name", "会場書式", "document", document(sourceAsset)));
+        UUID unusedAsset = uploadBackground(live, adminToken);
 
-        MvcResult copied = mockMvc.perform(post("/api/lives/{id}/venue-form/copy-from", live.getId())
+        MvcResult copied = mockMvc.perform(post("/api/lives/{id}/pdf-layouts/copy-from", live.getId())
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Map.of("sourceLiveId", source.getId()))))
+                .content(objectMapper.writeValueAsString(Map.of("sourceLiveId", source.getId(),
+                        "sourceLayoutId", sourceLayout))))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("会場書式"))
                 .andReturn();
 
         JsonNode body = objectMapper.readTree(copied.getResponse().getContentAsString());
         UUID copiedAsset = UUID.fromString(body.path("document").path("pages").get(0).path("background")
                 .path("assetId").asText());
         assertThat(copiedAsset).isNotEqualTo(sourceAsset);
-        assertThat(assetRepository.findById(oldAsset)).isEmpty();
         assertThat(assetRepository.findById(sourceAsset)).isPresent();
+
+        // 保存すると、どの書式にも使われていない背景は片付く
+        save(live, UUID.fromString(body.path("id").asText()), Map.of("name", "会場書式",
+                "document", body.path("document")));
+        assertThat(assetRepository.findById(unusedAsset)).isEmpty();
+        assertThat(assetRepository.findById(copiedAsset)).isPresent();
+    }
+
+    @Test
+    void 罫線つきの表の必要な高さを測れる() throws Exception {
+        Map<String, Object> grid = new java.util.HashMap<>(Map.of("kind", "grid", "id", "g1", "pageId", "p1",
+                "xMm", 10, "yMm", 10, "wMm", 150, "hMm", 3, "showHeader", true, "fontSizePt", 9));
+        grid.put("source", Map.of("kind", "fields", "fields", List.of(Map.of("fieldId", "band-name"))));
+        grid.put("columns", List.of(Map.of("id", "c1", "header", "内容", "fieldId", "", "widthRatio", 1)));
+        Map<String, Object> doc = Map.of("pages", List.of(Map.of("id", "p1", "widthMm", 210, "heightMm", 297)),
+                "elements", List.of(grid));
+
+        mockMvc.perform(post("/api/lives/{id}/pdf-layouts/measure", live.getId())
+                .header("Authorization", "Bearer " + memberToken)
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("submissionId", submission.getId(), "document", doc))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tables[0].elementId").value("g1"))
+                .andExpect(jsonPath("$.tables[0].requiredHeightMm", org.hamcrest.Matchers.greaterThan(3.0)));
     }
 
     @Test
@@ -239,7 +322,7 @@ class VenueFormIntegrationTest {
     }
 
     @Test
-    void 会場書式のページを切り出して下絵にできる() throws Exception {
+    void 書式の背景のページを切り出して下絵にできる() throws Exception {
         UUID assetId = uploadBackground(live, adminToken);
 
         mockMvc.perform(post("/api/lives/{id}/stage-plot/base/from-venue-form", live.getId())
@@ -280,8 +363,39 @@ class VenueFormIntegrationTest {
                 .build());
     }
 
+    private UUID createLayout(Live target, String name, String source) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/lives/{id}/pdf-layouts", target.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("name", name, "source", source))))
+                .andExpect(status().isOk())
+                .andReturn();
+        return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).path("id").asText());
+    }
+
+    private void save(Live target, UUID layoutId, Map<String, Object> body) throws Exception {
+        mockMvc.perform(put("/api/lives/{id}/pdf-layouts/{layoutId}", target.getId(), layoutId)
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk());
+    }
+
+    private String pdfText(Map<String, Object> body) throws Exception {
+        MvcResult pdf = mockMvc.perform(post("/api/lives/{id}/pdf-layouts/submissions/{sid}/pdf", live.getId(),
+                submission.getId())
+                .header("Authorization", "Bearer " + memberToken)
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andReturn();
+        try (PDDocument doc = Loader.loadPDF(pdf.getResponse().getContentAsByteArray())) {
+            return new PDFTextStripper().getText(doc);
+        }
+    }
+
     private UUID uploadBackground(Live target, String token) throws Exception {
-        MvcResult result = mockMvc.perform(multipart("/api/lives/{id}/venue-form/assets", target.getId())
+        MvcResult result = mockMvc.perform(multipart("/api/lives/{id}/pdf-layouts/assets", target.getId())
                 .file(new MockMultipartFile("file", "venue.pdf", "application/pdf", pdf()))
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())

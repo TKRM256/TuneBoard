@@ -34,7 +34,7 @@ final class VenueLayoutBuilder {
     VenueLayoutBuilder field(String fieldId, Cell cell, float fontSizePt, boolean shrinkToFit, String verticalAlign) {
         Cell box = inner(cell);
         elements.add(new VenueElement.FieldElement(id(), PAGE_ID, box.left(), box.top(), width(box), height(box), null,
-                fieldId, fontSizePt, false, "left", verticalAlign, TEXT_COLOR, shrinkToFit));
+                fieldId, fontSizePt, false, "left", verticalAlign, TEXT_COLOR, shrinkToFit, null, null, null, null, null));
         return this;
     }
 
@@ -42,7 +42,7 @@ final class VenueLayoutBuilder {
     VenueLayoutBuilder text(String content, Cell cell, float fontSizePt, String align, String condition) {
         Cell box = inner(cell);
         elements.add(new VenueElement.TextElement(id(), PAGE_ID, box.left(), box.top(), width(box), height(box),
-                condition, content, fontSizePt, false, align, "middle", TEXT_COLOR, true));
+                condition, content, fontSizePt, false, align, "middle", TEXT_COLOR, true, null, null, null));
         return this;
     }
 
@@ -88,7 +88,7 @@ final class VenueLayoutBuilder {
     }
 
     VenueFormDocument build(UUID assetId, float widthMm, float heightMm) {
-        VenuePage page = new VenuePage(PAGE_ID, widthMm, heightMm, new PageBackground(assetId, 0));
+        VenuePage page = new VenuePage(PAGE_ID, widthMm, heightMm, new PageBackground(assetId, 0), null);
         return new VenueFormDocument(List.of(page), List.copyOf(elements));
     }
 

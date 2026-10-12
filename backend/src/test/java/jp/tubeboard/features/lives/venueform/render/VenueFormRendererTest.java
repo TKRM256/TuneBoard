@@ -202,18 +202,18 @@ class VenueFormRendererTest {
     }
 
     private static VenueFormDocument document(UUID assetId, List<VenueElement> elements) {
-        return new VenueFormDocument(List.of(new VenuePage("p1", 210f, 297f, new PageBackground(assetId, 0))),
+        return new VenueFormDocument(List.of(new VenuePage("p1", 210f, 297f, new PageBackground(assetId, 0), null)),
                 elements);
     }
 
     private static VenueElement.TextElement narrowText(String id, String content, boolean shrinkToFit) {
         return new VenueElement.TextElement(id, "p1", 10f, 60f, 25f, 8f, null, content, 10f, false, "left", "middle",
-                "#111827", shrinkToFit);
+                "#111827", shrinkToFit, null, null, null);
     }
 
     private static VenueElement.TextElement text(String id, String content, String condition) {
         return new VenueElement.TextElement(id, "p1", 10f, 30f + id.hashCode() % 5 * 10f, 150f, 8f, condition,
-                content, 10f, false, "left", "middle", "#111827", null);
+                content, 10f, false, "left", "middle", "#111827", null, null, null, null);
     }
 
     private static VenueElement.TableElement table(String id, int startIndex, int maxRows) {
