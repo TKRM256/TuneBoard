@@ -1,6 +1,6 @@
-/** 会場書式の要素とページを、既定値を入れて作る。 */
-import type { TableColumn } from '../pdf/canvas-schema';
-import { getPaperDimensions } from '../pdf/canvas-schema';
+/** 書式の要素とページを、既定値を入れて作る。 */
+import type { TableColumn } from './table-schema';
+import { getPaperDimensions } from './paper';
 import {
   DEFAULT_MARK_COLOR,
   DEFAULT_TEXT_COLOR,
@@ -19,6 +19,7 @@ export type ElementInsert =
   | { kind: 'text'; content?: string }
   | { kind: 'field'; fieldId: string }
   | { kind: 'table'; groupId: string }
+  | { kind: 'grid'; groupId: string | null; groupLabel?: string }
   | { kind: 'icon'; iconName: string; nodes: IconNode[] }
   | { kind: 'shape'; shape: 'ellipse' | 'rect' | 'line' }
   | { kind: 'stagePlot'; fieldId: string; groupId?: string | null };
@@ -42,6 +43,24 @@ export function createElement(insert: ElementInsert, pageId: string, at: { xMm: 
         maxRows: 5,
         fontSizePt: 9,
         color: DEFAULT_TEXT_COLOR,
+      };
+    case 'grid':
+      return {
+        ...base,
+        kind: 'grid',
+        wMm: 150,
+        hMm: 30,
+        source: insert.groupId
+          ? { kind: 'group', groupId: insert.groupId, fallbackLabel: insert.groupLabel }
+          : { kind: 'fields', fields: [] },
+        columns: insert.groupId
+          ? [{ ...defaultColumn('__index__', 0.1, 'center'), header: 'No' }, { ...defaultColumn('', 0.9, 'left'), shrinkToFit: false }]
+          : [{ ...defaultColumn('__label__', 0.3, 'left'), header: '項目', shrinkToFit: false }, { ...defaultColumn('', 0.7, 'left'), header: '内容', shrinkToFit: false }],
+        showHeader: true,
+        fontSizePt: 9,
+        headerFill: '#e5edf6',
+        borderColor: '#d1d5db',
+        autoGrow: true,
       };
     case 'icon':
       return { ...base, kind: 'icon', wMm: 5, hMm: 5, iconName: insert.iconName, nodes: insert.nodes, color: DEFAULT_MARK_COLOR, strokeWidth: 2.5 };
@@ -82,8 +101,8 @@ export function createPageFromAsset(asset: VenueAsset, pageIndex: number): Venue
   return { id: newId(), widthMm, heightMm, background: { assetId: asset.id, pageIndex } };
 }
 
-/** 背景の無い白紙のページ（A4 縦）。 */
+/** 背景の無い白紙のページ（A4 縦）。余白は伸びる表が次のページへ続くときに使う。 */
 export function createBlankPage(): VenuePage {
   const { widthMm, heightMm } = getPaperDimensions('A4', 'PORTRAIT');
-  return { id: newId(), widthMm, heightMm, background: null };
+  return { id: newId(), widthMm, heightMm, background: null, marginMm: 10 };
 }

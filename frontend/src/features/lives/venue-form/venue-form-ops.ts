@@ -1,5 +1,5 @@
-/** 会場書式の書き換え（純粋関数）。エディタの undo / redo はこの結果を履歴に積む。 */
-import type { TableColumn } from '../pdf/canvas-schema';
+/** PDF 書式の書き換え（純粋関数）。エディタの undo / redo はこの結果を履歴に積む。 */
+import type { TableColumn } from './table-schema';
 import {
   clampMove,
   computeAlignment,
@@ -36,7 +36,7 @@ export function duplicateElements(doc: VenueFormDocument, ids: Set<string>): { d
   for (const element of doc.elements) {
     if (!ids.has(element.id)) continue;
     const copy = { ...element, id: newId(), xMm: element.xMm + 3, yMm: element.yMm + 3 } as VenueElement;
-    if (copy.kind === 'table') copy.columns = copy.columns.map((column) => ({ ...column, id: newId() }));
+    if (copy.kind === 'table' || copy.kind === 'grid') copy.columns = copy.columns.map((column) => ({ ...column, id: newId() }));
     copies.push(copy);
     newIds.add(copy.id);
   }
@@ -101,7 +101,7 @@ export function updateColumns(
 ): VenueFormDocument {
   return {
     ...doc,
-    elements: doc.elements.map((element) => (element.id === elementId && element.kind === 'table'
+    elements: doc.elements.map((element) => (element.id === elementId && (element.kind === 'table' || element.kind === 'grid')
       ? { ...element, columns: change(element.columns) }
       : element)),
   };

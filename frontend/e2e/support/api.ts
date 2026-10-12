@@ -29,6 +29,12 @@ export async function apiPost<T>(page: Page, url: string, data: unknown): Promis
   return response.json() as Promise<T>;
 }
 
+export async function apiPut<T>(page: Page, url: string, data: unknown): Promise<T> {
+  const response = await page.request.put(`/api${url}`, { data, headers: HEADERS });
+  expect(response.ok(), `${url}: ${await response.text()}`).toBeTruthy();
+  return response.json() as Promise<T>;
+}
+
 export interface Live {
   id: string;
   publicToken: string;
@@ -121,9 +127,9 @@ export async function submitRichEntry(page: Page, publicToken: string) {
   });
 }
 
-/** 書式のファイルを会場書式に取り込む。 */
+/** 会場の書式のファイルを、書式の背景として取り込む。 */
 export async function uploadVenueAsset(page: Page, liveId: string, filePath: string) {
-  const response = await page.request.post(`/api/lives/${liveId}/venue-form/assets`, {
+  const response = await page.request.post(`/api/lives/${liveId}/pdf-layouts/assets`, {
     headers: HEADERS,
     multipart: { file: { name: path.basename(filePath), mimeType: 'application/pdf', buffer: readFileSync(filePath) } },
   });
@@ -131,7 +137,7 @@ export async function uploadVenueAsset(page: Page, liveId: string, filePath: str
   return response.json() as Promise<{ id: string }>;
 }
 
-/** ログインからライブ・フォーム・提出・背景つきの会場書式（空）までを API でそろえる。 */
+/** ログインからライブ・フォーム・提出・会場の書式を背景にした書式（要素なし）までを API でそろえる。 */
 export async function prepareVenueForm(page: Page, key: string) {
   await loginAsTestUser(page, key);
   const tenant = await createTenant(page, `${key} 用サークル`);
@@ -139,11 +145,13 @@ export async function prepareVenueForm(page: Page, key: string) {
   await applyDanceForm(page, live.id);
   await submitRichEntry(page, live.publicToken);
   const asset = await uploadVenueAsset(page, live.id, DANCE_FORM_PDF);
-  await apiPost(page, `/lives/${live.id}/venue-form`, {
+  const layout = await apiPost<{ id: string }>(page, `/lives/${live.id}/pdf-layouts`, { name: '会場書式', source: 'BLANK' });
+  await apiPut(page, `/lives/${live.id}/pdf-layouts/${layout.id}`, {
+    name: '会場書式',
     document: {
       pages: [{ id: 'page-1', widthMm: 209.9, heightMm: 297, background: { assetId: asset.id, pageIndex: 0 } }],
       elements: [],
     },
   });
-  return { tenant, live };
+  return { tenant, live, layout };
 }

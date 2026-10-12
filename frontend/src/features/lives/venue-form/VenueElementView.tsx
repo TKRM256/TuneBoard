@@ -5,6 +5,7 @@ import { Filter, LayoutGrid } from 'lucide-react';
 import { SvgIconNodes } from '@/features/stage-plot/SvgIconNodes';
 
 import type { FieldCatalog } from '../canvas-shared/field-catalog';
+import { GridPreview } from './GridPreview';
 import { ShrinkToFitLine } from './ShrinkToFitLine';
 import { ConditionDim, LiveText } from './VenueLivePreview';
 import {
@@ -54,12 +55,14 @@ function ElementBody({ element, catalog, pxPerMm }: { element: VenueElement; cat
       return (
         <TextBody element={element} fontPx={fontPx(element.fontSizePt)} minFontPx={fontPx(MIN_SHRINK_PT)}>
           {element.fieldId
-            ? <LiveText template={`\${fields['${element.fieldId}'].value}`} catalog={catalog} />
+            ? <>{fieldLabel(element, catalog)}<LiveText template={`\${fields['${element.fieldId}'].value}`} catalog={catalog} /></>
             : '(項目未設定)'}
         </TextBody>
       );
     case 'table':
       return <TableGuide element={element} catalog={catalog} fontPx={fontPx(element.fontSizePt)} />;
+    case 'grid':
+      return <GridPreview element={element} catalog={catalog} fontPx={fontPx(element.fontSizePt)} />;
     case 'icon':
       return (
         <div className="flex size-full items-center justify-center">
@@ -129,7 +132,13 @@ function TableGuide({ element, catalog, fontPx }: { element: VenueTableElement; 
   );
 }
 
-function textStyle(element: { bold?: boolean; align?: string; verticalAlign?: string; color?: string }, fontSize: number): CSSProperties {
+/** 項目名を前に付ける設定なら「名前: 」を返す（出力と同じ）。 */
+function fieldLabel(element: VenueFieldElement, catalog: FieldCatalog) {
+  if (!element.showLabel) return '';
+  return `${element.labelOverride || catalog.labelById.get(element.fieldId)?.label || element.fieldId}: `;
+}
+
+function textStyle(element: VenueTextElement | VenueFieldElement, fontSize: number): CSSProperties {
   return {
     width: '100%',
     height: '100%',
@@ -143,6 +152,8 @@ function textStyle(element: { bold?: boolean; align?: string; verticalAlign?: st
     textAlign: (element.align as CSSProperties['textAlign']) ?? 'left',
     overflow: 'hidden',
     whiteSpace: 'pre-wrap',
-    background: 'rgba(37,99,235,0.06)',
+    background: element.backgroundColor || 'rgba(37,99,235,0.06)',
+    border: element.borderColor ? `${Math.max(0.5, (element.borderThicknessPt ?? 0.5) * 1.2)}px solid ${element.borderColor}` : undefined,
+    boxSizing: 'border-box',
   };
 }

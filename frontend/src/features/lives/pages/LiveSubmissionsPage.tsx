@@ -1,7 +1,7 @@
 /** Live submissions list with detail dialog and song duplicate detection. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { FileDown, FileText, Search } from 'lucide-react';
+import { Navigate, useParams } from 'react-router-dom';
+import { FileDown, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { PageHeader } from '@/components/original/PageHeader';
@@ -21,7 +21,7 @@ import {
   type SongDuplicateResponse,
 } from '../types/live-types';
 import { applyAdminAnswers, collectAdminBlocks } from '../admin-answers/admin-answer-model';
-import { useVenueFormExport } from '../venue-form/useVenueFormExport';
+import { PdfExportDialog } from '../venue-form/PdfExportDialog';
 import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { SubmissionsTable } from '../components/SubmissionsTable';
@@ -31,14 +31,12 @@ import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
 import { TourButton } from '@/features/tutorial/TourButton';
 import { SUBMISSIONS_TOUR } from '@/features/tutorial/tours/submissions-tour';
 import { useKeyedSingleFlight, useSingleFlight } from '@/hooks/use-single-flight';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const getSubmissionActionKey = (id: string) => `submission:${id}`;
 const getDuplicateActionKey = (normalizedTitle: string) => `duplicate:${normalizedTitle}`;
 
 export const LiveSubmissionsPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
-  const navigate = useNavigate();
   const [live, setLive] = useState<LiveResponse | null>(null);
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
@@ -54,7 +52,6 @@ export const LiveSubmissionsPage = () => {
   const { isRunning: isDuplicateLoading, run: runDuplicateRefresh } = useSingleFlight();
   const { run: runSubmissionAction, isRunning: isSubmissionActionRunning } = useKeyedSingleFlight<string>();
   const { run: runDuplicateDismiss, isRunning: isDuplicateDismissRunning } = useKeyedSingleFlight<string>();
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!liveId) {
@@ -222,22 +219,6 @@ export const LiveSubmissionsPage = () => {
     });
   }, [liveId, runSubmissionAction]);
 
-  const openSinglePdfPreview = useCallback((submissionId: string) => {
-    if (!tenantId || !liveId) return;
-    const suffix = isMobile ? 'pdf-preview-mobile' : 'pdf-preview';
-    navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/${submissionId}/${suffix}`);
-  }, [tenantId, liveId, navigate, isMobile]);
-
-  const openBulkPdfPreview = useCallback((ids: string[]) => {
-    if (!tenantId || !liveId) return;
-    if (ids.length === 0) {
-      toast.error('対象の提出を選択してください', { position: 'top-center' });
-      return;
-    }
-    const suffix = isMobile ? 'pdf-preview-mobile' : 'pdf-preview';
-    navigate(`/tenants/${tenantId}/lives/${liveId}/submissions/${suffix}?ids=${ids.join(',')}`);
-  }, [tenantId, liveId, navigate, isMobile]);
-
   const toggleSelectOne = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -279,11 +260,15 @@ export const LiveSubmissionsPage = () => {
     ? visibleDetails.filter((d) => selectedIds.has(d.id)).map((d) => d.id)
     : visibleDetails.map((d) => d.id)), [visibleDetails, visibleSelectedCount, selectedIds]);
 
+  const [exportIds, setExportIds] = useState<string[] | null>(null);
   const handleClickBulkPdf = useCallback(() => {
-    openBulkPdfPreview(targetIds());
-  }, [targetIds, openBulkPdfPreview]);
-
-  const { exportVenueForm, isExporting } = useVenueFormExport(tenantId, liveId);
+    const ids = targetIds();
+    if (ids.length === 0) {
+      toast.error('対象の提出を選択してください', { position: 'top-center' });
+      return;
+    }
+    setExportIds(ids);
+  }, [targetIds]);
   const adminBlocks = useMemo(() => collectAdminBlocks(config), [config]);
   // 管理者入力を保存したら、表と詳細に出している回答もその場で差し替える
   const handleAdminSaved = useCallback((submissionId: string, answers: SettingSheetSubmissionAnswerResponse[]) => {
@@ -346,18 +331,7 @@ export const LiveSubmissionsPage = () => {
                 : '一覧の全件をPDFで出力します'}
             >
               <FileDown className="size-4" />
-              {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF` : 'PDF一括出力'}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              data-tour="submissions-venue-pdf"
-              onClick={() => exportVenueForm(targetIds())}
-              disabled={visibleDetails.length === 0 || isExporting}
-              title="会場の書式に書き込んだPDFを出力します"
-            >
-              <FileText className="size-4" />
-              会場書式PDF
+              {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF` : 'PDF出力'}
             </Button>
           </>
         )}
@@ -441,10 +415,11 @@ export const LiveSubmissionsPage = () => {
         config={config}
         recordLabel={recordLabel}
         onCopyEditLink={copyEditLink}
-        onOpenPdfPreview={openSinglePdfPreview}
-        onOpenVenueForm={(submissionId) => exportVenueForm([submissionId])}
+        onOpenPdfPreview={(submissionId) => setExportIds([submissionId])}
         adminAnswers={isAdmin ? { liveId, blocks: adminBlocks, onSaved: handleAdminSaved } : undefined}
       />
+
+      <PdfExportDialog tenantId={tenantId} liveId={liveId} submissionIds={exportIds} onClose={() => setExportIds(null)} />
 
       <TrashSheet
         open={trashOpen}

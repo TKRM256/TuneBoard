@@ -3,15 +3,16 @@ import { Separator } from '@/components/ui/separator';
 
 import type { FieldCatalog } from '../canvas-shared/field-catalog';
 import { NumberField } from '../canvas-shared/property-fields';
-import type { TableColumn } from '../pdf/canvas-schema';
+import type { TableColumn } from './table-schema';
 import type { SettingSheetBlock } from '../types/live-types';
 import { ConditionEditor } from './ConditionEditor';
+import { GridProperties, type GridFitProps } from './GridProperties';
 import { VenueMultiProperties } from './VenueMultiProperties';
 import { FieldProperties, IconProperties, ShapeProperties, StagePlotProperties, TextProperties } from './VenueKindProperties';
 import { VenueTableProperties } from './VenueTableProperties';
 import { venueElementKindLabel, type VenueElement } from './venue-form-schema';
 
-interface Props {
+interface Props extends GridFitProps {
   element: VenueElement | null;
   /** 選んでいる要素すべて。2 個以上ならまとめて変える設定を出す */
   selectedElements: VenueElement[];
@@ -22,7 +23,7 @@ interface Props {
   onChangeColumns: (elementId: string, change: (columns: TableColumn[]) => TableColumn[]) => void;
 }
 
-export function VenuePropertyPanel({ element, selectedElements, catalog, blocksById, onUpdate, onUpdateSelected, onChangeColumns }: Props) {
+export function VenuePropertyPanel({ element, selectedElements, catalog, blocksById, onUpdate, onUpdateSelected, onChangeColumns, ...fit }: Props) {
   if (selectedElements.length > 1) {
     return <VenueMultiProperties elements={selectedElements} catalog={catalog} blocksById={blocksById} onUpdate={onUpdateSelected} />;
   }
@@ -50,6 +51,15 @@ export function VenuePropertyPanel({ element, selectedElements, catalog, blocksB
             catalog={catalog}
             onUpdate={update}
             onChangeColumns={(change) => onChangeColumns(element.id, change)}
+          />
+        ) : null}
+        {element.kind === 'grid' ? (
+          <GridProperties
+            element={element}
+            catalog={catalog}
+            onUpdate={update}
+            onChangeColumns={(change) => onChangeColumns(element.id, change)}
+            {...fit}
           />
         ) : null}
         {element.kind === 'icon' ? <IconProperties element={element} onUpdate={update} /> : null}

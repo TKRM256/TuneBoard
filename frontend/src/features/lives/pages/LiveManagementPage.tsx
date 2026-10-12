@@ -23,7 +23,6 @@ import {
 import { LiveInfoCard } from '../components/LiveInfoCard';
 import { LiveSummaryCard } from '../components/LiveSummaryCard';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -35,7 +34,6 @@ export const LiveManagementPage = () => {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const isMobile = useIsMobile();
   
   useEffect(() => {
     if (!liveId || !tenantId) return;
@@ -132,7 +130,7 @@ export const LiveManagementPage = () => {
         {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
         {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
         {isAdmin && <QuickActionLink icon={<LayoutGrid className="size-5" />} label="ステージ設定" to={`/tenants/${tenantId}/lives/${liveId}/stage-plot`} />}
-        {isAdmin && !isMobile && <QuickActionLink icon={<FileText className="size-5" />} label="会場書式" to={`/tenants/${tenantId}/lives/${liveId}/venue-form`} />}
+        <QuickActionLink icon={<FileText className="size-5" />} label="PDF書式" to={`/tenants/${tenantId}/lives/${liveId}/pdf-layouts`} />
       </div>
 
       {/* Live Info */}

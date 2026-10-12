@@ -1,6 +1,6 @@
 /** 書式に置く要素を選ぶ。置いた要素は表示中のページの左上に出るので、ドラッグで書式に合わせる。 */
 import { useState } from 'react';
-import { Circle, Image, LayoutGrid, Minus, Square, Type } from 'lucide-react';
+import { Circle, Image, LayoutGrid, Minus, Square, Table, Type } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,6 +14,8 @@ interface Props {
   disabled: boolean;
   onInsert: (insert: ElementInsert) => void;
 }
+
+const FIELDS_ROWS = '__fields__';
 
 export function VenuePalette({ catalog, disabled, onInsert }: Props) {
   const [iconOpen, setIconOpen] = useState(false);
@@ -52,6 +54,19 @@ export function VenuePalette({ catalog, disabled, onInsert }: Props) {
         disabled={disabled || textFields.length === 0}
         options={textFields.map((field) => ({ value: field.id, label: field.pathLabel }))}
         onPick={(fieldId) => onInsert({ kind: 'field', fieldId })}
+      />
+      <PickToInsert
+        label="表"
+        icon={<Table className="size-3.5" />}
+        disabled={disabled}
+        options={[
+          { value: FIELDS_ROWS, label: '項目を 1 行ずつ並べる' },
+          ...catalog.groups.map((group) => ({ value: group.id, label: `${group.pathLabel || group.label}を 1 件ずつ並べる` })),
+        ]}
+        onPick={(value) => {
+          const group = catalog.groups.find((g) => g.id === value);
+          onInsert({ kind: 'grid', groupId: group?.id ?? null, groupLabel: group?.label });
+        }}
       />
       <PickToInsert
         label="ステージ配置図"

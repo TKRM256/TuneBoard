@@ -2,6 +2,7 @@
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,7 +11,7 @@ import { SvgIconNodes } from '@/features/stage-plot/SvgIconNodes';
 
 import type { FieldCatalog } from '../canvas-shared/field-catalog';
 import { ExpressionTextarea } from '../canvas-shared/expression/ExpressionInputs';
-import { ColorInput, ColorInputWithClear, FieldGroup, NumberField, TypographyGroup } from '../canvas-shared/property-fields';
+import { BackgroundBorderGroup, ColorInput, ColorInputWithClear, FieldGroup, NumberField, TypographyGroup } from '../canvas-shared/property-fields';
 import type {
   ShapeKind,
   StagePlotMode,
@@ -31,6 +32,7 @@ export function TextProperties({ element, catalog, onUpdate }: { element: VenueT
       </FieldGroup>
       <TypographyGroup {...typography(element)} onUpdate={onUpdate as (patch: Record<string, unknown>) => void} />
       <ShrinkToFitSwitch checked={element.shrinkToFit === true} onChange={(shrinkToFit) => onUpdate({ shrinkToFit })} />
+      <BackgroundBorderGroup {...boxStyle(element)} onUpdate={onUpdate as (patch: Record<string, unknown>) => void} />
     </div>
   );
 }
@@ -48,8 +50,23 @@ export function FieldProperties({ element, catalog, onUpdate }: { element: Venue
           </SelectContent>
         </Select>
       </FieldGroup>
+      <div className="flex items-center gap-2">
+        <Switch id="show-label" checked={element.showLabel === true} onCheckedChange={(showLabel) => onUpdate({ showLabel })} />
+        <Label htmlFor="show-label" className="text-xs">項目名を前に付ける</Label>
+      </div>
+      {element.showLabel ? (
+        <FieldGroup label="付ける名前">
+          <Input
+            className="h-8 text-xs"
+            value={element.labelOverride ?? ''}
+            placeholder={catalog.labelById.get(element.fieldId)?.label ?? '項目名'}
+            onChange={(event) => onUpdate({ labelOverride: event.target.value || undefined })}
+          />
+        </FieldGroup>
+      ) : null}
       <TypographyGroup {...typography(element)} onUpdate={onUpdate as (patch: Record<string, unknown>) => void} />
       <ShrinkToFitSwitch checked={element.shrinkToFit === true} onChange={(shrinkToFit) => onUpdate({ shrinkToFit })} />
+      <BackgroundBorderGroup {...boxStyle(element)} onUpdate={onUpdate as (patch: Record<string, unknown>) => void} />
     </div>
   );
 }
@@ -125,6 +142,14 @@ export function StagePlotProperties({ element, onUpdate }: { element: VenueStage
       <NumberField label="名前の文字 (pt)" value={element.labelFontSizePt ?? 7} step={0.5} onChange={(v) => onUpdate({ labelFontSizePt: Math.max(3, v) })} />
     </div>
   );
+}
+
+function boxStyle(element: VenueTextElement | VenueFieldElement) {
+  return {
+    backgroundColor: element.backgroundColor,
+    borderColor: element.borderColor,
+    borderThicknessPt: element.borderThicknessPt,
+  };
 }
 
 function typography(element: VenueTextElement | VenueFieldElement) {

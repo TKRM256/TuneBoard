@@ -23,7 +23,7 @@ const TRACKS_TABLE = { from: { x: 93.5, y: 73.5 }, to: { x: 197, y: 122.5 } };
 const GENRE_BOXES = [44.45, 70.45, 87.1, 104.4, 121.25].map((x) => ({ x, y: 50.25 }));
 const LIVE_NAME = '合同ダンス発表会（シナリオ）';
 
-test('バンド以外のフォームで、提出から会場書式の PDF までを通す', async ({ page }) => {
+test('バンド以外のフォームで、提出から会場の書式に書き込んだ PDF までを通す', async ({ page }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
@@ -67,8 +67,18 @@ test('バンド以外のフォームで、提出から会場書式の PDF まで
 
   const editor = new VenueEditor(page, PAGE_WIDTH_MM);
 
+  await test.step('書式の一覧から何もない書式を作る', async () => {
+    await page.goto(`/tenants/${tenant.id}/lives/${live.id}/pdf-layouts`);
+    await expect(page.getByText('書式はまだありません')).toBeVisible();
+    await page.getByRole('button', { name: '書式を作る' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('名前').fill('会場書式');
+    await dialog.getByText('何もないところから').click();
+    await dialog.getByRole('button', { name: '作る', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: '書式の名前' })).toHaveValue('会場書式');
+  });
+
   await test.step('会場の書式（PDF）を取り込み、罫線を読み取る', async () => {
-    await editor.open(tenant.id, live.id);
     await page.locator('input[type=file]').first().setInputFiles(DANCE_FORM_PDF);
     await expect(page.getByText('1ページを追加しました')).toBeVisible();
     await expect(editor.tool('罫線を表示')).toBeEnabled();
@@ -161,14 +171,26 @@ test('バンド以外のフォームで、提出から会場書式の PDF まで
   await test.step('書ききれない 6 人目を警告し、PDF を出せる', async () => {
     const submissions = await apiGet<{ id: string; recordLabel: string }[]>(page, `/lives/${live.id}/setting-sheet/submissions`);
     const rich = submissions.find((submission) => submission.recordLabel.startsWith('国際文化大学'))!;
-    const saved = await apiGet<{ document: unknown }>(page, `/lives/${live.id}/venue-form`);
-    const check = await apiPost<{ warnings: string[] }>(page, `/lives/${live.id}/venue-form/check`, { submissionId: rich.id, document: saved.document });
+    const [layout] = await apiGet<{ id: string; name: string }[]>(page, `/lives/${live.id}/pdf-layouts`);
+    expect(layout.name).toBe('会場書式');
+    const check = await apiPost<{ warnings: string[] }>(page, `/lives/${live.id}/pdf-layouts/check`, { submissionId: rich.id, layoutId: layout.id });
     expect(check.warnings.join('\n')).toContain('入りきらない回答が1件');
-    const pdf = await page.request.post(`/api/lives/${live.id}/venue-form/submissions/${rich.id}/pdf`, {
-      data: {}, headers: { 'X-Requested-With': 'TuneBoard' },
+    const pdf = await page.request.post(`/api/lives/${live.id}/pdf-layouts/submissions/${rich.id}/pdf`, {
+      data: { layoutId: layout.id }, headers: { 'X-Requested-With': 'TuneBoard' },
     });
     expect(pdf.ok()).toBeTruthy();
     expect((await pdf.body()).subarray(0, 4).toString()).toBe('%PDF');
+  });
+
+  await test.step('提出確認の「PDF出力」で書式を選んで保存できる', async () => {
+    await page.goto(`/tenants/${tenant.id}/lives/${live.id}/submissions`);
+    await page.getByRole('button', { name: 'PDF出力' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('会場書式')).toBeVisible();
+    await expect(dialog.getByText('フォームどおり')).toBeVisible();
+    const download = page.waitForEvent('download');
+    await dialog.getByRole('button', { name: /Zipで保存/ }).click();
+    expect((await download).suggestedFilename()).toMatch(/\.zip$/);
   });
 
   expect(pageErrors).toEqual([]);

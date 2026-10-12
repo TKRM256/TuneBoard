@@ -3,14 +3,11 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { apiClient } from '@/lib/api/client';
 
+import { venuePageLinesPath as linesPath } from '../venue-form-api';
 import type { VenueAsset, VenuePage } from '../venue-form-schema';
 import { backgroundAspect, toPageLines, type PageLine, type RuledLine } from './ruled-lines';
 
 const cache = new Map<string, RuledLine[]>();
-
-function linesPath(liveId: string, assetId: string, pageIndex: number) {
-  return `/lives/${liveId}/venue-form/assets/${assetId}/pages/${pageIndex}/lines`;
-}
 
 export function usePageLines(liveId: string, page: VenuePage | null, assets: VenueAsset[]): PageLine[] {
   const background = page?.background ?? null;

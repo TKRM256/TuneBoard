@@ -20,14 +20,8 @@ export const SUBMISSIONS_TOUR: TourStep[] = [
   },
   {
     target: 'submissions-pdf',
-    title: 'PDF一括出力',
-    body: '提出された内容を PDF にします。チェックで選んだときは、選んだ分だけ出力します。',
-    side: 'bottom',
-  },
-  {
-    target: 'submissions-venue-pdf',
-    title: '書式つきのPDF',
-    body: '任意の書式に書き込んだ PDF を出力します。出力するには先に会場書式を作っておきます。',
+    title: 'PDF出力',
+    body: '提出された内容を PDF にします。使う書式を選んで出力します。チェックで選んだときは、選んだ分だけ出力します。',
     side: 'bottom',
   },
   {

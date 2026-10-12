@@ -1,9 +1,8 @@
-/** 会場書式エディタ（PC 用）。左にページと要素、中央に書式、右に設定を並べる。 */
+/** PDF 書式のエディタ。PC は左にページと要素、中央に書式、右に設定を並べ、スマホはタブで切り替える。 */
 import { useMemo, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { PageHeader } from '@/components/original/PageHeader';
 import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSingleFlight } from '@/hooks/use-single-flight';
@@ -13,8 +12,9 @@ import { ApiClientError } from '@/lib/api/type';
 import { AlignmentToolbar } from '../canvas-shared/AlignmentToolbar';
 import { ExpressionPreviewProvider } from '../canvas-shared/expression/ExpressionPreviewContext';
 import { buildFieldCatalog } from '../canvas-shared/field-catalog';
-import { LiveCopyFromDialog } from '../copy/LiveCopyFromDialog';
-import { downloadBlob } from '../pdf/pdf-api';
+import { downloadBlob } from './blob-download';
+import { LayoutEditorMobile } from './LayoutEditorMobile';
+import { useGridHeightFit } from './useGridHeightFit';
 import type { SettingSheetBlock } from '../types/live-types';
 import { AssistCanvasLayer, AssistDialogs, AssistGuide } from './assist/AssistParts';
 import { AssistToggles } from './assist/AssistToggles';
@@ -29,108 +29,119 @@ import { VenuePagesPanel } from './VenuePagesPanel';
 import { VenuePalette } from './VenuePalette';
 import { VenuePreviewDialog } from './VenuePreviewDialog';
 import { VenuePropertyPanel } from './VenuePropertyPanel';
-import { copyVenueFormFrom, fetchVenueFormPdf, fetchVenueFormZip, saveVenueForm } from './venue-form-api';
+import { fetchLayoutPdf, fetchLayoutZip, saveLayout } from './venue-form-api';
 import { emptyVenueForm, type VenueAsset } from './venue-form-schema';
 import { ZoomFitButtons } from './ZoomFitButtons';
 
 export const VenueFormEditorPage = () => {
-  const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
+  const { tenantId, liveId, layoutId } = useParams<{ tenantId: string; liveId: string; layoutId: string }>();
   const [searchParams] = useSearchParams();
   const downloadIds = useMemo(() => (searchParams.get('ids') ?? '').split(',').map((id) => id.trim()).filter(Boolean), [searchParams]);
   const isMobile = useIsMobile();
   const editor = useVenueFormEditor();
   const [savedJson, setSavedJson] = useState(JSON.stringify(emptyVenueForm()));
+  const [name, setName] = useState('');
+  const [savedName, setSavedName] = useState('');
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [isCopyOpen, setIsCopyOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const save = useSingleFlight();
   const download = useSingleFlight();
 
-  const { data, setData, isLoading } = useVenueFormPageData(tenantId, liveId, (loaded) => {
-    const document = loaded.document ?? emptyVenueForm();
-    editor.load(document);
-    setSavedJson(JSON.stringify(document));
+  const { data, setData, isLoading } = useVenueFormPageData(tenantId, liveId, layoutId, (loaded) => {
+    editor.load(loaded.document);
+    setSavedJson(JSON.stringify(loaded.document));
+    setName(loaded.name);
+    setSavedName(loaded.name);
     setPreviewId(downloadIds[0] ?? loaded.submissions[0]?.id ?? null);
   });
   const { scrollerRef, canvasRef, ...viewport } = useCanvasViewport(editor.currentPage ?? null);
-  const isDirty = JSON.stringify(editor.doc) !== savedJson;
+  const isDirty = JSON.stringify(editor.doc) !== savedJson || name !== savedName;
   const leaveGuard = useUnsavedChangesWarning(isDirty);
   const catalog = useMemo(() => buildFieldCatalog(data?.config), [data?.config]);
   const blocksById = useMemo(() => indexBlocks(data?.config.blocks ?? []), [data?.config]);
   const assist = useVenueAssist(editor, { liveId: liveId ?? '', assets: data?.assets ?? NO_ASSETS, catalog, blocksById });
   useVenueKeyboardShortcuts(editor, assist.lines);
+  const gridFit = useGridHeightFit({ liveId: liveId ?? '', submissionId: previewId, doc: editor.doc, onUpdateElement: editor.updateElement });
 
-  if (!tenantId || !liveId) return <Navigate to="/tenants" replace />;
-  const backTo = `/tenants/${tenantId}/lives/${liveId}${downloadIds.length > 0 ? '/submissions' : ''}`;
+  if (!tenantId || !liveId || !layoutId) return <Navigate to="/tenants" replace />;
+  const backTo = `/tenants/${tenantId}/lives/${liveId}/${downloadIds.length > 0 ? 'submissions' : 'pdf-layouts'}`;
   if (isLoading) return <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">読み込み中...</div>;
-  if (!data) return <Navigate to={`/tenants/${tenantId}/lives/${liveId}`} replace />;
+  if (!data) return <Navigate to={`/tenants/${tenantId}/lives/${liveId}/pdf-layouts`} replace />;
 
   const handleSave = () => void save.run(async () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error('書式の名前を入れてください', { position: 'top-center' });
+      return;
+    }
     try {
-      const response = await saveVenueForm(liveId, editor.doc);
+      const response = await saveLayout(liveId, layoutId, trimmed, editor.doc);
       setSavedJson(JSON.stringify(editor.doc));
+      setName(trimmed);
+      setSavedName(trimmed);
       setData({ ...data, assets: response.assets });
-      toast.success('会場書式を保存しました', { position: 'top-center' });
+      toast.success('書式を保存しました', { position: 'top-center' });
     } catch (error) {
       toast.error(error instanceof ApiClientError && error.apiError?.message ? error.apiError.message : '保存に失敗しました', { position: 'top-center' });
     }
   });
 
-  const handleCopy = async (sourceLiveId: string) => {
-    try {
-      const response = await copyVenueFormFrom(liveId, sourceLiveId);
-      const document = response.document ?? emptyVenueForm();
-      editor.load(document);
-      setSavedJson(JSON.stringify(document));
-      setData({ ...data, assets: response.assets, document });
-      toast.success('会場書式を取り込みました', { position: 'top-center' });
-      return true;
-    } catch (error) {
-      toast.error(error instanceof ApiClientError && error.apiError?.message ? error.apiError.message : '取り込みに失敗しました', { position: 'top-center' });
-      return false;
-    }
-  };
-
   const handleDownload = () => void download.run(async () => {
     try {
       const result = downloadIds.length === 1
-        ? await fetchVenueFormPdf(liveId, downloadIds[0], editor.doc)
-        : await fetchVenueFormZip(liveId, downloadIds, editor.doc);
+        ? await fetchLayoutPdf(liveId, downloadIds[0], { document: editor.doc })
+        : await fetchLayoutZip(liveId, downloadIds, { document: editor.doc });
       downloadBlob(result.blob, result.filename);
     } catch (error) {
       toast.error(error instanceof ApiClientError && error.apiError?.message ? error.apiError.message : 'ダウンロードに失敗しました', { position: 'top-center' });
     }
   });
 
+  const previewLabel = data.submissions.find((submission) => submission.id === previewId)?.recordLabel ?? '';
+  const header = {
+    backTo,
+    liveName: data.live.name,
+    name,
+    onNameChange: setName,
+    submissions: data.submissions,
+    previewSubmissionId: previewId,
+    onChangePreviewSubmission: setPreviewId,
+    canEdit: data.isAdmin,
+    isDirty,
+    isSaving: save.isRunning,
+    onSave: handleSave,
+    onOpenPreview: () => setIsPreviewOpen(true),
+    downloadCount: downloadIds.length,
+    isDownloading: download.isRunning,
+    onDownload: handleDownload,
+  };
+  const preview = (
+    <VenuePreviewDialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen} liveId={liveId} submissionId={previewId} submissionLabel={previewLabel} document={editor.doc} />
+  );
+
   if (isMobile) {
     return (
-      <div className="p-3">
-        <PageHeader backTo={backTo} title="会場書式" description="PCのみ対応しております" />
-      </div>
+      <ExpressionPreviewProvider liveId={liveId} submissionId={previewId ?? undefined} submissionLabel={previewLabel}>
+        <LayoutEditorMobile
+          header={header}
+          liveId={liveId}
+          editor={editor}
+          catalog={catalog}
+          blocksById={blocksById}
+          assets={data.assets}
+          onAssetUploaded={(asset) => setData({ ...data, assets: [...data.assets, asset] })}
+          gridFit={gridFit}
+        />
+        {preview}
+        <UnsavedChangesDialog guard={leaveGuard} />
+      </ExpressionPreviewProvider>
     );
   }
-
-  const previewLabel = data.submissions.find((submission) => submission.id === previewId)?.recordLabel ?? '';
 
   return (
     <ExpressionPreviewProvider liveId={liveId} submissionId={previewId ?? undefined} submissionLabel={previewLabel}>
       <div className="flex h-full w-full flex-col">
-        <VenueEditorHeader
-          backTo={backTo}
-          liveName={data.live.name}
-          submissions={data.submissions}
-          previewSubmissionId={previewId}
-          onChangePreviewSubmission={setPreviewId}
-          canEdit={data.isAdmin}
-          isDirty={isDirty}
-          isSaving={save.isRunning}
-          onSave={handleSave}
-          onOpenCopy={() => setIsCopyOpen(true)}
-          onOpenPreview={() => setIsPreviewOpen(true)}
-          downloadCount={downloadIds.length}
-          isDownloading={download.isRunning}
-          onDownload={handleDownload}
-        />
+        <VenueEditorHeader {...header} />
         <div className="flex min-h-0 flex-1">
           <aside className="w-64 shrink-0 space-y-6 overflow-y-auto border-r p-3">
             <VenuePagesPanel liveId={liveId} editor={editor} assets={data.assets} onAssetUploaded={(asset) => setData({ ...data, assets: [...data.assets, asset] })} />
@@ -207,21 +218,12 @@ export const VenueFormEditorPage = () => {
               onUpdate={editor.updateElement}
               onUpdateSelected={editor.updateSelected}
               onChangeColumns={editor.changeColumns}
+              {...gridFit}
             />
           </aside>
         </div>
       </div>
-      <VenuePreviewDialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen} liveId={liveId} submissionId={previewId} submissionLabel={previewLabel} document={editor.doc} />
-      <LiveCopyFromDialog
-        open={isCopyOpen}
-        onOpenChange={setIsCopyOpen}
-        currentLiveId={liveId}
-        title="他のライブの会場書式を取り込む"
-        description="背景の書式ごと複製して、今の会場書式を置き換えます。"
-        isAvailable={(source) => source.hasVenueForm}
-        unavailableLabel="会場書式なし"
-        onConfirm={handleCopy}
-      />
+      {preview}
       <AssistDialogs assist={assist} catalog={catalog} />
       <UnsavedChangesDialog guard={leaveGuard} />
     </ExpressionPreviewProvider>

@@ -1,4 +1,4 @@
-/** 会場書式エディタを、書式の上の mm 座標で操作する（実際のマウス・キーボードを使う）。 */
+/** 書式エディタを、書式の上の mm 座標で操作する（実際のマウス・キーボードを使う）。 */
 import { expect, type Locator, type Page } from '@playwright/test';
 
 export interface Mm {
@@ -10,9 +10,9 @@ export class VenueEditor {
   /** @param pageWidthMm 背景の書式の幅（mm） */
   constructor(readonly page: Page, private readonly pageWidthMm: number) {}
 
-  async open(tenantId: string, liveId: string) {
-    await this.page.goto(`/tenants/${tenantId}/lives/${liveId}/venue-form`);
-    await expect(this.page.getByText('会場書式', { exact: true })).toBeVisible();
+  async open(tenantId: string, liveId: string, layoutId: string) {
+    await this.page.goto(`/tenants/${tenantId}/lives/${liveId}/pdf-layouts/${layoutId}`);
+    await expect(this.page.getByRole('textbox', { name: '書式の名前' })).toBeVisible();
   }
 
   /** エディタの本体（画面全体のレイアウトの main の中にある、もう 1 つの main） */
@@ -129,6 +129,6 @@ export class VenueEditor {
 
   async save() {
     await this.page.getByRole('button', { name: /^保存/ }).click();
-    await expect(this.page.getByText('会場書式を保存しました')).toBeVisible();
+    await expect(this.page.getByText('書式を保存しました')).toBeVisible();
   }
 }

@@ -7,7 +7,7 @@ import { VENUE_FORM_TOUR } from './tours/venue-form-tour';
 
 const TOURS: Record<string, TourStep[]> = {
   フォーム作成: FORM_EDITOR_TOUR,
-  会場書式: VENUE_FORM_TOUR,
+  書式エディタ: VENUE_FORM_TOUR,
   提出確認: SUBMISSIONS_TOUR,
 };
 

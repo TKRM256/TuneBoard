@@ -1,4 +1,4 @@
-/** 会場書式エディタのコピー・貼り付け（純粋関数）。
+/** 書式エディタのコピー・貼り付け（純粋関数）。
  *  「次の件として貼り付け」は、メンバー表のように 1 件ずつ置いていく作業を楽にするためのもの。
  *  式の中の items[N] を items[N+1] に進め、元の要素のすぐ下（罫線の枠があれば下の枠）に置く。 */
 import type { SnapBox } from '../canvas-shared/snapping';
@@ -42,7 +42,7 @@ export function pasteElements(
   const samePage = clipboard.every((element) => element.pageId === pageId);
   const pasted = clipboard.map((element, index) => {
     const copy = { ...structuredClone(element), id: newId(), pageId } as VenueElement;
-    if (copy.kind === 'table') copy.columns = copy.columns.map((column) => ({ ...column, id: newId() }));
+    if (copy.kind === 'table' || copy.kind === 'grid') copy.columns = copy.columns.map((column) => ({ ...column, id: newId() }));
     if (mode === 'same') {
       if (samePage) {
         copy.xMm += PASTE_OFFSET_MM;

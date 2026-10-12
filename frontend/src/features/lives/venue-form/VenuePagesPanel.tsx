@@ -9,7 +9,7 @@ import { useSingleFlight } from '@/hooks/use-single-flight';
 import { ApiClientError } from '@/lib/api/type';
 import { cn } from '@/lib/utils';
 
-import { getPaperDimensions, ORIENTATION_OPTIONS, PAPER_SIZE_OPTIONS, type Orientation, type PaperSize } from '../pdf/canvas-schema';
+import { getPaperDimensions, ORIENTATION_OPTIONS, PAPER_SIZE_OPTIONS, type Orientation, type PaperSize } from './paper';
 import { createBlankPage, createPageFromAsset } from './venue-element-factory';
 import { uploadVenueAsset } from './venue-form-api';
 import type { VenueAsset, VenuePage } from './venue-form-schema';

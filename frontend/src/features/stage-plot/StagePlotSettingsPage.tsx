@@ -19,7 +19,7 @@ import { ApiClientError } from '@/lib/api/type';
 import { useAuthedObjectUrl } from '@/hooks/use-authed-object-url';
 import { LiveCopyFromDialog } from '@/features/lives/copy/LiveCopyFromDialog';
 import type { LiveResponse } from '@/features/lives/types/live-types';
-import { fetchVenueForm } from '@/features/lives/venue-form/venue-form-api';
+import { fetchVenueAssets } from '@/features/lives/venue-form/venue-form-api';
 import type { VenueAsset } from '@/features/lives/venue-form/venue-form-schema';
 
 import { PaletteEditor } from './PaletteEditor';
@@ -60,14 +60,14 @@ export const StagePlotSettingsPage = () => {
         const [liveRes, plotRes, venueRes, tenantRes] = await Promise.all([
           apiClient.get<LiveResponse>(`/lives/${liveId}`),
           fetchStagePlot(liveId),
-          fetchVenueForm(liveId),
+          fetchVenueAssets(liveId),
           apiClient.get<{ role: string }>(`/tenants/get/${tenantId}`),
         ]);
         if (cancelled || !liveRes || !plotRes) return;
         setLive(liveRes);
         setStagePlot(plotRes);
         setDraft(toDraft(plotRes));
-        setVenueAssets(venueRes.assets);
+        setVenueAssets(venueRes);
         setIsAdmin(tenantRes?.role === 'ADMIN' || tenantRes?.role === 'OWNER');
       } catch {
         if (!cancelled) toast.error('ステージ設定を読み込めませんでした', { position: 'top-center' });

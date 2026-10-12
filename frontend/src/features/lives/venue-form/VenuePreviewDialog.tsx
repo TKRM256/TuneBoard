@@ -1,4 +1,4 @@
-/** 選んだ提出で会場書式を描いて確かめる。表のあふれや条件式の誤りは警告として並べる。 */
+/** 選んだ提出で書式を描いて確かめる。表のあふれや条件式の誤りは警告として並べる。 */
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ApiClientError } from '@/lib/api/type';
 
-import { downloadBlob } from '../pdf/pdf-api';
-import { checkVenueForm, fetchVenueFormPdf } from './venue-form-api';
+import { downloadBlob } from './blob-download';
+import { checkLayout, fetchLayoutPdf } from './venue-form-api';
 import type { VenueFormDocument } from './venue-form-schema';
 
 interface Props {
@@ -36,8 +36,8 @@ export function VenuePreviewDialog({ open, onOpenChange, liveId, submissionId, s
       setError('');
       try {
         const [pdf, found] = await Promise.all([
-          fetchVenueFormPdf(liveId, submissionId, document),
-          checkVenueForm(liveId, submissionId, document),
+          fetchLayoutPdf(liveId, submissionId, { document }),
+          checkLayout(liveId, submissionId, { document }),
         ]);
         if (cancelled) return;
         if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -90,7 +90,7 @@ export function VenuePreviewDialog({ open, onOpenChange, liveId, submissionId, s
           ) : error ? (
             <p className="p-6 text-center text-sm text-destructive">{error}</p>
           ) : url ? (
-            <iframe title="会場書式のプレビュー" src={url} className="size-full rounded-md" />
+            <iframe title="書式のプレビュー" src={url} className="size-full rounded-md" />
           ) : null}
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-background/60">

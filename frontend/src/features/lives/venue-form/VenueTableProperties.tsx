@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { FieldCatalog } from '../canvas-shared/field-catalog';
 import { ExpressionInput } from '../canvas-shared/expression/ExpressionInputs';
 import { ColorInput, FieldGroup, NumberField } from '../canvas-shared/property-fields';
-import type { TableColumn } from '../pdf/canvas-schema';
+import type { TableColumn } from './table-schema';
 import { columnOps } from './venue-form-ops';
 import type { VenueTableElement } from './venue-form-schema';
 

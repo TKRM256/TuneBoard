@@ -1,4 +1,4 @@
-/** 会場書式エディタの編集操作：Alt での吸着、次の件の貼り付け（罫線の下の枠へ）、元に戻す・やり直し。 */
+/** 書式エディタの編集操作：Alt での吸着、次の件の貼り付け（罫線の下の枠へ）、元に戻す・やり直し。 */
 import { expect, test } from '@playwright/test';
 
 import { prepareVenueForm } from './support/api';
@@ -20,9 +20,9 @@ function expectNear(actual: number, expected: number) {
 }
 
 test('Alt を押している間だけ罫線に吸い付く', async ({ page }) => {
-  const { tenant, live } = await prepareVenueForm(page, 'snap');
+  const { tenant, live, layout } = await prepareVenueForm(page, 'snap');
   const editor = new VenueEditor(page, PAGE_WIDTH_MM);
-  await editor.open(tenant.id, live.id);
+  await editor.open(tenant.id, live.id, layout.id);
   await page.keyboard.press('Control+0');
 
   await page.locator('aside').first().getByRole('button', { name: 'テキスト' }).click();
@@ -43,9 +43,9 @@ test('Alt を押している間だけ罫線に吸い付く', async ({ page }) =>
 });
 
 test('Ctrl+Shift+V で次の件を同じ表の下の枠に置き、表の外では真下にずらす', async ({ page }) => {
-  const { tenant, live } = await prepareVenueForm(page, 'paste');
+  const { tenant, live, layout } = await prepareVenueForm(page, 'paste');
   const editor = new VenueEditor(page, PAGE_WIDTH_MM);
-  await editor.open(tenant.id, live.id);
+  await editor.open(tenant.id, live.id, layout.id);
   await page.keyboard.press('Control+0');
 
   await test.step('見出しと 1 行目だけを囲んで、1 件目の欄を作る', async () => {

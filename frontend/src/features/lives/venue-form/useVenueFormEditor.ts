@@ -1,7 +1,7 @@
-/** 会場書式エディタの状態（書式・選択中の要素・表示中のページ）と操作。 */
-import { useCallback, useMemo, useRef, useState } from 'react';
+/** 書式エディタの状態（書式・選択中の要素・表示中のページ）と操作。 */
+import { useCallback, useMemo, useState } from 'react';
 
-import type { TableColumn } from '../pdf/canvas-schema';
+import type { TableColumn } from './table-schema';
 import type { AlignMode } from '../canvas-shared/geometry';
 import type { SnapBox } from '../canvas-shared/snapping';
 import { useUndoableState } from '../canvas-shared/useUndoableState';
@@ -10,11 +10,16 @@ import { createElement, type ElementInsert } from './venue-element-factory';
 import * as ops from './venue-form-ops';
 import { emptyVenueForm, type VenueElement, type VenueFormDocument, type VenuePage } from './venue-form-schema';
 
+/**
+ * コピーした要素。画面を移っても残し、別の書式（ほかのライブの書式も）に貼れるようにする。
+ * 背景のファイルはページ側が持つので、要素だけなら書式をまたいでもそのまま使える。
+ */
+const clipboard = { current: [] as VenueElement[] };
+
 export function useVenueFormEditor() {
   const history = useUndoableState<VenueFormDocument>(emptyVenueForm());
   const [rawSelectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pageId, setPageId] = useState<string | null>(null);
-  const clipboardRef = useRef<VenueElement[]>([]);
   const { commit, current, replace } = history;
   const doc = history.value;
 
@@ -85,16 +90,16 @@ export function useVenueFormEditor() {
 
   /** 選んだ要素を覚える。貼るたびに貼った要素を覚え直すので、続けて貼ると少しずつずれていく */
   const copySelected = useCallback(() => {
-    clipboardRef.current = copyElements(current(), selectedIds);
-    return clipboardRef.current.length;
+    clipboard.current = copyElements(current(), selectedIds);
+    return clipboard.current.length;
   }, [current, selectedIds]);
 
   /** same: そのまま複製 / next: すぐ下（nextBox が返す置き場所）に置き items[N] を 1 つ進める */
   const paste = useCallback((mode: PasteMode, nextBox?: (box: SnapBox) => SnapBox | null) => {
-    if (!currentPage || clipboardRef.current.length === 0) return;
-    const result = pasteElements(current(), clipboardRef.current, currentPage.id, mode, nextBox);
+    if (!currentPage || clipboard.current.length === 0) return;
+    const result = pasteElements(current(), clipboard.current, currentPage.id, mode, nextBox);
     commit(result.doc);
-    clipboardRef.current = result.pasted;
+    clipboard.current = result.pasted;
     setSelectedIds(new Set(result.pasted.map((element) => element.id)));
   }, [commit, current, currentPage]);
 

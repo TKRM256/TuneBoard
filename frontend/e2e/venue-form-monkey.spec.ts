@@ -1,5 +1,5 @@
 /**
- * モンキーテスト：実際のマウス・キーボードで、会場書式エディタをでたらめに操作し続ける。
+ * モンキーテスト：実際のマウス・キーボードで、書式エディタをでたらめに操作し続ける。
  * 乱数の種を固定しているので、落ちたときは同じ種で同じ操作を再現できる（失敗時は直前の操作の記録を出す）。
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -33,9 +33,9 @@ for (const seed of SEEDS) {
       }
     });
 
-    const { tenant, live } = await prepareVenueForm(page, `monkey-${seed}`);
+    const { tenant, live, layout } = await prepareVenueForm(page, `monkey-${seed}`);
     const editor = new VenueEditor(page, PAGE_WIDTH_MM);
-    await editor.open(tenant.id, live.id);
+    await editor.open(tenant.id, live.id, layout.id);
     await page.keyboard.press('Control+0');
 
     const rand = random(seed);

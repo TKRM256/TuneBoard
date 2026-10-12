@@ -18,11 +18,11 @@ async function runTour(page: Page, total: number) {
 
 test('3 つの画面の使い方を最後まで進められる', async ({ page }) => {
   await page.goto('/');
-  const { tenant, live } = await prepareVenueForm(page, 'tutorial');
+  const { tenant, live, layout } = await prepareVenueForm(page, 'tutorial');
 
-  await test.step('会場書式', async () => {
-    await page.goto(`/tenants/${tenant.id}/lives/${live.id}/venue-form`);
-    await expect(page.getByText('会場書式', { exact: true })).toBeVisible();
+  await test.step('書式エディタ', async () => {
+    await page.goto(`/tenants/${tenant.id}/lives/${live.id}/pdf-layouts/${layout.id}`);
+    await expect(page.getByRole('textbox', { name: '書式の名前' })).toBeVisible();
     await runTour(page, VENUE_FORM_TOUR.length);
   });
 
