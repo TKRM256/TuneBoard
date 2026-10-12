@@ -1,6 +1,6 @@
 /** ランディングページの各セクション。 */
 import type { ReactNode } from 'react';
-import { ClipboardList, FileOutput, ScanLine, Share2, Users } from 'lucide-react';
+import { ClipboardList, FileOutput, Link2, ScanLine, Share2, Users } from 'lucide-react';
 
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { AppMock } from './AppMock';
@@ -33,9 +33,18 @@ export function Hero({ isLoading, onLogin }: LoginProps) {
             </p>
           </Reveal>
           <Reveal immediate delay={0.3}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <GoogleLoginButton isLoading={isLoading} onLogin={onLogin} className="shadow-lg shadow-primary/10" />
-              <p className="text-sm text-muted-foreground">出演者はログイン不要です</p>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <GoogleLoginButton isLoading={isLoading} onLogin={onLogin} className="shadow-lg shadow-primary/10" />
+                <p className="text-sm text-muted-foreground">運営の方はこちらからログインします</p>
+              </div>
+              <div className="flex max-w-xl items-start gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3">
+                <Link2 className="mt-0.5 size-5 shrink-0 text-primary" />
+                <p className="text-sm leading-6">
+                  <span className="font-bold">出演者はログイン不要です。</span>
+                  運営がリンクを送るだけで、出演者は開いてそのまま書き込めます。
+                </p>
+              </div>
             </div>
           </Reveal>
         </div>
@@ -100,7 +109,7 @@ export function Features() {
 
 const steps = [
   { icon: ClipboardList, title: 'フォームを作る', body: 'ライブを作って、項目を並べます。前のライブから取り込むこともできます。' },
-  { icon: Share2, title: 'リンクを配る', body: '公開ページのリンクを出演者に送ります。ログインは要りません。' },
+  { icon: Share2, title: 'リンクを配るだけ', body: '公開ページのリンクを出演者に送ります。出演者はログインせずに、そのまま書き込めます。', highlight: true },
   { icon: Users, title: '提出を確かめる', body: '届いた内容を一覧で見て、曲かぶりや足りない項目を確かめます。' },
   { icon: FileOutput, title: 'PDF を出力する', body: '提出ごとの PDF を、会場へ渡す書類として出力します。出力する前に、プレビューで仕上がりを確かめられます。' },
 ] as const;
@@ -111,14 +120,21 @@ export function Flow() {
       <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
         <Reveal><h2 className="text-center text-3xl font-bold tracking-tight">使い方は 4 ステップ</h2></Reveal>
         <ol className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map(({ icon: Icon, title, body }, index) => (
-            <Reveal key={title} delay={index * 0.12} className="relative rounded-2xl border bg-card p-6 shadow-sm transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md">
+          {steps.map(({ icon: Icon, title, body, ...rest }, index) => (
+            <Reveal
+              key={title}
+              delay={index * 0.12}
+              className={`relative rounded-2xl border bg-card p-6 shadow-sm transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md ${'highlight' in rest ? 'border-primary ring-2 ring-primary/30' : ''}`}
+            >
               <li className="list-none">
               <span className="absolute -top-3 left-6 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
                 {index + 1}
               </span>
               <Icon className="mb-4 size-7 text-primary" />
               <h3 className="mb-2 font-semibold">{title}</h3>
+              {'highlight' in rest ? (
+                <p className="mb-2 inline-block rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">出演者はログイン不要</p>
+              ) : null}
               <p className="text-sm leading-7 text-muted-foreground">{body}</p>
               </li>
             </Reveal>
