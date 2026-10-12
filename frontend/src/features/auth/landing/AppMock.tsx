@@ -29,10 +29,9 @@ export function AppMock() {
       <div className="grid grid-cols-[0.8fr_1.6fr] gap-3 p-3 text-[10px]">
         {/* 左：ライブの情報 */}
         <div className="space-y-1.5 rounded-lg border bg-card p-2.5">
-          <p className="text-[8px] tracking-[0.3em] text-muted-foreground">TUNEBOARD</p>
-          <p className="text-sm font-bold leading-snug">春ライブ 2026</p>
-          <p className="text-[9px] text-muted-foreground">2026年10月26日 学内ホール</p>
-          <p className="rounded border px-2 py-1 text-center text-[9px]">提出済み一覧を見る</p>
+          <p className="text-sm font-bold leading-snug">春ライブ</p>
+          <p className="text-[9px] text-muted-foreground">学内ホール</p>
+          <p className="rounded border px-2 py-1 text-center text-[9px]">提出済み一覧</p>
         </div>
         {/* 右：入力フォーム */}
         <div className="space-y-2 rounded-lg border bg-card p-3">
