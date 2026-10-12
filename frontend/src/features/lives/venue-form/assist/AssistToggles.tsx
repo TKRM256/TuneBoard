@@ -1,4 +1,4 @@
-/** あてふり補助の切り替え（罫線の表示・範囲から表を作る・選択肢の印を置く）。 */
+/** あてふり補助の切り替え（罫線の表示・表の欄に項目を並べる・選択肢の印を置く）。 */
 import type { ReactNode } from 'react';
 import { Grid3x3, SquareCheck, TableProperties } from 'lucide-react';
 
@@ -29,8 +29,8 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, tool, o
         <Grid3x3 className="size-4" />
       </AssistToggle>
       <AssistToggle
-        label="範囲から表を作る"
-        tooltip={noLines ? '罫線が見つかりません' : '範囲から表を作る'}
+        label="表の欄に項目を並べる"
+        tooltip={noLines ? '罫線が見つかりません' : '表の欄に項目を並べる'}
         pressed={tool === 'table'}
         disabled={noLines}
         onPressedChange={(next) => onToolChange(next ? 'table' : 'none')}

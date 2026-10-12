@@ -1,6 +1,6 @@
 /** 書式に置く要素を選ぶ。置いた要素は表示中のページの左上に出るので、ドラッグで書式に合わせる。 */
 import { useState } from 'react';
-import { Circle, Image, LayoutGrid, Minus, Square, Table2, Type } from 'lucide-react';
+import { Circle, Image, LayoutGrid, Minus, Square, Type } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -52,13 +52,6 @@ export function VenuePalette({ catalog, disabled, onInsert }: Props) {
         disabled={disabled || textFields.length === 0}
         options={textFields.map((field) => ({ value: field.id, label: field.pathLabel }))}
         onPick={(fieldId) => onInsert({ kind: 'field', fieldId })}
-      />
-      <PickToInsert
-        label="表（グループを行ごとに）"
-        icon={<Table2 className="size-3.5" />}
-        disabled={disabled || catalog.groups.length === 0}
-        options={catalog.groups.map((group) => ({ value: group.id, label: group.pathLabel || group.label }))}
-        onPick={(groupId) => onInsert({ kind: 'table', groupId })}
       />
       <PickToInsert
         label="ステージ配置図"

@@ -1,4 +1,4 @@
-/** 囲んだ範囲から読み取った行・列で表を作る。グループ・見出しの行数・何件目から・列ごとの項目を選ぶ。 */
+/** 囲んだ範囲から読み取った行・列のマスに項目を並べる。グループ・見出しの行数・何件目から・列ごとの項目を選ぶ。 */
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import type { CatalogGroup, FieldCatalog } from '../../canvas-shared/field-catalog';
 import { NumberField } from '../../canvas-shared/property-fields';
-import type { TableGrid, TableOptions } from './table-grid';
+import { INDEX_FIELD, type TableGrid, type TableOptions } from './table-grid';
 
 interface Props {
   grid: TableGrid | null;
@@ -18,14 +18,13 @@ interface Props {
 }
 
 const EMPTY = '__empty__';
-const INDEX = '__index__';
 
 export function TableFromRegionDialog({ grid, catalog, onCreate, onClose }: Props) {
   return (
     <Dialog open={grid !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>範囲から表を作る</DialogTitle>
+          <DialogTitle>表の欄に項目を並べる</DialogTitle>
         </DialogHeader>
         {grid ? <TableForm key={`${grid.rows.join()}|${grid.cols.join()}`} grid={grid} catalog={catalog} onCreate={onCreate} onClose={onClose} /> : null}
       </DialogContent>
@@ -84,8 +83,8 @@ function TableForm({ grid, catalog, onCreate, onClose }: Required<Pick<Props, 'c
                 <Select value={ids[i] || EMPTY} onValueChange={(value) => setColumn(i, value)}>
                   <SelectTrigger className="h-8 w-full px-1.5 text-xs [&>span]:truncate"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={EMPTY}>（空欄）</SelectItem>
-                    <SelectItem value={INDEX}>番号</SelectItem>
+                    <SelectItem value={EMPTY}>なし</SelectItem>
+                    <SelectItem value={INDEX_FIELD}>番号</SelectItem>
                     {fields.map((field) => <SelectItem key={field.id} value={field.id}>{field.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -97,7 +96,7 @@ function TableForm({ grid, catalog, onCreate, onClose }: Required<Pick<Props, 'c
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>やめる</Button>
-        <Button disabled={!groupId} onClick={() => onCreate({ groupId, headerRows, startIndex, fieldIds: ids })}>作る</Button>
+        <Button disabled={!groupId} onClick={() => onCreate({ groupId, headerRows, startIndex, fieldIds: ids })}>並べる</Button>
       </DialogFooter>
     </>
   );

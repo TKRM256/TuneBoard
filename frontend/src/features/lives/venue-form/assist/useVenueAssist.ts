@@ -8,11 +8,11 @@ import type { VenueFormEditor } from '../useVenueFormEditor';
 import type { VenueAsset } from '../venue-form-schema';
 import { fitToCell } from './cell-fit';
 import { markerTargets, type MarkerConfig } from './choice-markers';
-import { buildTableRows, detectGrid, type Region, type TableGrid, type TableOptions } from './table-grid';
+import { buildCellTexts, detectGrid, type Region, type TableGrid, type TableOptions } from './table-grid';
 import { useChoiceMarkers } from './useChoiceMarkers';
 import { usePageLines } from './usePageLines';
 
-/** table: 範囲を囲んで表を作る / marker: 選択肢の印を順に置く */
+/** table: 書式の表を囲んで、マスごとに項目を並べる / marker: 選択肢の印を順に置く */
 export type AssistTool = 'none' | 'table' | 'marker';
 
 interface Options {
@@ -73,7 +73,7 @@ export function useVenueAssist(editor: VenueFormEditor, { liveId, assets, catalo
   const createTable = (options: TableOptions) => {
     const page = editor.currentPage;
     if (!pendingGrid || !page) return;
-    editor.addElements(buildTableRows(pendingGrid, options, page.id));
+    editor.addElements(buildCellTexts(pendingGrid, options, page.id));
     setPendingGrid(null);
   };
 

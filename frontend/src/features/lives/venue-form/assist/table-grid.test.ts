@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PageLine } from './ruled-lines';
-import { buildTableRows, detectGrid } from './table-grid';
+import { buildCellTexts, detectGrid, INDEX_FIELD, itemValueExpression } from './table-grid';
 
 const h = (posMm: number, fromMm: number, toMm: number): PageLine => ({ axis: 'h', posMm, fromMm, toMm });
 const v = (posMm: number, fromMm: number, toMm: number): PageLine => ({ axis: 'v', posMm, fromMm, toMm });
@@ -38,22 +38,22 @@ describe('detectGrid', () => {
   });
 });
 
-describe('buildTableRows', () => {
-  it('見出しを除いた行ごとに、罫線どおりの位置で 1 件ずつ書く要素を作る', () => {
-    const grid = { rows: [50, 60, 70, 82, 90], cols: [20, 40, 100, 140] };
-    const tables = buildTableRows(grid, { groupId: 'members', headerRows: 1, startIndex: 2, fieldIds: ['__index__', 'name'] }, 'p1');
-    expect(tables.map((t) => [t.yMm, t.hMm, t.startIndex, t.maxRows])).toEqual([[60, 10, 2, 1], [70, 12, 3, 1], [82, 8, 4, 1]]);
-    expect(tables[0]).toMatchObject({ xMm: 20, wMm: 120, groupId: 'members' });
-    expect(tables[0].columns.map((c) => c.widthRatio)).toEqual([20 / 120, 60 / 120, 40 / 120]);
-    expect(tables[0].columns.map((c) => c.fieldId)).toEqual(['__index__', 'name', '']);
-    expect(tables[0].columns[0].align).toBe('center');
-    expect(new Set(tables.map((t) => t.fontSizePt)).size).toBe(1);
-    expect(tables[0].columns[0].id).not.toBe(tables[1].columns[0].id);
+describe('buildCellTexts', () => {
+  const grid = { rows: [50, 60, 70, 82], cols: [20, 40, 100, 140] };
+
+  it('見出しを除いたマスごとに、何件目の項目の値を書く式のテキストを罫線どおりに置く', () => {
+    const texts = buildCellTexts(grid, { groupId: 'members', headerRows: 1, startIndex: 2, fieldIds: [INDEX_FIELD, 'name', ''] }, 'p1');
+    expect(texts.map((t) => t.content)).toEqual(['2', itemValueExpression('members', 1, 'name'), '3', itemValueExpression('members', 2, 'name')]);
+    expect(itemValueExpression('members', 1, 'name')).toBe("${groups['members'].items[1].field('name').value}");
+    expect(texts[1]).toMatchObject({ kind: 'text', xMm: 40.5, yMm: 60.5, wMm: 59, hMm: 9, align: 'left' });
+    expect(texts[3]).toMatchObject({ yMm: 70.5, hMm: 11 });
+    expect(texts[0]).toMatchObject({ align: 'center', condition: "${count(groups['members'].items) >= 2}" });
+    expect(texts[1].condition).toBeUndefined();
+    expect(new Set(texts.map((t) => t.fontSizePt)).size).toBe(1);
   });
 
   it('見出しの行数が多すぎても 1 行は残す', () => {
-    const tables = buildTableRows({ rows: [0, 10, 20], cols: [0, 50] }, { groupId: 'g', headerRows: 5, startIndex: 3, fieldIds: [] }, 'p1');
-    expect(tables).toHaveLength(1);
-    expect(tables[0]).toMatchObject({ yMm: 10, hMm: 10, maxRows: 1, startIndex: 3 });
+    const texts = buildCellTexts({ rows: [0, 10, 20], cols: [0, 50] }, { groupId: 'g', headerRows: 5, startIndex: 3, fieldIds: ['f'] }, 'p1');
+    expect(texts.map((t) => [t.yMm, t.content])).toEqual([[10.5, itemValueExpression('g', 2, 'f')]]);
   });
 });
