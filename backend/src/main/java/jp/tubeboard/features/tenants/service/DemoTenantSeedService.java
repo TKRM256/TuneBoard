@@ -18,6 +18,9 @@ import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionReque
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest.FieldAnswerRequest;
 import jp.tubeboard.features.lives.dto.request.PublicSettingSheetSubmissionRequest.GroupItemRequest;
 import jp.tubeboard.features.lives.model.Live;
+import jp.tubeboard.features.tenants.service.demo.DanceDemoForm;
+import jp.tubeboard.features.tenants.service.demo.DemoForm;
+import jp.tubeboard.features.tenants.service.demo.FesDemoForm;
 import jp.tubeboard.features.lives.model.LiveStatus;
 import jp.tubeboard.features.lives.model.SettingSheetSubmission;
 import jp.tubeboard.features.lives.repository.LiveRepository;
@@ -36,21 +39,24 @@ import lombok.RequiredArgsConstructor;
 public class DemoTenantSeedService {
 
     private static final List<DemoTenantDefinition> DEMO_TENANTS = List.of(
-            new DemoTenantDefinition("デモサークル", List.of(
+            // 既定のバンド向けフォーム
+            new DemoTenantDefinition("デモサークル", null, List.of(
                     new DemoLiveDefinition("春ライブ 2026", "学内ホール", 14, 7, LiveStatus.PUBLISHED,
                             16, 0),
                     new DemoLiveDefinition("新歓ライブ 2026", "第一音楽スタジオ", 28, 18,
                             LiveStatus.PUBLISHED, 14, 4),
                     new DemoLiveDefinition("卒業ライブ 2025", "市民会館 小ホール", -30, -40,
                             LiveStatus.CLOSED, 10, 8))),
-            new DemoTenantDefinition("コピーバンド研究会", List.of(
-                    new DemoLiveDefinition("夏ライブ 2026", "リハーサルスタジオ A", 45, 30,
+            // バンド以外の形のフォーム（ダンス発表会の出演申込）
+            new DemoTenantDefinition("ダンス部 STEP", new DanceDemoForm(), List.of(
+                    new DemoLiveDefinition("春の発表会 2026", "市民文化ホール", 45, 30,
                             LiveStatus.PUBLISHED, 12, 2),
-                    new DemoLiveDefinition("学祭前夜祭 2026", "野外ステージ", 60, 40,
+                    new DemoLiveDefinition("学祭ステージ 2026", "野外ステージ", 60, 40,
                             LiveStatus.PUBLISHED, 10, 6),
-                    new DemoLiveDefinition("冬ライブ 2025", "ライブハウス WEST", -75, -90,
+                    new DemoLiveDefinition("冬公演 2025", "大学講堂", -75, -90,
                             LiveStatus.CLOSED, 8, 10))),
-            new DemoTenantDefinition("合同ライブ運営チーム", List.of(
+            // 入れ子の繰り返しや、演目ごとに書く項目が変わるフォーム（合同フェスのエントリー）
+            new DemoTenantDefinition("合同ライブ運営チーム", new FesDemoForm(), List.of(
                     new DemoLiveDefinition("合同フェス 2026", "中央ホール", 90, 65,
                             LiveStatus.PUBLISHED, 8, 1),
                     new DemoLiveDefinition("アコースティックナイト 2026", "カフェラウンジ", 120,
@@ -156,12 +162,14 @@ public class DemoTenantSeedService {
                     .role(TenantRole.OWNER)
                     .build());
 
-            seedLives(tenant, tenantIndex, tenantDefinition, defaultSettingsJson, baseDate, baseDateTime);
+            String settingsJson = tenantDefinition.form() == null ? defaultSettingsJson
+                    : tenantDefinition.form().settingsJson();
+            seedLives(tenant, tenantIndex, tenantDefinition, settingsJson, baseDate, baseDateTime);
         }
     }
 
     private void seedLives(Tenants tenant, int tenantIndex, DemoTenantDefinition tenantDefinition,
-            String defaultSettingsJson, LocalDate baseDate, LocalDateTime baseDateTime) {
+            String settingsJson, LocalDate baseDate, LocalDateTime baseDateTime) {
         for (int liveIndex = 0; liveIndex < tenantDefinition.lives().size(); liveIndex++) {
             DemoLiveDefinition liveDefinition = tenantDefinition.lives().get(liveIndex);
             Live live = liveRepository.save(Live.builder()
@@ -172,11 +180,13 @@ public class DemoTenantSeedService {
                     .location(liveDefinition.location())
                     .deadlineAt(baseDateTime.plusDays(liveDefinition.deadlineOffsetDays()))
                     .status(liveDefinition.status())
-                    .settingsJson(defaultSettingsJson)
+                    .settingsJson(settingsJson)
                     .build());
 
-            settingSheetSubmissionRepository.saveAll(
-                    createSubmissions(live, tenantIndex, liveIndex, liveDefinition.songOffset(),
+            settingSheetSubmissionRepository.saveAll(tenantDefinition.form() == null
+                    ? createSubmissions(live, tenantIndex, liveIndex, liveDefinition.songOffset(),
+                            liveDefinition.submissionCount())
+                    : createFormSubmissions(live, tenantDefinition.form(), liveIndex,
                             liveDefinition.submissionCount()));
         }
     }
@@ -195,6 +205,28 @@ public class DemoTenantSeedService {
                     .build());
         }
         return submissions;
+    }
+
+    private List<SettingSheetSubmission> createFormSubmissions(Live live, DemoForm form, int liveIndex,
+            int submissionCount) {
+        List<SettingSheetSubmission> submissions = new ArrayList<>();
+        for (int index = 0; index < submissionCount; index++) {
+            submissions.add(SettingSheetSubmission.builder()
+                    .live(live)
+                    .recordLabel(form.recordLabel(liveIndex, index))
+                    .submissionStatus(SettingSheetConstants.SUBMISSION_STATUS)
+                    .payloadJson(toJson(form.payload(liveIndex, index)))
+                    .build());
+        }
+        return submissions;
+    }
+
+    private String toJson(Object payload) {
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("ダミーデータの作成に失敗しました", ex);
+        }
     }
 
     private String buildBandName(int tenantIndex, int liveIndex, int submissionIndex) {
@@ -222,11 +254,7 @@ public class DemoTenantSeedService {
                 new FieldAnswerRequest("setlist", List.of(),
                         createSetlist(submissionIndex, songOffset))),
                 null);
-        try {
-            return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("ダミーデータの作成に失敗しました", ex);
-        }
+        return toJson(payload);
     }
 
     private List<GroupItemRequest> createMembers(int tenantIndex, int liveIndex, int submissionIndex) {
@@ -276,7 +304,8 @@ public class DemoTenantSeedService {
         return (songOffset + submissionIndex + setlistIndex * 4) % SONG_POOL.size();
     }
 
-    private record DemoTenantDefinition(String name, List<DemoLiveDefinition> lives) {
+    /** form が null なら既定のバンド向けフォーム。 */
+    private record DemoTenantDefinition(String name, DemoForm form, List<DemoLiveDefinition> lives) {
     }
 
     private record DemoLiveDefinition(String name, String location, int dateOffsetDays, int deadlineOffsetDays,

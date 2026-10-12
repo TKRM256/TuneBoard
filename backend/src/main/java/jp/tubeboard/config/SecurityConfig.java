@@ -48,6 +48,8 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/auth/google/callback")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
+                                                // 開発用のテストログイン。処理は dev かつ app.dev.test-login=true のときだけ存在する
+                                                .requestMatchers(HttpMethod.POST, "/api/dev/test-login").permitAll()
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(exceptions -> exceptions
                                                 .authenticationEntryPoint((request, response, ex) -> {

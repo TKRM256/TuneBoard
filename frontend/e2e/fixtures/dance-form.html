@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; width: 210mm; height: 297mm; font-family: "Yu Gothic", "Meiryo", sans-serif; font-size: 9pt; color: #000; }
+  .page { position: relative; padding: 12mm 14mm; }
+  h1 { font-size: 16pt; margin: 0 0 1mm; text-align: center; letter-spacing: 0.1em; }
+  .sub { text-align: center; font-size: 8pt; margin-bottom: 4mm; }
+  .receipt { position: absolute; right: 14mm; top: 10mm; border: 0.3mm solid #000; width: 40mm; height: 9mm; font-size: 7pt; padding: 0.5mm 1mm; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 4mm; }
+  td, th { border: 0.25mm solid #000; padding: 0 1.5mm; height: 8mm; font-weight: normal; text-align: left; vertical-align: middle; }
+  th { background: #d9d9d9; width: 24mm; }
+  .box { display: inline-block; width: 3.2mm; height: 3.2mm; border: 0.25mm solid #000; vertical-align: -0.5mm; margin: 0 1mm 0 3mm; }
+  .circle-choice span { margin: 0 4mm; }
+  .members td { height: 7mm; }
+  .members tr.tall td { height: 11mm; }
+  .members th, .tracks th { width: auto; text-align: center; }
+  .notes { height: 30mm; vertical-align: top; padding-top: 1mm; }
+  .cut { border-top: 0.3mm dashed #000; margin: 6mm 0 3mm; font-size: 7pt; text-align: center; }
+  .sign { display: flex; gap: 8mm; margin-top: 3mm; }
+  .sign div { flex: 1; border-bottom: 0.25mm solid #000; height: 8mm; font-size: 8pt; padding-top: 3mm; }
+  .red { color: #c00; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="receipt">受付番号</div>
+  <h1>第12回 合同ダンス発表会　出演申込書</h1>
+  <div class="sub">提出期限：公演の3週間前まで　<span class="red">※太枠内は必ず記入</span></div>
+
+  <table>
+    <tr><th>団体名</th><td colspan="3"></td></tr>
+    <tr><th>代表者</th><td></td><th>連絡先</th><td></td></tr>
+    <tr><th>ジャンル</th><td colspan="3"><span class="box"></span>ヒップホップ<span class="box"></span>ジャズ<span class="box"></span>K-POP<span class="box"></span>バレエ<span class="box"></span>その他</td></tr>
+    <tr><th>出演枠</th><td class="circle-choice"><span>昼の部</span>・<span>夜の部</span></td><th>小道具</th><td class="circle-choice"><span>有</span>・<span>無</span></td></tr>
+    <tr><th>照明</th><td colspan="3"><span class="box"></span>スポット<span class="box"></span>ミラーボール<span class="box"></span>ストロボ<span class="box"></span>暗転スタート</td></tr>
+  </table>
+
+  <div style="display:flex; gap:4mm;">
+    <table class="members" style="flex: 3;">
+      <tr><th style="width:9mm">No.</th><th>名前</th><th style="width:14mm">学年</th><th style="width:20mm">立ち位置</th></tr>
+      <tr><td>1</td><td></td><td></td><td></td></tr>
+      <tr><td>2</td><td></td><td></td><td></td></tr>
+      <tr class="tall"><td>3</td><td></td><td></td><td></td></tr>
+      <tr><td>4</td><td></td><td></td><td></td></tr>
+      <tr><td>5</td><td></td><td></td><td></td></tr>
+    </table>
+    <table class="tracks" style="flex: 4;">
+      <tr><th style="width:7mm">#</th><th>曲名</th><th style="width:13mm">尺</th><th style="width:26mm">きっかけ</th></tr>
+      <tr><td>1</td><td></td><td></td><td></td></tr>
+      <tr><td>2</td><td></td><td></td><td></td></tr>
+      <tr><td>3</td><td></td><td></td><td></td></tr>
+      <tr><td>4</td><td></td><td></td><td></td></tr>
+    </table>
+  </div>
+
+  <table>
+    <tr><th>備考</th><td class="notes"></td></tr>
+  </table>
+
+  <div class="cut">キリトリ（以下は事務局記入）</div>
+  <div class="sign"><div>受付者</div><div>舞台監督</div><div>照明担当</div></div>
+</div>
+</body>
+</html>
