@@ -1,5 +1,7 @@
 /** ランディングページの説明に使う、画面を模した図。実際の画面の画像は使わず、枠と色だけで描く。 */
-import { Check } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Check, ShieldCheck, Trash2 } from 'lucide-react';
+
+import { CircleDraw, Item, Pop } from './motion';
 
 /** 書式に回答が書き込まれたところ。✓ と ○ 囲みも付く。 */
 export function VenueFormMock() {
@@ -17,7 +19,11 @@ export function VenueFormMock() {
           {['Vocal', 'Guitar', 'Bass'].map((name, index) => (
             <span key={name} className="ml-2 flex items-center gap-0.5 whitespace-nowrap">
               <span className="relative inline-block size-2.5 border border-slate-500">
-                {index === 0 || index === 2 ? <Check className="absolute -left-0.5 -top-1 size-3.5 text-red-500" strokeWidth={3} /> : null}
+                {index === 0 || index === 2 ? (
+                  <Pop delay={0.5 + index * 0.3} className="absolute -left-0.5 -top-1">
+                    <Check className="size-3.5 text-red-500" strokeWidth={3} />
+                  </Pop>
+                ) : null}
               </span>
               {name}
             </span>
@@ -25,9 +31,10 @@ export function VenueFormMock() {
         </div>
         <div className={row}>
           <span className="w-16 bg-slate-200 py-1 pl-1 text-slate-500">スモーク</span>
-          <span className="ml-2 text-slate-500">あり</span>
-          <span className="mx-1 text-slate-400">・</span>
-          <span className="rounded-full border border-red-500 px-1.5 text-slate-900">なし</span>
+          <span className="ml-2 text-slate-900">あり</span>
+          <span className="ml-2 text-slate-900">
+            <CircleDraw delay={1.2}>なし</CircleDraw>
+          </span>
         </div>
       </div>
       <div className="mt-3 grid grid-cols-[1fr_1.4fr] gap-2 text-[10px]">
@@ -46,44 +53,84 @@ export function VenueFormMock() {
   );
 }
 
-/** 曲かぶりの検出。同じ曲が 2 件の提出に出ている。 */
+/** 曲かぶりの検出。提出一覧の画面にある「曲かぶり検出」と同じ構成（見出し・重複・確信度・提出者の表）にする。 */
 export function DuplicateMock() {
-  const item = (band: string, title: string, hit: boolean) => (
-    <div className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs ${hit ? 'border-amber-400/60 bg-amber-500/10' : 'bg-card'}`}>
-      <span className="font-medium">{band}</span>
-      <span className="text-muted-foreground">{title}</span>
-    </div>
-  );
+  const rows = [
+    ['Echo Notes', '小さな恋のうた', 'MONGOL800'],
+    ['Neon Letters', 'ちいさなこいのうた', 'MONGOL800'],
+  ];
   return (
-    <div className="w-full max-w-xs space-y-2">
-      {item('Echo Notes', '小さな恋のうた', true)}
-      {item('Neon Letters', 'ちいさなこいのうた', true)}
-      {item('Blue Harbor', 'リライト', false)}
-      <p className="pt-1 text-center text-xs font-medium text-amber-600 dark:text-amber-400">表記が違っても同じ曲として見つけます</p>
+    <div className="w-full max-w-sm space-y-3 rounded-xl border border-amber-300 bg-card p-4 text-xs shadow-sm dark:border-amber-700">
+      <div className="flex flex-wrap items-center gap-2">
+        <AlertTriangle className="size-4 text-amber-500" />
+        <span className="text-sm font-semibold">曲かぶり検出</span>
+        <span className="rounded-full bg-destructive px-2 py-0.5 text-[10px] font-medium text-white">1件の重複</span>
+      </div>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="rounded-full border bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">重複 1</span>
+          <span className="text-xs font-semibold">ちいさなこいのうた</span>
+          <span className="flex items-center gap-0.5 rounded-full border border-green-300 bg-green-50 px-2 py-0.5 text-[10px] text-green-700 dark:border-green-700 dark:bg-green-950/30 dark:text-green-400">
+            <ShieldCheck className="size-3" />
+            高確信
+          </span>
+        </div>
+        <div className="overflow-hidden rounded-lg border">
+          <div className="grid grid-cols-[1.1fr_1.4fr_1fr] border-b bg-muted/40 px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
+            <span>提出者</span>
+            <span>曲名</span>
+            <span>アーティスト</span>
+          </div>
+          {rows.map(([band, title, artist], index) => (
+            <Item key={band} index={index}>
+              <div className="grid grid-cols-[1.1fr_1.4fr_1fr] items-center border-b bg-amber-50/30 px-2 py-1.5 last:border-b-0 dark:bg-amber-950/10">
+                <span className="w-fit rounded-md bg-secondary px-1.5 py-0.5 text-[10px]">{band}</span>
+                <span>{title}</span>
+                <span className="text-muted-foreground">{artist}</span>
+              </div>
+            </Item>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-/** フォームのブロックを並べるところ。 */
+/** フォーム作成画面のブロック。種類のバッジ、番号つきの名前、並べ替えと削除のボタンまで実画面と同じ。繰り返しグループの子は、親の設定の中に入る。 */
 export function FormBuilderMock() {
-  const block = (kind: string, label: string, accent: string) => (
-    <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 shadow-sm">
-      <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${accent}`}>{kind}</span>
-      <span className="text-xs font-medium">{label}</span>
+  const buttons = (
+    <div className="flex gap-1 text-muted-foreground">
+      {[ArrowUp, ArrowDown, Trash2].map((Icon, index) => (
+        <span key={index} className="flex size-6 items-center justify-center rounded-md border bg-background">
+          <Icon className="size-3" />
+        </span>
+      ))}
+    </div>
+  );
+  const head = (type: string, number: number, name: string, summary: string) => (
+    <div className="flex items-start justify-between gap-2">
+      <div className="space-y-1">
+        <span className="rounded-md bg-secondary px-2 py-0.5 text-[10px] font-semibold">{type}</span>
+        <p className="text-xs font-medium">{number}. {name}</p>
+        <p className="text-[10px] text-muted-foreground">{summary}</p>
+      </div>
+      {buttons}
     </div>
   );
   return (
-    <div className="w-full max-w-xs space-y-2">
-      {block('文字', 'バンド名', 'bg-sky-500/15 text-sky-700 dark:text-sky-300')}
-      {block('選択', '提出状況', 'bg-violet-500/15 text-violet-700 dark:text-violet-300')}
-      <div className="space-y-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 p-2">
-        {block('繰り返し', 'メンバー', 'bg-primary/15 text-primary')}
-        <div className="ml-4 space-y-2">
-          {block('文字', '名前', 'bg-sky-500/15 text-sky-700 dark:text-sky-300')}
-          {block('選択', '担当パート', 'bg-violet-500/15 text-violet-700 dark:text-violet-300')}
+    <div className="w-full max-w-sm space-y-2">
+      <Item index={0}>
+        <div className="rounded-2xl border bg-background p-3 shadow-sm">{head('短いテキスト', 1, 'バンド名', '必須')}</div>
+      </Item>
+      <Item index={1}>
+        <div className="space-y-2 rounded-2xl border bg-background p-3 shadow-sm">
+          {head('繰り返しグループ', 2, 'メンバー', '2件の子フィールド')}
+          <div className="space-y-2 rounded-xl border bg-muted/30 p-2">
+            <div className="rounded-xl border bg-background p-2.5">{head('短いテキスト', 1, '名前', '必須')}</div>
+            <div className="rounded-xl border bg-background p-2.5">{head('複数選択', 2, '担当パート', '6件の選択肢')}</div>
+          </div>
         </div>
-      </div>
-      {block('曲', 'セットリスト', 'bg-rose-500/15 text-rose-700 dark:text-rose-300')}
+      </Item>
     </div>
   );
 }

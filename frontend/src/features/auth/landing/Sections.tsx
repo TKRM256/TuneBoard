@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { ClipboardList, FileOutput, ScanLine, Share2, Users } from 'lucide-react';
 
 import { GoogleLoginButton } from './GoogleLoginButton';
+import { AppMock } from './AppMock';
 import { DuplicateMock, FormBuilderMock, VenueFormMock } from './Mocks';
+import { Reveal } from './motion';
 
 interface LoginProps {
   isLoading: boolean;
@@ -13,24 +15,33 @@ interface LoginProps {
 export function Hero({ isLoading, onLogin }: LoginProps) {
   return (
     <section className="relative overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60rem_30rem_at_20%_-10%,color-mix(in_oklab,var(--primary)_22%,transparent),transparent),radial-gradient(40rem_28rem_at_95%_10%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent)]" />
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-16 lg:grid-cols-[1.25fr_0.75fr] lg:pt-24">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -left-40 -top-48 size-[42rem] rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -right-32 -top-24 size-[32rem] rounded-full bg-emerald-400/15 blur-3xl" />
+      </div>
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-12 pt-10 lg:grid-cols-[1.25fr_0.75fr] lg:pt-16">
         <div className="space-y-8">
+          <Reveal immediate>
           <h1 className="text-balance text-2xl font-extrabold leading-tight tracking-tight min-[400px]:text-3xl sm:text-5xl lg:text-[2.9rem]">
             <span className="inline-block">紙のセッティングシートを、</span>
             <span className="inline-block bg-linear-to-r from-primary to-emerald-400 bg-clip-text text-transparent">もう配らない。</span>
           </h1>
-          <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-            出演者はリンクを開いて書くだけ。運営は届いた内容を一覧で確かめ、任意の書式に書き込んだ PDF を出力できます。
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <GoogleLoginButton isLoading={isLoading} onLogin={onLogin} className="shadow-lg shadow-primary/10" />
-            <p className="text-sm text-muted-foreground">出演者はログイン不要です</p>
-          </div>
+          </Reveal>
+          <Reveal immediate delay={0.15}>
+            <p className="max-w-xl text-lg leading-8 text-muted-foreground">
+              出演者はリンクを開いて書くだけ。運営は届いた内容を一覧で確かめ、任意の書式に書き込んだ PDF を出力できます。
+            </p>
+          </Reveal>
+          <Reveal immediate delay={0.3}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <GoogleLoginButton isLoading={isLoading} onLogin={onLogin} className="shadow-lg shadow-primary/10" />
+              <p className="text-sm text-muted-foreground">出演者はログイン不要です</p>
+            </div>
+          </Reveal>
         </div>
-        <div className="flex justify-center lg:justify-end">
-          <VenueFormMock />
-        </div>
+        <Reveal immediate delay={0.25} distance={40} className="flex justify-center lg:justify-end">
+          <AppMock />
+        </Reveal>
       </div>
     </section>
   );
@@ -46,24 +57,24 @@ interface FeatureProps {
 
 function Feature({ icon, title, body, mock, reverse }: FeatureProps) {
   return (
-    <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-      <div className={`space-y-4 ${reverse ? 'lg:order-2' : ''}`}>
+    <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
+      <Reveal className={`space-y-4 ${reverse ? 'lg:order-2' : ''}`}>
         <span className="inline-flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span>
         <h3 className="text-balance text-2xl font-bold tracking-tight">{title}</h3>
         <p className="leading-8 text-muted-foreground">{body}</p>
-      </div>
-      <div className={`flex justify-center rounded-3xl border bg-muted/40 p-8 ${reverse ? 'lg:order-1' : ''}`}>{mock}</div>
+      </Reveal>
+      <Reveal delay={0.12} className={`flex justify-center rounded-3xl border bg-muted/40 p-6 ${reverse ? 'lg:order-1' : ''}`}>{mock}</Reveal>
     </div>
   );
 }
 
 export function Features() {
   return (
-    <section className="mx-auto max-w-6xl space-y-24 px-6 py-20">
-      <div className="space-y-3 text-center">
+    <section className="mx-auto max-w-6xl space-y-14 px-6 py-14">
+      <Reveal className="space-y-3 text-center">
         <h2 className="text-3xl font-bold tracking-tight">できること</h2>
         <p className="text-muted-foreground">フォームづくりから、会場へ渡す書類まで</p>
-      </div>
+      </Reveal>
       <Feature
         icon={<ClipboardList className="size-6" />}
         title="ライブに合わせて、フォームを作れる"
@@ -97,18 +108,20 @@ const steps = [
 export function Flow() {
   return (
     <section className="border-y bg-muted/30">
-      <div className="mx-auto max-w-6xl space-y-12 px-6 py-20">
-        <h2 className="text-center text-3xl font-bold tracking-tight">使い方は 4 ステップ</h2>
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <Reveal><h2 className="text-center text-3xl font-bold tracking-tight">使い方は 4 ステップ</h2></Reveal>
         <ol className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {steps.map(({ icon: Icon, title, body }, index) => (
-            <li key={title} className="relative rounded-2xl border bg-card p-6 shadow-sm">
+            <Reveal key={title} delay={index * 0.12} className="relative rounded-2xl border bg-card p-6 shadow-sm transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md">
+              <li className="list-none">
               <span className="absolute -top-3 left-6 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
                 {index + 1}
               </span>
               <Icon className="mb-4 size-7 text-primary" />
               <h3 className="mb-2 font-semibold">{title}</h3>
               <p className="text-sm leading-7 text-muted-foreground">{body}</p>
-            </li>
+              </li>
+            </Reveal>
           ))}
         </ol>
       </div>

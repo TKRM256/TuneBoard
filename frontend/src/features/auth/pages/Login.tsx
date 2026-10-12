@@ -25,7 +25,7 @@ export const Login = () => {
       {/* ログイン済みのユーザーがすぐ入れるよう、ページのどこまで読んでもログインを右上に残す */}
       <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <span className="text-xl font-extrabold tracking-tight">TuneBoard</span>
+          <span className="text-lg font-bold sm:text-xl">TuneBoard</span>
           <GoogleLoginButton isLoading={isAuthLoading} onLogin={login} compact />
         </div>
       </header>
