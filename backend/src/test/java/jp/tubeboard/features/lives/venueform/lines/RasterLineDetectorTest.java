@@ -118,6 +118,19 @@ class RasterLineDetectorTest {
                 .satisfies(line -> assertThat(line.axis()).isEqualTo(RuledLine.HORIZONTAL));
     }
 
+    @Test
+    void グレースケール画像の少し明るい線も検出する() {
+        // スキャナーの白黒 JPEG のような 1 チャンネルの画像。値 100 の灰色は getRGB を通すと 150 より明るくなる
+        BufferedImage image = new BufferedImage(W, H, BufferedImage.TYPE_BYTE_GRAY);
+        var raster = image.getRaster();
+        for (int y = 0; y < H; y++) {
+            for (int x = 0; x < W; x++) raster.setSample(x, y, 0, y == 100 * MM ? 100 : 245);
+        }
+
+        assertThat(horizontal(RasterLineDetector.detect(image))).singleElement()
+                .satisfies(line -> assertThat(line.to() - line.from()).isGreaterThan(200.0 / 210));
+    }
+
     private static BufferedImage blank() {
         BufferedImage image = new BufferedImage(W, H, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();

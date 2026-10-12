@@ -24,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 public class PageLineDetector {
 
     /** 検出方法を変えたら上げる。保存済みの古い結果は読むときに検出し直す。 */
-    public static final int ALGORITHM_VERSION = 1;
+    public static final int ALGORITHM_VERSION = 2;
     /** PDF の中の線がこれより少なければ、線は画像として描かれているとみなす。 */
     private static final int MIN_VECTOR_LINES = 4;
     private static final float RASTER_DPI = 150f;

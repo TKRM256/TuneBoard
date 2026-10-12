@@ -53,6 +53,17 @@ public final class RasterLineDetector {
     private static boolean[] darkMask(BufferedImage image) {
         int width = image.getWidth();
         int height = image.getHeight();
+        if (image.getRaster().getNumBands() == 1) {
+            // グレースケール（スキャナーの白黒 JPEG など）は getRGB を通すと色空間の変換で中間の灰色が明るくなり、
+            // 細い線が暗い画素として数えられなくなるので、画素の値をそのまま読む
+            int[] gray = image.getRaster().getSamples(0, 0, width, height, 0, (int[]) null);
+            int maxValue = (1 << image.getColorModel().getComponentSize(0)) - 1;
+            boolean[] dark = new boolean[gray.length];
+            for (int i = 0; i < gray.length; i++) {
+                dark[i] = gray[i] * 255 / maxValue < DARK_MAX;
+            }
+            return dark;
+        }
         int[] argb = image.getRGB(0, 0, width, height, null, 0, width);
         boolean[] dark = new boolean[argb.length];
         for (int i = 0; i < argb.length; i++) {
