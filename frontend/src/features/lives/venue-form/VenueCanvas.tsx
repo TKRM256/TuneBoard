@@ -1,5 +1,5 @@
 /** 会場書式の 1 ページ。背景（会場の書式）の上に要素を置く。背景は出力と同じく縦横比を保ってページに収める。 */
-import type { PointerEvent, ReactNode, Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { Loader2 } from 'lucide-react';
 
 import { useAuthedObjectUrl } from '@/hooks/use-authed-object-url';
@@ -7,6 +7,7 @@ import { useAuthedObjectUrl } from '@/hooks/use-authed-object-url';
 import type { FieldCatalog } from '../canvas-shared/field-catalog';
 import { ElementLayer } from '../canvas-shared/ElementLayer';
 import type { MmBox } from '../canvas-shared/geometry';
+import { useMarqueeSelect } from '../canvas-shared/useMarqueeSelect';
 import type { PageLine } from './assist/ruled-lines';
 import { RuledLinesOverlay } from './assist/RuledLinesOverlay';
 import { VenueElementView } from './VenueElementView';
@@ -21,6 +22,8 @@ interface Props {
   pxPerMm: number;
   selectedIds: Set<string>;
   onSelect: (id: string | null, additive: boolean) => void;
+  /** 四角で囲んで選んだ要素 */
+  onSelectMany: (ids: string[], additive: boolean) => void;
   onUpdate: (id: string, patch: Partial<MmBox>) => void;
   onMoveSelection: (dxMm: number, dyMm: number) => void;
   canvasRef?: Ref<HTMLDivElement>;
@@ -46,7 +49,7 @@ function backgroundQuality(pxPerMm: number) {
   return Math.min(MAX_QUALITY, Math.max(1, Math.ceil(neededDpi / PREVIEW_DPI - 0.15)));
 }
 
-export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selectedIds, onSelect, onUpdate, onMoveSelection, canvasRef, backgroundIsPdf = false, ruledLines = [], showRuledLines = false, snapLines, onElementDoubleClick, overlay }: Props) {
+export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selectedIds, onSelect, onSelectMany, onUpdate, onMoveSelection, canvasRef, backgroundIsPdf = false, ruledLines = [], showRuledLines = false, snapLines, onElementDoubleClick, overlay }: Props) {
   const background = page.background;
   const quality = background && backgroundIsPdf ? backgroundQuality(pxPerMm) : 1;
   const backgroundPath = background ? venuePagePreviewPath(liveId, background.assetId, background.pageIndex) : null;
@@ -57,14 +60,12 @@ export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selected
   const { url, failed } = useAuthedObjectUrl(backgroundPath);
   const { url: sharpUrl } = useAuthedObjectUrl(sharpPath);
 
-  const handleBackgroundPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) onSelect(null, false);
-  };
+  const marquee = useMarqueeSelect({ elements, pxPerMm, onSelect, onSelectMany });
 
   return (
     <div
       ref={canvasRef}
-      onPointerDown={handleBackgroundPointerDown}
+      {...marquee.handlers}
       className="relative overflow-hidden bg-white shadow-[0_4px_24px_rgba(15,23,42,0.15)]"
       style={{ width: page.widthMm * pxPerMm, height: page.heightMm * pxPerMm }}
     >
@@ -94,6 +95,18 @@ export function VenueCanvas({ liveId, page, elements, catalog, pxPerMm, selected
           <VenueElementView element={element} catalog={catalog} pxPerMm={pxPerMm} selected={selected} />
         )}
       />
+      {marquee.rect ? (
+        <div
+          className="pointer-events-none absolute border border-blue-500 bg-blue-500/10"
+          style={{
+            zIndex: 4,
+            left: marquee.rect.xMm * pxPerMm,
+            top: marquee.rect.yMm * pxPerMm,
+            width: marquee.rect.wMm * pxPerMm,
+            height: marquee.rect.hMm * pxPerMm,
+          }}
+        />
+      ) : null}
       {overlay}
     </div>
   );

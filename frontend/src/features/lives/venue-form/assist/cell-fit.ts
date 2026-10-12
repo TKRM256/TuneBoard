@@ -74,15 +74,10 @@ export function fontSizeForHeight(heightMm: number) {
   return Math.round(Math.min(MAX_FONT_PT, Math.max(MIN_FONT_PT, pt)) * 2) / 2;
 }
 
-/** 要素を枠いっぱいにする変更。枠が見つからなければ null。文字の要素は文字の大きさも合わせる。 */
-export function fitToCell(element: VenueElement, lines: PageLine[]): Partial<VenueElement> | null {
+/** 要素を枠いっぱいにする変更。枠が見つからなければ null。文字の大きさは変えない。 */
+export function fitToCell(element: VenueElement, lines: PageLine[]): SnapBox | null {
   const cell = findCell(element.xMm + element.wMm / 2, element.yMm + element.hMm / 2, lines);
-  if (!cell) return null;
-  const box = innerBox(cell);
-  if (element.kind === 'text' || element.kind === 'field') {
-    return { ...box, fontSizePt: fontSizeForHeight(box.hMm) };
-  }
-  return box;
+  return cell ? innerBox(cell) : null;
 }
 
 function round2(value: number) {

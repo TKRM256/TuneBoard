@@ -7,6 +7,7 @@ import {
   moveElements,
   removePage,
   updateElement,
+  updateElements,
 } from './venue-form-ops';
 import type { VenueFormDocument } from './venue-form-schema';
 
@@ -61,5 +62,11 @@ describe('venue form ops', () => {
       pages: [{ widthMm: null, heightMm: null, widthPx: 1200, heightPx: 800 }],
     }, 0);
     expect(landscapeImage).toMatchObject({ widthMm: 297, heightMm: 210 });
+  });
+
+  it('選んだ要素すべてに同じ変更を当てる', () => {
+    const doc = updateElements(docWithTwoTexts(), new Set(['a', 'b']), { fontSizePt: 7 } as never);
+    expect(doc.elements.map((e) => (e as { fontSizePt: number }).fontSizePt)).toEqual([7, 7]);
+    expect(doc.elements.map((e) => e.xMm)).toEqual([10, 100]);
   });
 });

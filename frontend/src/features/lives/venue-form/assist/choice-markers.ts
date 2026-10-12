@@ -30,7 +30,10 @@ export interface MarkerTarget {
   key: string;
   fieldId: string;
   groupId: string | null;
+  /** 選ぶときに見せる、グループなどの階層つきの名前 */
   label: string;
+  /** 項目そのものの名前 */
+  name: string;
   type: string;
   options: string[];
 }
@@ -70,13 +73,21 @@ function optionsOf(block: SettingSheetBlock | undefined): string[] {
 /** 選択肢の決まっている項目（選択・チェック・はい/いいえ）。選択肢を他の回答から作る項目は除く。 */
 export function markerTargets(catalog: FieldCatalog, blocksById: Map<string, SettingSheetBlock>): MarkerTarget[] {
   const entries = [
-    ...catalog.fields.map((field) => ({ field, groupId: null as string | null, label: field.pathLabel })),
-    ...catalog.groups.flatMap((group) => group.fields.map((field) => ({ field, groupId: group.id, label: field.pathLabel }))),
+    ...catalog.fields.map((field) => ({ field, groupId: null as string | null })),
+    ...catalog.groups.flatMap((group) => group.fields.map((field) => ({ field, groupId: group.id }))),
   ];
   return entries
-    .map(({ field, groupId, label }) => {
+    .map(({ field, groupId }) => {
       const block = blocksById.get(field.id);
-      return { key: `${groupId ?? ''}|${field.id}`, fieldId: field.id, groupId, label, type: block?.type ?? '', options: optionsOf(block) };
+      return {
+        key: `${groupId ?? ''}|${field.id}`,
+        fieldId: field.id,
+        groupId,
+        label: field.pathLabel,
+        name: field.label,
+        type: block?.type ?? '',
+        options: optionsOf(block),
+      };
     })
     .filter((target) => target.options.length > 0);
 }

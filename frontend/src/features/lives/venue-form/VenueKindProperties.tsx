@@ -24,7 +24,7 @@ type Update<T> = (patch: Partial<T>) => void;
 export function TextProperties({ element, catalog, onUpdate }: { element: VenueTextElement; catalog: FieldCatalog; onUpdate: Update<VenueTextElement> }) {
   return (
     <div className="space-y-3">
-      <FieldGroup label="内容（${...} で回答を差し込めます）">
+      <FieldGroup label="内容">
         <ExpressionTextarea catalog={catalog} value={element.content} onChange={(content) => onUpdate({ content })} rows={3} title="テキスト" />
       </FieldGroup>
       <TypographyGroup {...typography(element)} onUpdate={onUpdate as (patch: Record<string, unknown>) => void} />
@@ -100,8 +100,8 @@ export function StagePlotProperties({ element, onUpdate }: { element: VenueStage
         <Select value={element.mode} onValueChange={(mode) => onUpdate({ mode: mode as StagePlotMode })}>
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="icons">アイコンだけ（書式のステージ図に重ねる）</SelectItem>
-            <SelectItem value="withBase">下絵ごと描く（空欄に描く）</SelectItem>
+            <SelectItem value="icons">アイコンだけ</SelectItem>
+            <SelectItem value="withBase">下絵ごと描く</SelectItem>
           </SelectContent>
         </Select>
       </FieldGroup>

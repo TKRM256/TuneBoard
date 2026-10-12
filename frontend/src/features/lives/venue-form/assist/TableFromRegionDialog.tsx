@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import type { CatalogGroup, FieldCatalog } from '../../canvas-shared/field-catalog';
 import { NumberField } from '../../canvas-shared/property-fields';
-import { isUneven, type TableGrid, type TableOptions } from './table-grid';
+import type { TableGrid, TableOptions } from './table-grid';
 
 interface Props {
   grid: TableGrid | null;
@@ -60,10 +60,7 @@ function TableForm({ grid, catalog, onCreate, onClose }: Required<Pick<Props, 'c
   return (
     <>
       <div className="space-y-4">
-        <p className="text-sm">
-          {rowCount}行 × {columnCount}列
-          {isUneven(grid.rows) ? <span className="ml-2 text-xs text-amber-600">行の高さが揃っていないため平均の高さで書きます</span> : null}
-        </p>
+        <p className="text-sm">{rowCount}行 × {columnCount}列</p>
         <div className="space-y-1.5">
           <Label className="text-xs">グループ</Label>
           <Select value={groupId} onValueChange={setGroupId}>

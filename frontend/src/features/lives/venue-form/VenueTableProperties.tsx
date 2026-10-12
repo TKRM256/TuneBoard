@@ -22,7 +22,7 @@ interface Props {
 
 export function VenueTableProperties({ element, catalog, onUpdate, onChangeColumns }: Props) {
   const group = catalog.groups.find((g) => g.id === element.groupId);
-  const fieldOptions = [{ id: '__index__', label: '番号（何件目か）' }, ...(group?.fields ?? []).map((f) => ({ id: f.id, label: f.label }))];
+  const fieldOptions = [{ id: '__index__', label: '番号' }, ...(group?.fields ?? []).map((f) => ({ id: f.id, label: f.label }))];
 
   return (
     <div className="space-y-3">

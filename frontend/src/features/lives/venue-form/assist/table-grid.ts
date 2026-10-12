@@ -1,4 +1,4 @@
-/** 囲んだ範囲の罫線から表の行と列を読み取り、表の要素を作る。座標はすべて mm。 */
+/** 囲んだ範囲の罫線から表の行と列を読み取り、行ごとに表の要素を作る。座標はすべて mm。 */
 import type { TableColumn } from '../../pdf/canvas-schema';
 import { defaultColumn, newId } from '../venue-element-factory';
 import { DEFAULT_TEXT_COLOR, type VenueTableElement } from '../venue-form-schema';
@@ -22,8 +22,6 @@ export interface TableGrid {
 const TOLERANCE_MM = 1.5;
 /** これより近い境目は 1 本とみなす（二重線など）。 */
 const MERGE_MM = 0.8;
-/** 行の高さの差がこれを超えたら「揃っていない」とみなす。 */
-const UNEVEN_MM = 1;
 const MAX_TABLE_FONT_PT = 9;
 
 function overlap(fromA: number, toA: number, fromB: number, toB: number) {
@@ -64,11 +62,6 @@ export function detectGrid(region: Region, lines: PageLine[]): TableGrid | null 
   return cols.length >= 2 ? { rows, cols } : null;
 }
 
-export function isUneven(rows: number[]) {
-  const heights = rows.slice(1).map((y, i) => y - rows[i]);
-  return Math.max(...heights) - Math.min(...heights) > UNEVEN_MM;
-}
-
 export interface TableOptions {
   groupId: string;
   /** 上から何行を見出しとして飛ばすか */
@@ -79,33 +72,40 @@ export interface TableOptions {
   fieldIds: string[];
 }
 
-/** 見出しを除いた行の範囲を表の枠にする。行の高さは等分（揃っていない表は平均の高さになる）。 */
-export function buildTableElement(grid: TableGrid, options: TableOptions, pageId: string): VenueTableElement {
+/**
+ * 見出しを除いた行ごとに、1 件ずつ書く表の要素を作る。行ごとに罫線どおりの位置・高さにするので、
+ * 行の高さが揃っていない表でもずれず、あとから行ごとに動かせる。文字の大きさはいちばん低い行に合わせて揃える。
+ */
+export function buildTableRows(grid: TableGrid, options: TableOptions, pageId: string): VenueTableElement[] {
   const rows = grid.rows.slice(Math.min(options.headerRows, grid.rows.length - 2));
-  const top = rows[0];
-  const bottom = rows[rows.length - 1];
-  const maxRows = rows.length - 1;
   const left = grid.cols[0];
   const width = grid.cols[grid.cols.length - 1] - left;
-  const columns: TableColumn[] = grid.cols.slice(1).map((x, i) => {
-    const fieldId = options.fieldIds[i] ?? '';
-    return defaultColumn(fieldId, (x - grid.cols[i]) / width, fieldId === '__index__' ? 'center' : 'left');
-  });
-  return {
+  const heights = rows.slice(1).map((y, i) => y - rows[i]);
+  const fontSizePt = Math.min(MAX_TABLE_FONT_PT, fontSizeForHeight(Math.min(...heights)));
+  const startIndex = Math.max(1, options.startIndex);
+  return heights.map((height, i) => ({
     id: newId(),
     pageId,
     kind: 'table',
     xMm: round2(left),
-    yMm: round2(top),
+    yMm: round2(rows[i]),
     wMm: round2(width),
-    hMm: round2(bottom - top),
+    hMm: round2(height),
     groupId: options.groupId,
-    columns,
-    startIndex: Math.max(1, options.startIndex),
-    maxRows,
-    fontSizePt: Math.min(MAX_TABLE_FONT_PT, fontSizeForHeight((bottom - top) / maxRows)),
+    columns: columnsOf(grid, options, width),
+    startIndex: startIndex + i,
+    maxRows: 1,
+    fontSizePt,
     color: DEFAULT_TEXT_COLOR,
-  };
+  }));
+}
+
+/** 列の幅を罫線の比率にする。要素ごとに列の ID を別にする。 */
+function columnsOf(grid: TableGrid, options: TableOptions, width: number): TableColumn[] {
+  return grid.cols.slice(1).map((x, i) => {
+    const fieldId = options.fieldIds[i] ?? '';
+    return defaultColumn(fieldId, (x - grid.cols[i]) / width, fieldId === '__index__' ? 'center' : 'left');
+  });
 }
 
 function round2(value: number) {

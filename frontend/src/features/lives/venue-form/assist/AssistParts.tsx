@@ -28,7 +28,8 @@ export function AssistGuide({ assist }: { assist: Assist }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center">
       <MarkerGuide
-        label={step.label}
+        fieldName={session.config.target.name}
+        option={step.label}
         index={session.index}
         total={session.steps.length}
         onBack={assist.markers.back}

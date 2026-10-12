@@ -21,6 +21,8 @@ interface Props {
   catalog: FieldCatalog;
   blocksById: Map<string, SettingSheetBlock>;
   value: string;
+  /** 複数選択で、要素ごとに条件がばらばらのとき */
+  mixed?: boolean;
   onChange: (next: string) => void;
 }
 
@@ -31,7 +33,7 @@ interface Target {
   label: string;
 }
 
-export function ConditionEditor({ catalog, blocksById, value, onChange }: Props) {
+export function ConditionEditor({ catalog, blocksById, value, mixed = false, onChange }: Props) {
   const targets: Target[] = [
     ...catalog.fields.map((field) => ({ key: `|${field.id}`, fieldId: field.id, groupId: null, label: field.pathLabel })),
     ...catalog.groups.flatMap((group) => group.fields.map((field) => ({
@@ -61,13 +63,13 @@ export function ConditionEditor({ catalog, blocksById, value, onChange }: Props)
     <div className="min-w-0 space-y-2">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">表示条件</Label>
-        {value ? (
+        {value || mixed ? (
           <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[11px]" onClick={() => onChange('')}>
             <X className="size-3" />条件を外す
           </Button>
         ) : null}
       </div>
-      <ExpressionInput catalog={catalog} value={value} onChange={onChange} placeholder="空なら常に表示" title="表示条件" />
+      <ExpressionInput catalog={catalog} value={value} onChange={onChange} placeholder={mixed ? '—' : '空なら常に表示'} title="表示条件" />
       <details className="rounded-md border p-2">
         <summary className="cursor-pointer text-xs">かんたん設定</summary>
         <div className="mt-2 space-y-2">

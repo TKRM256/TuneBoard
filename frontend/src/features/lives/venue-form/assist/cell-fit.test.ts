@@ -38,11 +38,9 @@ describe('innerBox', () => {
 });
 
 describe('fitToCell', () => {
-  it('文字の要素は枠の高さに合わせて文字の大きさも変える', () => {
+  it('枠の内側いっぱいに広げ、文字の大きさは変えない', () => {
     const element = { id: 'e', pageId: 'p', kind: 'text', xMm: 55, yMm: 22, wMm: 10, hMm: 5, content: 'x', fontSizePt: 20 } as const;
-    const patch = fitToCell(element as never, LINES);
-    expect(patch).toMatchObject({ xMm: 50.5, yMm: 20.5, wMm: 39, hMm: 9 });
-    expect((patch as { fontSizePt?: number } | null)?.fontSizePt).toBe(fontSizeForHeight(9));
+    expect(fitToCell(element as never, LINES)).toEqual({ xMm: 50.5, yMm: 20.5, wMm: 39, hMm: 9 });
   });
 
   it('枠が無いところでは何もしない', () => {

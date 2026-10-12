@@ -8,7 +8,7 @@
  *
  *  Shift+Resize: holding Shift while resizing locks the aspect ratio.
  *
- *  罫線への吸着: snapLines を渡すと、動かす・大きさを変えるときに要素の端が近くの線に吸い付く（Alt で一時的に無効）。
+ *  罫線への吸着: snapLines を渡すと、Alt を押しながら動かす・大きさを変えるときだけ要素の端が近くの線に吸い付く。
  *  ドラッグ中の位置は react-rnd に任せたまま、吸着後の位置との差だけを CSS transform でずらして見せ、
  *  離したときに吸着後の位置を保存する（react-rnd の位置を上書きすると、同じ線に吸い付いている間ずれていくため）。 */
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react';
@@ -27,7 +27,7 @@ interface Props<T extends MmBox> {
   onUpdate: (id: string, patch: Partial<MmBox>) => void;
   onMoveSelection: (dxMm: number, dyMm: number) => void;
   renderElement: (element: T, selected: boolean) => ReactNode;
-  /** 吸着の相手にする線（mm）。空なら吸着しない */
+  /** Alt を押している間だけ吸着の相手にする線（mm）。空なら吸着しない */
   snapLines?: SnapLine[];
   onElementDoubleClick?: (id: string) => void;
 }
@@ -65,6 +65,7 @@ export function ElementLayer<T extends MmBox>({
   const wrapperRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const dragRef = useRef<DragState | null>(null);
   const resizeSnapRef = useRef<SnapBox | null>(null);
+  const suppressAltMenu = useSuppressAltMenu();
 
   const handleDragStart = (elId: string, startX: number, startY: number) => {
     if (!selectedIds.has(elId)) return;
@@ -82,7 +83,8 @@ export function ElementLayer<T extends MmBox>({
     // react-rnd は親の範囲に収めて表示するので、同じように収めた位置が今見えている位置
     const shown = { x: clamp(drag.raw.x, 0, maxX), y: clamp(drag.raw.y, 0, maxY) };
     let target = shown;
-    if (snapLines.length > 0 && !altKey) {
+    if (snapLines.length > 0 && altKey) {
+      suppressAltMenu();
       const box = { xMm: shown.x / pxPerMm, yMm: shown.y / pxPerMm, wMm: el.wMm, hMm: el.hMm };
       const result = snapMove(box, snapLines, thresholdMm);
       target = { x: clamp(result.box.xMm * pxPerMm, 0, maxX), y: clamp(result.box.yMm * pxPerMm, 0, maxY) };
@@ -119,11 +121,12 @@ export function ElementLayer<T extends MmBox>({
   };
 
   const handleResize = (altKey: boolean, direction: string, box: SnapBox) => {
-    if (snapLines.length === 0 || altKey || shiftHeld) {
+    if (snapLines.length === 0 || !altKey || shiftHeld) {
       resizeSnapRef.current = null;
       setGuides(NO_LINES);
       return;
     }
+    suppressAltMenu();
     const minMm = Math.max(MIN_PX, snapPx) / pxPerMm;
     const result = snapResize(box, direction as ResizeDirection, snapLines, thresholdMm, minMm);
     resizeSnapRef.current = result.box;
@@ -236,6 +239,21 @@ const CORNER_HANDLE: CSSProperties = {
   borderRadius: 2,
 };
 const OUTER_HANDLE: CSSProperties = { ...CORNER_HANDLE, right: -14, bottom: -14 };
+
+/** Alt を吸着に使ったあと、離したときにブラウザのメニューへ移らないようにする。返す関数は吸着した時に呼ぶ。 */
+function useSuppressAltMenu() {
+  const usedRef = useRef(false);
+  useEffect(() => {
+    const up = (e: KeyboardEvent) => {
+      if (e.key !== 'Alt' || !usedRef.current) return;
+      usedRef.current = false;
+      e.preventDefault();
+    };
+    window.addEventListener('keyup', up);
+    return () => window.removeEventListener('keyup', up);
+  }, []);
+  return () => { usedRef.current = true; };
+}
 
 /** Shift key state for aspect-ratio locking during resize. */
 function useShiftHeld() {

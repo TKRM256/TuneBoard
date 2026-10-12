@@ -1,4 +1,4 @@
-/** 会場書式エディタのあてふり補助（罫線の表示・吸着・枠いっぱい・範囲から表・選択肢の印）の状態と操作。 */
+/** 会場書式エディタのあてふり補助（罫線の表示・枠いっぱい・範囲から表・選択肢の印）の状態と操作。 */
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -8,7 +8,7 @@ import type { VenueFormEditor } from '../useVenueFormEditor';
 import type { VenueAsset } from '../venue-form-schema';
 import { fitToCell } from './cell-fit';
 import { markerTargets, type MarkerConfig } from './choice-markers';
-import { buildTableElement, detectGrid, type Region, type TableGrid, type TableOptions } from './table-grid';
+import { buildTableRows, detectGrid, type Region, type TableGrid, type TableOptions } from './table-grid';
 import { useChoiceMarkers } from './useChoiceMarkers';
 import { usePageLines } from './usePageLines';
 
@@ -25,7 +25,6 @@ interface Options {
 export function useVenueAssist(editor: VenueFormEditor, { liveId, assets, catalog, blocksById }: Options) {
   const lines = usePageLines(liveId, editor.currentPage ?? null, assets);
   const [showLines, setShowLines] = useState(false);
-  const [snap, setSnap] = useState(true);
   const [tool, setToolState] = useState<AssistTool>('none');
   const [pendingGrid, setPendingGrid] = useState<TableGrid | null>(null);
   const [markerSetupOpen, setMarkerSetupOpen] = useState(false);
@@ -74,7 +73,7 @@ export function useVenueAssist(editor: VenueFormEditor, { liveId, assets, catalo
   const createTable = (options: TableOptions) => {
     const page = editor.currentPage;
     if (!pendingGrid || !page) return;
-    editor.addElements([buildTableElement(pendingGrid, options, page.id)]);
+    editor.addElements(buildTableRows(pendingGrid, options, page.id));
     setPendingGrid(null);
   };
 
@@ -88,9 +87,6 @@ export function useVenueAssist(editor: VenueFormEditor, { liveId, assets, catalo
     lines,
     showLines,
     setShowLines,
-    snap,
-    setSnap,
-    snapLines: snap ? lines : undefined,
     tool,
     setTool,
     fitElementToCell,

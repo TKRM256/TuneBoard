@@ -18,6 +18,14 @@ export function updateElement(doc: VenueFormDocument, id: string, patch: Partial
   };
 }
 
+/** 選んだ要素に同じ変更をまとめて当てる（複数選択での一括変更）。 */
+export function updateElements(doc: VenueFormDocument, ids: Set<string>, patch: Partial<VenueElement>): VenueFormDocument {
+  return {
+    ...doc,
+    elements: doc.elements.map((element) => (ids.has(element.id) ? mergeElement(element, patch) : element)),
+  };
+}
+
 export function removeElements(doc: VenueFormDocument, ids: Set<string>): VenueFormDocument {
   return { ...doc, elements: doc.elements.filter((element) => !ids.has(element.id)) };
 }

@@ -6,27 +6,27 @@ import { NumberField } from '../canvas-shared/property-fields';
 import type { TableColumn } from '../pdf/canvas-schema';
 import type { SettingSheetBlock } from '../types/live-types';
 import { ConditionEditor } from './ConditionEditor';
+import { VenueMultiProperties } from './VenueMultiProperties';
 import { FieldProperties, IconProperties, ShapeProperties, StagePlotProperties, TextProperties } from './VenueKindProperties';
 import { VenueTableProperties } from './VenueTableProperties';
 import { venueElementKindLabel, type VenueElement } from './venue-form-schema';
 
 interface Props {
   element: VenueElement | null;
-  selectionCount: number;
+  /** 選んでいる要素すべて。2 個以上ならまとめて変える設定を出す */
+  selectedElements: VenueElement[];
   catalog: FieldCatalog;
   blocksById: Map<string, SettingSheetBlock>;
   onUpdate: (id: string, patch: Partial<VenueElement>) => void;
+  onUpdateSelected: (patch: Partial<VenueElement>) => void;
   onChangeColumns: (elementId: string, change: (columns: TableColumn[]) => TableColumn[]) => void;
 }
 
-export function VenuePropertyPanel({ element, selectionCount, catalog, blocksById, onUpdate, onChangeColumns }: Props) {
-  if (!element) {
-    return (
-      <div className="flex h-full items-center justify-center p-4 text-center text-xs text-muted-foreground">
-        {selectionCount > 1 ? `${selectionCount}個を選択中` : null}
-      </div>
-    );
+export function VenuePropertyPanel({ element, selectedElements, catalog, blocksById, onUpdate, onUpdateSelected, onChangeColumns }: Props) {
+  if (selectedElements.length > 1) {
+    return <VenueMultiProperties elements={selectedElements} catalog={catalog} blocksById={blocksById} onUpdate={onUpdateSelected} />;
   }
+  if (!element) return null;
 
   const update = (patch: Partial<VenueElement>) => onUpdate(element.id, patch);
 

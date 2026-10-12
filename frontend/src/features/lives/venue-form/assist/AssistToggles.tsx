@@ -1,6 +1,6 @@
-/** あてふり補助の切り替え（罫線の表示・罫線への吸着・範囲から表を作る）。 */
+/** あてふり補助の切り替え（罫線の表示・範囲から表を作る・選択肢の印を置く）。 */
 import type { ReactNode } from 'react';
-import { Grid3x3, Magnet, SquareCheck, TableProperties } from 'lucide-react';
+import { Grid3x3, SquareCheck, TableProperties } from 'lucide-react';
 
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,19 +11,17 @@ interface Props {
   lineCount: number;
   showLines: boolean;
   onShowLinesChange: (next: boolean) => void;
-  snap: boolean;
-  onSnapChange: (next: boolean) => void;
   tool: AssistTool;
   onToolChange: (next: AssistTool) => void;
 }
 
-export function AssistToggles({ lineCount, showLines, onShowLinesChange, snap, onSnapChange, tool, onToolChange }: Props) {
+export function AssistToggles({ lineCount, showLines, onShowLinesChange, tool, onToolChange }: Props) {
   const noLines = lineCount === 0;
   return (
     <>
       <AssistToggle
         label="罫線を表示"
-        tooltip={noLines ? '罫線が見つかりません' : `検出した罫線を表示（${lineCount}本）`}
+        tooltip={noLines ? '罫線が見つかりません' : '罫線を表示'}
         pressed={showLines}
         disabled={noLines}
         onPressedChange={onShowLinesChange}
@@ -31,17 +29,8 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, snap, o
         <Grid3x3 className="size-4" />
       </AssistToggle>
       <AssistToggle
-        label="罫線に吸着"
-        tooltip={noLines ? '罫線が見つかりません' : '罫線に吸着（Alt を押している間は吸着しない）'}
-        pressed={snap && !noLines}
-        disabled={noLines}
-        onPressedChange={onSnapChange}
-      >
-        <Magnet className="size-4" />
-      </AssistToggle>
-      <AssistToggle
         label="範囲から表を作る"
-        tooltip={noLines ? '罫線が見つかりません' : '範囲から表を作る（書式の表をドラッグで囲む。Esc でやめる）'}
+        tooltip={noLines ? '罫線が見つかりません' : '範囲から表を作る'}
         pressed={tool === 'table'}
         disabled={noLines}
         onPressedChange={(next) => onToolChange(next ? 'table' : 'none')}
@@ -50,7 +39,7 @@ export function AssistToggles({ lineCount, showLines, onShowLinesChange, snap, o
       </AssistToggle>
       <AssistToggle
         label="選択肢の印を置く"
-        tooltip="選択肢の印を置く（選択肢ごとに場所を順にクリック。Esc でやめる）"
+        tooltip="選択肢の印を置く"
         pressed={tool === 'marker'}
         disabled={false}
         onPressedChange={(next) => onToolChange(next ? 'marker' : 'none')}

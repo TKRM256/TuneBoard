@@ -22,6 +22,10 @@ export function useVenueFormEditor() {
     () => (currentPage ? doc.elements.filter((element) => element.pageId === currentPage.id) : []),
     [doc.elements, currentPage],
   );
+  const selectedElements = useMemo(
+    () => doc.elements.filter((element) => selectedIds.has(element.id)),
+    [doc.elements, selectedIds],
+  );
   const selectedElement = selectedIds.size === 1
     ? doc.elements.find((element) => selectedIds.has(element.id)) ?? null
     : null;
@@ -41,6 +45,11 @@ export function useVenueFormEditor() {
       else next.add(id);
       return next;
     });
+  }, []);
+
+  /** 四角で囲んだ要素を選ぶ。additive なら今の選択に足す */
+  const selectMany = useCallback((ids: string[], additive: boolean) => {
+    setSelectedIds((prev) => new Set(additive ? [...prev, ...ids] : ids));
   }, []);
 
   const showPage = useCallback((id: string) => {
@@ -96,7 +105,9 @@ export function useVenueFormEditor() {
     pageElements,
     selectedIds,
     selectedElement,
+    selectedElements,
     select,
+    selectMany,
     showPage,
     insert,
     addElements,
@@ -109,6 +120,7 @@ export function useVenueFormEditor() {
     },
     movePage: (id: string, direction: -1 | 1) => commit(ops.movePage(current(), id, direction)),
     updateElement: (id: string, patch: Partial<VenueElement>) => commit(ops.updateElement(current(), id, patch)),
+    updateSelected: (patch: Partial<VenueElement>) => commit(ops.updateElements(current(), selectedIds, patch)),
     /** 指定した要素を消す（あてふり補助で置いた印を取り消すときなど） */
     removeElements: (ids: string[]) => {
       if (ids.length === 0) return;

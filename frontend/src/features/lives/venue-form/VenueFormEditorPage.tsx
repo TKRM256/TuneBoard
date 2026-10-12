@@ -154,8 +154,6 @@ export const VenueFormEditorPage = () => {
                     lineCount={assist.lines.length}
                     showLines={assist.showLines}
                     onShowLinesChange={assist.setShowLines}
-                    snap={assist.snap}
-                    onSnapChange={assist.setSnap}
                     tool={assist.tool}
                     onToolChange={assist.setTool}
                   />
@@ -177,7 +175,7 @@ export const VenueFormEditorPage = () => {
                       backgroundIsPdf={isPdfBackground(data.assets, editor.currentPage.background?.assetId)}
                       ruledLines={assist.lines}
                       showRuledLines={assist.showLines || assist.tool !== 'none'}
-                      snapLines={assist.snapLines}
+                      snapLines={assist.lines}
                       onElementDoubleClick={assist.fitElementToCell}
                       overlay={<AssistCanvasLayer assist={assist} pxPerMm={viewport.pxPerMm} />}
                       liveId={liveId}
@@ -187,6 +185,7 @@ export const VenueFormEditorPage = () => {
                       pxPerMm={viewport.pxPerMm}
                       selectedIds={editor.selectedIds}
                       onSelect={editor.select}
+                      onSelectMany={editor.selectMany}
                       onUpdate={editor.updateElement}
                       onMoveSelection={editor.moveSelected}
                     />
@@ -197,12 +196,13 @@ export const VenueFormEditorPage = () => {
           </main>
           <aside className="w-80 shrink-0 border-l">
             <VenuePropertyPanel
-              key={editor.selectedElement?.id ?? 'none'}
+              key={[...editor.selectedIds].join(',') || 'none'}
               element={editor.selectedElement}
-              selectionCount={editor.selectedIds.size}
+              selectedElements={editor.selectedElements}
               catalog={catalog}
               blocksById={blocksById}
               onUpdate={editor.updateElement}
+              onUpdateSelected={editor.updateSelected}
               onChangeColumns={editor.changeColumns}
             />
           </aside>

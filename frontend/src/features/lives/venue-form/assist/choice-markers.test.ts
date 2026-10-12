@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { createMarker, markerBoxAt, markerSteps, type MarkerConfig, type MarkerTarget } from './choice-markers';
 import type { PageLine } from './ruled-lines';
 
-const parts: MarkerTarget = { key: 'setlist|parts', fieldId: 'parts', groupId: 'setlist', label: '使うパート', type: 'MULTI_SELECT', options: ['Vocal', 'Bass'] };
-const pa: MarkerTarget = { key: '|pa', fieldId: 'pa', groupId: null, label: 'PA乗込み', type: 'BOOLEAN', options: ['はい', 'いいえ'] };
+const parts: MarkerTarget = { key: 'setlist|parts', fieldId: 'parts', groupId: 'setlist', label: 'セトリ > 使うパート', name: '使うパート', type: 'MULTI_SELECT', options: ['Vocal', 'Bass'] };
+const pa: MarkerTarget = { key: '|pa', fieldId: 'pa', groupId: null, label: 'PA乗込み', name: 'PA乗込み', type: 'BOOLEAN', options: ['はい', 'いいえ'] };
 
 function config(target: MarkerTarget, patch: Partial<MarkerConfig> = {}): MarkerConfig {
   return { target, itemIndex: null, kind: 'check', text: '', ...patch };
