@@ -24,10 +24,11 @@ public final class FesDemoForm implements DemoForm {
               "submitButtonLabel": "エントリーする",
               "publicSubmissionEnabled": true,
               "blocks": [
-                { "id": "act-name", "type": "SHORT_TEXT", "label": "出演名", "required": true, "layout": { "width": "two-thirds" } },
-                { "id": "act-type", "type": "SINGLE_SELECT", "label": "出演形態", "layout": { "width": "third" },
+                { "id": "act-name", "type": "SHORT_TEXT", "label": "出演名", "required": true,
+                  "publicVisible": true, "adminVisible": true, "layout": { "width": "two-thirds" } },
+                { "id": "act-type", "type": "SINGLE_SELECT", "label": "出演形態", "adminVisible": true, "layout": { "width": "third" },
                   "options": ["バンド", "弾き語り", "DJ", "ダンス", "その他"] },
-                { "id": "set-length", "type": "DURATION", "label": "持ち時間", "layout": { "width": "third" } },
+                { "id": "set-length", "type": "DURATION", "label": "持ち時間", "adminVisible": true, "layout": { "width": "third" } },
                 { "id": "agreements", "type": "CHECKBOX", "label": "確認事項",
                   "options": ["機材の持ち込みは事前に申請する", "持ち時間を守る", "撤収まで責任を持つ"] },
                 { "id": "performers", "type": "REPEATABLE_GROUP", "label": "出演者", "minItems": 1,
@@ -53,9 +54,9 @@ public final class FesDemoForm implements DemoForm {
                     { "id": "program-change-note", "type": "LONG_TEXT", "label": "転換の内容" }
                   ] }
                 ] },
-                { "id": "merch", "type": "BOOLEAN", "label": "物販あり" },
+                { "id": "merch", "type": "BOOLEAN", "label": "物販あり", "adminVisible": true },
                 { "id": "merch-detail", "type": "LONG_TEXT", "label": "物販の内容" },
-                { "id": "running-order", "type": "SHORT_TEXT", "label": "出演順", "adminOnly": true }
+                { "id": "running-order", "type": "SHORT_TEXT", "label": "出演順", "adminOnly": true, "adminVisible": true }
               ]
             }
             """;

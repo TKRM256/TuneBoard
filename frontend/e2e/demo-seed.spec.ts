@@ -41,8 +41,11 @@ test('ダミーデータは既定のフォームと、形の違う 2 つのフ�
     await expect(page.getByRole('textbox', { name: '出演名' })).toBeVisible();
     await expect(page.getByText('機材の持ち込みは事前に申請する')).toBeVisible();
     await page.getByRole('button', { name: '出演者を追加' }).click();
-    await expect(page.getByRole('button', { name: '機材を追加' })).toBeVisible();
-    await expect(page.getByRole('button', { name: '演目を追加' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '機材を追加' })).toHaveCount(2);
+    // 演目は種類ごとに追加ボタンがあり、種類によって書く項目が変わる
+    for (const kind of ['曲', 'トーク', '転換']) await expect(page.getByRole('button', { name: kind, exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'トーク', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: '話す内容' })).toBeVisible();
     await expect(page.getByText('出演順')).toHaveCount(0);
   });
 

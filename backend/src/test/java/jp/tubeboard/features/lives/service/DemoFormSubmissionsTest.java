@@ -39,6 +39,11 @@ class DemoFormSubmissionsTest {
         SettingSheetConfigResponse config = read(form);
 
         assertThat(config.description()).isEmpty();
+        // 提出の一覧（管理画面・公開の提出済み一覧）に出す項目がある
+        assertThat(allBlocks(config.blocks())).anySatisfy(block -> {
+            assertThat(block.adminVisible()).isTrue();
+            assertThat(block.publicVisible()).isTrue();
+        });
         List<String> ids = allIds(config.blocks());
         if (form instanceof FesDemoForm) {
             assertThat(ids).contains("performers", "gear", "gear-power", "program", "program-song-title",
@@ -70,6 +75,15 @@ class DemoFormSubmissionsTest {
         Live live = new Live();
         live.setSettingsJson(form.settingsJson());
         return configService.readSettingSheetConfig(live);
+    }
+
+    private static List<FormBlockResponse> allBlocks(List<FormBlockResponse> blocks) {
+        List<FormBlockResponse> out = new ArrayList<>();
+        for (FormBlockResponse block : blocks == null ? List.<FormBlockResponse>of() : blocks) {
+            out.add(block);
+            out.addAll(allBlocks(block.fields()));
+        }
+        return out;
     }
 
     private static List<String> allIds(List<FormBlockResponse> blocks) {

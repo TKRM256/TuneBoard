@@ -132,8 +132,10 @@ async function handleDialog(page: Page, rand: () => number) {
   const count = await buttons.count();
   for (let attempt = 0; attempt < 5 && count > 0; attempt++) {
     const button = buttons.nth(Math.floor(rand() * count));
-    const label = ((await button.textContent()) ?? '').trim();
-    if (UNSAFE.test(label) || !(await button.isEnabled())) continue;
+    // 一覧が再描画されてボタンが入れ替わることもあるので、読めなければ次を試す
+    const label = ((await button.textContent({ timeout: 1000 }).catch(() => null)) ?? '').trim();
+    const enabled = await button.isEnabled({ timeout: 1000 }).catch(() => false);
+    if (UNSAFE.test(label) || !enabled) continue;
     // アイコンの一覧のように、開く途中や再描画で押せないボタンは諦めて閉じる
     const clicked = await button.click({ timeout: 2000 }).then(() => true, () => false);
     if (!clicked) break;

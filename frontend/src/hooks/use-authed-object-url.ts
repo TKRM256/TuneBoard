@@ -24,7 +24,13 @@ export function useAuthedObjectUrl(path: string | null): { url: string | null; f
       });
     return () => {
       controller.abort();
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        // 同じ path にすぐ戻ったとき（拡大・縮小で解像度の段階が行き来するときなど）に、
+        // 破棄した URL を使わないよう、覚えている URL も消して取り直させる
+        const revoked = objectUrl;
+        setState((current) => (current.url === revoked ? { path: null, url: null, failed: false } : current));
+      }
     };
   }, [path]);
 

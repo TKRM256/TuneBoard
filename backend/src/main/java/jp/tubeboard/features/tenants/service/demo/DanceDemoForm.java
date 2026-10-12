@@ -22,12 +22,13 @@ public final class DanceDemoForm implements DemoForm {
               "publicSubmissionEnabled": true,
               "blocks": [
                 { "id": "team", "type": "SECTION", "label": "団体情報", "fields": [
-                  { "id": "team-name", "type": "SHORT_TEXT", "label": "団体名", "required": true },
-                  { "id": "leader", "type": "SHORT_TEXT", "label": "代表者", "layout": { "width": "half" } },
+                  { "id": "team-name", "type": "SHORT_TEXT", "label": "団体名", "required": true,
+                    "publicVisible": true, "adminVisible": true },
+                  { "id": "leader", "type": "SHORT_TEXT", "label": "代表者", "adminVisible": true, "layout": { "width": "half" } },
                   { "id": "phone", "type": "SHORT_TEXT", "label": "連絡先", "layout": { "width": "half" } },
-                  { "id": "genre", "type": "SINGLE_SELECT", "label": "ジャンル",
+                  { "id": "genre", "type": "SINGLE_SELECT", "label": "ジャンル", "adminVisible": true,
                     "options": ["ヒップホップ", "ジャズ", "K-POP", "バレエ", "その他"] },
-                  { "id": "slot", "type": "SINGLE_SELECT", "label": "出演枠", "options": ["昼の部", "夜の部"] },
+                  { "id": "slot", "type": "SINGLE_SELECT", "label": "出演枠", "adminVisible": true, "options": ["昼の部", "夜の部"] },
                   { "id": "lights", "type": "MULTI_SELECT", "label": "照明の希望",
                     "options": ["スポット", "ミラーボール", "ストロボ", "暗転スタート"] },
                   { "id": "props", "type": "BOOLEAN", "label": "小道具あり" }
