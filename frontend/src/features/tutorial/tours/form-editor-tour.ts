@@ -4,7 +4,7 @@ import type { TourStep } from '../tour';
 export const FORM_EDITOR_TOUR: TourStep[] = [
   {
     title: 'フォームの作り方',
-    body: '出演者が答えるフォームを、ブロックを並べて作ります。バンド以外の催しにも合わせて、項目は自由に変えられます。',
+    body: '出演者が回答するフォームを作成できます。',
   },
   {
     target: 'form-settings',
@@ -15,19 +15,19 @@ export const FORM_EDITOR_TOUR: TourStep[] = [
   {
     target: 'form-copy',
     title: '前のライブから取り込む',
-    body: '前に作ったライブのフォームを、そのまま取り込めます。毎回いちから作る必要はありません。',
+    body: '前に作ったライブのフォームを、そのまま取り込めます。',
     side: 'right',
   },
   {
     target: 'form-block',
-    title: 'ブロック',
-    body: '1 つのブロックが 1 つの質問です。上から順に、公開ページのフォームに並びます。',
+    title: '並び順',
+    body: '上から順に、公開ページのフォームに並びます。',
     side: 'bottom',
   },
   {
     target: 'form-block-actions',
     title: '並べ替えと削除',
-    body: '矢印で順番を入れ替え、ゴミ箱で消します。',
+    body: '順番の並び変えおよび削除ができます。',
     side: 'left',
   },
   {
