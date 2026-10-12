@@ -170,7 +170,9 @@ export const StagePlotSettingsPage = () => {
             <Slider min={2} max={30} step={1} value={[Math.round(draft.iconScale * 100)]} disabled={!isAdmin}
               onValueChange={([value]) => setDraft({ ...draft, iconScale: value / 100 })} />
           </div>
-          <StagePlotCanvas palette={draft.palette} iconScale={draft.iconScale} aspectRatio={aspectRatio} baseUrl={baseUrl} items={sampleItems} />
+          <div className="mx-auto w-full max-w-2xl">
+            <StagePlotCanvas palette={draft.palette} iconScale={draft.iconScale} aspectRatio={aspectRatio} baseUrl={baseUrl} items={sampleItems} />
+          </div>
         </CardContent>
       </Card>
 

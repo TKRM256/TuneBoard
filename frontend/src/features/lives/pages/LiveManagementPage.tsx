@@ -24,7 +24,6 @@ import { LiveInfoCard } from '../components/LiveInfoCard';
 import { LiveSummaryCard } from '../components/LiveSummaryCard';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -116,7 +115,7 @@ export const LiveManagementPage = () => {
 
       {/* リンク */}
       <Card>
-        <CardContent className="space-y-2 pt-4">
+        <CardContent className="space-y-2">
           <LinkRow label="公開フォーム" url={publicUrl} onCopy={copyPublicUrl} />
           {config?.publicSubmissionEnabled === true ? (
             <LinkRow label="共有提出一覧" url={sharedListUrl} onCopy={copySharedListLink} />
@@ -127,17 +126,14 @@ export const LiveManagementPage = () => {
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-3">
-        {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
-        {isAdmin && <QuickActionLink icon={<LayoutGrid className="size-5" />} label="ステージ設定" to={`/tenants/${tenantId}/lives/${liveId}/stage-plot`} />}
-        {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
-      </div>
-      <div className={cn("grid gap-3",(isMobile ? "grid-cols-1" : "grid-cols-2"))}>
+      {/* 並ぶ数が権限や画面幅で変わっても、同じ幅で詰めて並べる */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3">
         <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
-        {isAdmin && !isMobile &&<QuickActionLink icon={<FileText className="size-5" />} label="会場書式" to={`/tenants/${tenantId}/lives/${liveId}/venue-form`} />}
+        {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
+        {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
+        {isAdmin && <QuickActionLink icon={<LayoutGrid className="size-5" />} label="ステージ設定" to={`/tenants/${tenantId}/lives/${liveId}/stage-plot`} />}
+        {isAdmin && !isMobile && <QuickActionLink icon={<FileText className="size-5" />} label="会場書式" to={`/tenants/${tenantId}/lives/${liveId}/venue-form`} />}
       </div>
-
-
 
       {/* Live Info */}
       <LiveInfoCard live={live} isAdmin={isAdmin} onUpdated={setLive} />

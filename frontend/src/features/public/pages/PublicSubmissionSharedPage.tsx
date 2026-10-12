@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { BackButton } from '@/components/original/PageHeader';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -113,15 +114,20 @@ export const PublicSubmissionSharedPage = () => {
 
   return (
     <div className="min-h-screen w-fit min-w-full bg-background px-4 py-6">
-      <div className="w-fit min-w-full space-y-4">
+      {/* 狭い表はほかのページと同じ幅で中央に置き、広い表は表の幅まで広げる */}
+      <div className="mx-auto w-fit min-w-[min(100%,80rem)] space-y-4">
         {/* テーブル以外は画面幅までに収めて、横に間延びしないようにする */}
         <Card className="max-w-[calc(100vw-2rem)]">
           <CardHeader className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="text-xl font-semibold">{live.name} - 提出共有一覧</h1>
+              <div className="flex min-w-0 items-start gap-3">
+                <BackButton to={`/public/lives/${publicToken}`} />
+                <div className="min-w-0 space-y-1">
+                  <h1 className="text-lg font-semibold sm:text-2xl">提出共有一覧</h1>
+                  <p className="text-xs text-muted-foreground sm:text-sm">{live.name}</p>
+                </div>
               </div>
-              <ThemeToggle className="w-full sm:w-auto" />
+              <ThemeToggle />
             </div>
             <div className="relative w-full lg:max-w-sm">
                 <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
@@ -129,15 +135,13 @@ export const PublicSubmissionSharedPage = () => {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   className="pl-9"
+                  placeholder="検索"
                   disabled={!hasVisibleColumns}
                 />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
-              <span>提出: {filteredSubmissions.length}件</span>
-              <Link to={`/public/lives/${publicToken}`} className="underline underline-offset-4">公開フォームに戻る</Link>
-            </div>
+            <p className="text-sm text-muted-foreground">提出: {filteredSubmissions.length}件</p>
           </CardContent>
         </Card>
 

@@ -231,13 +231,12 @@ export const LiveFormEditorPage = () => {
           />
         </aside>
 
+        {/* ブロックのカードが入れ子になるので、スマホでは外側の左右の余白を詰める */}
         <Card>
-          <CardHeader>
-            <div>
-              <h2 className="text-lg font-semibold">ブロック構成</h2>
-            </div>
+          <CardHeader className="px-4 sm:px-6">
+            <h2 className="text-lg font-semibold">ブロック構成</h2>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             <BlockEditorTree
               blocks={config.blocks}
               rootBlocks={config.blocks}

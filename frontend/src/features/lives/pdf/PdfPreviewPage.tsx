@@ -228,7 +228,7 @@ export const PdfPreviewPage = () => {
             <p className="text-xs text-muted-foreground">{live.name} / {headerSubtitle}</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           <PanelVisibilityToggles visible={panelVisible} onToggle={togglePanel} />
           <PageSettings
             size={editor.doc.page.size}
@@ -298,8 +298,15 @@ export const PdfPreviewPage = () => {
               onDelete={() => editor.remove()}
             />
             <div className="relative flex-1 overflow-hidden">
-              <div className="h-full overflow-auto bg-muted/20 p-6">
-                <div className="flex justify-center">
+              {/* 左右の欄は用紙の上に重なるので、開いている欄の幅だけ用紙側を空ける。広い用紙は中央寄せで左端が切れないよう w-max にする */}
+              <div
+                className={cn(
+                  'h-full overflow-auto bg-muted/20 p-6 transition-[padding] duration-200',
+                  panelVisible.palette && 'pl-[19.5rem]',
+                  panelVisible.properties && 'pr-[21.5rem]',
+                )}
+              >
+                <div className="flex w-max min-w-full justify-center">
                   <CanvasFrame
                     doc={editor.doc}
                     catalog={catalog}

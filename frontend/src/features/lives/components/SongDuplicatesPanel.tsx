@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { SongDuplicateGroup, SongDuplicateResponse } from '../types/live-types';
 
 interface SongDuplicatesPanelProps {
@@ -88,6 +87,8 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isD
       </CardHeader>
       {data.groups.length > 0 && (
         <CardContent className="space-y-4">
+          {/* PC では 2 列に並べ、重複が多くても提出一覧が遠くならないようにする */}
+          <div className="grid gap-x-6 gap-y-4 lg:grid-cols-2">
           {activeGroups.map((group, groupIndex) => (
             <DuplicateGroupCard
               key={groupIndex}
@@ -97,6 +98,7 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isD
               isDismissing={isDismissing}
             />
           ))}
+          </div>
           {dismissedGroups.length > 0 && (
             <div className="space-y-2 pt-2">
               <p className="text-xs font-medium text-muted-foreground">除外済み ({dismissedGroups.length}件)</p>
@@ -188,28 +190,17 @@ function DuplicateGroupCard({
           </Button>
         )}
       </div>
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="whitespace-nowrap">提出者</TableHead>
-              <TableHead className="min-w-[120px]">曲名</TableHead>
-              <TableHead className="min-w-[100px]">アーティスト</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {group.entries.map((entry, entryIndex) => (
-              <TableRow key={entryIndex} className="bg-amber-50/30 dark:bg-amber-950/10">
-                <TableCell>
-                  <Badge variant="secondary" className="font-normal">{entry.recordLabel}</Badge>
-                </TableCell>
-                <TableCell className="text-sm">{entry.originalTitle}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{entry.originalArtist || '—'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <ul className="divide-y rounded-lg border">
+        {group.entries.map((entry, entryIndex) => (
+          <li key={entryIndex} className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-amber-50/30 px-3 py-2 dark:bg-amber-950/10">
+            <Badge variant="secondary" className="font-normal">{entry.recordLabel}</Badge>
+            <span className="min-w-0 text-sm">
+              {entry.originalTitle}
+              <span className="text-muted-foreground"> — {entry.originalArtist || '—'}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

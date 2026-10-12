@@ -15,7 +15,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 
 export interface Crumb {
   label: string;
@@ -57,22 +57,20 @@ export function PageHeader({ crumbs, backTo, title, badge, description, actions 
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              {backTo ? <BackButton to={backTo} /> : null}
-              <div className="min-w-0 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="wrap-break-word text-lg font-semibold sm:text-2xl">{title}</h1>
-                  {badge}
-                </div>
-                {description ? <p className="text-xs text-muted-foreground sm:text-sm">{description}</p> : null}
+      <Card className="px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            {backTo ? <BackButton to={backTo} /> : null}
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="wrap-break-word text-lg font-semibold sm:text-2xl">{title}</h1>
+                {badge}
               </div>
+              {description ? <p className="text-xs text-muted-foreground sm:text-sm">{description}</p> : null}
             </div>
-            {actions ? <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
           </div>
-        </CardHeader>
+          {actions ? <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
+        </div>
       </Card>
     </div>
   );

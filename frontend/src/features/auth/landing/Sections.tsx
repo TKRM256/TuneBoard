@@ -62,7 +62,8 @@ function Feature({ icon, title, body, mock, reverse }: FeatureProps) {
     <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
       <Reveal className={`space-y-4 ${reverse ? 'lg:order-2' : ''}`}>
         <span className="inline-flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span>
-        <h3 className="text-balance text-2xl font-bold tracking-tight">{title}</h3>
+        {/* 日本語は文節で改行して「あわせ／て」のような割れ方を防ぐ */}
+        <h3 className="text-balance text-2xl font-bold tracking-tight [word-break:auto-phrase]">{title}</h3>
         <p className="leading-8 text-muted-foreground">{body}</p>
       </Reveal>
       <Reveal delay={0.12} className={`flex justify-center rounded-3xl border bg-muted/40 p-6 ${reverse ? 'lg:order-1' : ''}`}>{mock}</Reveal>

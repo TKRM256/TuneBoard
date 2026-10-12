@@ -53,7 +53,7 @@ export function VenueFormMock() {
   );
 }
 
-/** 曲かぶりの検出。提出一覧の画面にある「曲かぶり検出」と同じ構成（見出し・重複・確信度・提出者の表）にする。 */
+/** 曲かぶりの検出。提出一覧の画面にある「曲かぶり検出」と同じ構成（見出し・重複・確信度・提出者ごとの行）にする。 */
 export function DuplicateMock() {
   const rows = [
     ['Echo Notes', '小さな恋のうた', 'MONGOL800'],
@@ -75,18 +75,15 @@ export function DuplicateMock() {
             高確信
           </span>
         </div>
-        <div className="overflow-hidden rounded-lg border">
-          <div className="grid grid-cols-[1.1fr_1.4fr_1fr] border-b bg-muted/40 px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
-            <span>提出者</span>
-            <span>曲名</span>
-            <span>アーティスト</span>
-          </div>
+        <div className="divide-y overflow-hidden rounded-lg border">
           {rows.map(([band, title, artist], index) => (
             <Item key={band} index={index}>
-              <div className="grid grid-cols-[1.1fr_1.4fr_1fr] items-center border-b bg-amber-50/30 px-2 py-1.5 last:border-b-0 dark:bg-amber-950/10">
-                <span className="w-fit rounded-md bg-secondary px-1.5 py-0.5 text-[10px]">{band}</span>
-                <span>{title}</span>
-                <span className="text-muted-foreground">{artist}</span>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-amber-50/30 px-2 py-1.5 dark:bg-amber-950/10">
+                <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px]">{band}</span>
+                <span>
+                  {title}
+                  <span className="text-muted-foreground"> — {artist}</span>
+                </span>
               </div>
             </Item>
           ))}

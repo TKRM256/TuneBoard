@@ -52,7 +52,7 @@ export function VenueEditorHeader({
           <p className="text-xs text-muted-foreground">{liveName}</p>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
         <TourButton steps={VENUE_FORM_TOUR} />
         <Select value={previewSubmissionId ?? ''} onValueChange={onChangePreviewSubmission} disabled={submissions.length === 0}>
           <SelectTrigger className="h-8 w-48 text-xs" aria-label="見本に使う提出" data-tour="venue-sample">

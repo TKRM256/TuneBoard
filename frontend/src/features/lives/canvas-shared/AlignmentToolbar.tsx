@@ -129,8 +129,12 @@ export function AlignmentToolbar({
         </Group>
 
         <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-          <span>{selectionCount > 0 ? `${selectionCount}件選択中` : '選択なし'}</span>
-          <Divider />
+          {selectionCount > 0 ? (
+            <>
+              <span>{selectionCount}件選択中</span>
+              <Divider />
+            </>
+          ) : null}
           <Button variant="ghost" size="icon" onClick={onZoomOut} className="size-7">
             <ZoomOut className="size-4" />
           </Button>

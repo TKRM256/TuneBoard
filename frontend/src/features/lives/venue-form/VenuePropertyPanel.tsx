@@ -26,7 +26,7 @@ export function VenuePropertyPanel({ element, selectedElements, catalog, blocksB
   if (selectedElements.length > 1) {
     return <VenueMultiProperties elements={selectedElements} catalog={catalog} blocksById={blocksById} onUpdate={onUpdateSelected} />;
   }
-  if (!element) return null;
+  if (!element) return <p className="p-3 text-xs text-muted-foreground">要素を選ぶと、ここで位置や文字の大きさを変えられます</p>;
 
   const update = (patch: Partial<VenueElement>) => onUpdate(element.id, patch);
 

@@ -189,7 +189,11 @@ export const VenueFormEditorPage = () => {
                       onMoveSelection={editor.moveSelected}
                     />
                   </div>
-                ) : null}
+                ) : (
+                  <p className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
+                    左の「書式取込み」か「白紙を追加」から始めます
+                  </p>
+                )}
               </div>
             </div>
           </main>

@@ -32,9 +32,11 @@ export class VenueEditor {
     return this.page.locator('.react-draggable');
   }
 
-  /** ツールバーの「◯件選択中」「選択なし」 */
+  /** ツールバーの「◯件選択中」。何も選んでいないときは件数が出ないので「選択なし」を返す */
   async selectionText() {
-    return (await this.root().getByText(/件選択中|選択なし/).first().textContent())?.trim();
+    const label = this.root().getByText(/件選択中/).first();
+    if ((await label.count()) === 0) return '選択なし';
+    return (await label.textContent())?.trim();
   }
 
   /** 右側の設定欄の数値の欄（X・Y・幅・高さ・文字の大きさ…の順） */
