@@ -10,7 +10,7 @@ interface Props {
 
 export function TourButton({ steps, className }: Props) {
   return (
-    <Button type="button" variant="ghost" size="sm" className={`gap-1 ${className ?? ''}`} onClick={() => startTour(steps)}>
+    <Button type="button" variant="outline" size="sm" className={`gap-1 ${className ?? ''}`} onClick={() => startTour(steps)}>
       使い方
     </Button>
   );

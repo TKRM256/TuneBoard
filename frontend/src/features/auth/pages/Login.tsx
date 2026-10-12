@@ -3,7 +3,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 
 import { useAuthContext } from '@/features/auth/authContext';
 import { GoogleLoginButton } from '@/features/auth/landing/GoogleLoginButton';
-import { Closing, Features, Flow, Hero } from '@/features/auth/landing/Sections';
+import { Features, Flow, Hero } from '@/features/auth/landing/Sections';
 
 export const Login = () => {
   const { authMe, loginWithGoogle, isAuthLoading } = useAuthContext();
@@ -33,9 +33,7 @@ export const Login = () => {
         <Hero isLoading={isAuthLoading} onLogin={login} />
         <Features />
         <Flow />
-        <Closing isLoading={isAuthLoading} onLogin={login} />
       </main>
-      <footer className="border-t py-8 text-center text-xs text-muted-foreground">TuneBoard</footer>
     </div>
   );
 };

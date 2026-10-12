@@ -56,22 +56,6 @@ export const FormEditorSidebar = ({
       <CardContent className="space-y-4">
         <Card data-tour="form-settings">
           <CardContent className="space-y-2">
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={onResetToDefault}>
-                <RotateCcw className="size-4" />
-                初期値に戻す
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setConfig((current) => current
-                  ? { ...createEmptySettingSheetConfig(), title: current.title, description: current.description, submitButtonLabel: current.submitButtonLabel }
-                  : createEmptySettingSheetConfig())}
-              >
-                <RotateCcw className="size-4" />
-                空から作る
-              </Button>
-            </div>
             <Button type="button" variant="outline" className="w-full justify-start" onClick={() => setIsCopyOpen(true)} data-tour="form-copy">
               <CopyPlus className="size-4" />
               他のライブから取り込む
@@ -88,6 +72,23 @@ export const FormEditorSidebar = ({
               <p className="text-sm font-medium">フォーム説明</p>
               <Textarea value={config.description} onChange={(event) => setConfig((current) => current ? { ...current, description: event.target.value } : current)} rows={4} className="mt-2" />
             </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" onClick={onResetToDefault}>
+                <RotateCcw className="size-4" />
+                初期値に戻す
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setConfig((current) => current
+                  ? { ...createEmptySettingSheetConfig(), title: current.title, description: current.description, submitButtonLabel: current.submitButtonLabel }
+                  : createEmptySettingSheetConfig())}
+              >
+                <RotateCcw className="size-4" />
+                空から作る
+              </Button>
+            </div>
+
           </CardContent>
         </Card>
 

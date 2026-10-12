@@ -1,6 +1,6 @@
 /** ランディングページの各セクション。 */
 import type { ReactNode } from 'react';
-import { ClipboardList, FileOutput, Link2, Music2, ScanLine, Share2, Users } from 'lucide-react';
+import { ClipboardList, FileOutput, Music2, ScanLine, Share2, Users } from 'lucide-react';
 
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { DuplicateMock, FormBuilderMock, VenueFormMock } from './Mocks';
@@ -115,19 +115,6 @@ export function Flow() {
             </li>
           ))}
         </ol>
-      </div>
-    </section>
-  );
-}
-
-export function Closing({ isLoading, onLogin }: LoginProps) {
-  return (
-    <section className="mx-auto max-w-3xl space-y-8 px-6 py-24 text-center">
-      <Link2 className="mx-auto size-10 text-primary" />
-      <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">次のライブから、はじめてみませんか</h2>
-      <p className="text-muted-foreground">Google アカウントがあれば、すぐに始められます。</p>
-      <div className="flex justify-center">
-        <GoogleLoginButton isLoading={isLoading} onLogin={onLogin} className="shadow-lg shadow-primary/10" />
       </div>
     </section>
   );
