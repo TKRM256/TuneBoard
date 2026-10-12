@@ -105,7 +105,7 @@ export const VenueFormEditorPage = () => {
   if (isMobile) {
     return (
       <div className="space-y-3 p-6 text-sm">
-        <p>PCで開いてください</p>
+        <p>PCのみ対応しております</p>
         <Button asChild variant="outline" size="sm"><Link to={backTo}>戻る</Link></Button>
       </div>
     );

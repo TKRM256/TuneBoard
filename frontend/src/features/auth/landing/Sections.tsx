@@ -23,8 +23,8 @@ export function Hero({ isLoading, onLogin }: LoginProps) {
         <div className="space-y-8">
           <Reveal immediate>
           <h1 className="text-balance text-2xl font-extrabold leading-tight tracking-tight min-[400px]:text-3xl sm:text-5xl lg:text-[2.9rem]">
-            <span className="inline-block">紙のセッティングシートを、</span>
-            <span className="inline-block bg-linear-to-r from-primary to-emerald-400 bg-clip-text text-transparent">もう配らない。</span>
+            <span className="inline-block">セッティングシートを</span>
+            <span className="inline-block bg-linear-to-r from-primary to-emerald-400 bg-clip-text text-transparent">もっと気楽に</span>
           </h1>
           </Reveal>
           <Reveal immediate delay={0.15}>

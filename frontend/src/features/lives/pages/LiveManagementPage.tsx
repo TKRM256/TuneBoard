@@ -30,6 +30,8 @@ import {
 import { LiveInfoCard } from '../components/LiveInfoCard';
 import { LiveSummaryCard } from '../components/LiveSummaryCard';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -41,7 +43,8 @@ export const LiveManagementPage = () => {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
+  const isMobile = useIsMobile();
+  
   useEffect(() => {
     if (!liveId || !tenantId) return;
 
@@ -162,11 +165,15 @@ export const LiveManagementPage = () => {
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-3">
         {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
-        <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
-        {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
-        {isAdmin && <QuickActionLink icon={<FileText className="size-5" />} label="会場書式" to={`/tenants/${tenantId}/lives/${liveId}/venue-form`} />}
         {isAdmin && <QuickActionLink icon={<LayoutGrid className="size-5" />} label="ステージ設定" to={`/tenants/${tenantId}/lives/${liveId}/stage-plot`} />}
+        {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
       </div>
+      <div className={cn("grid gap-3",(isMobile ? "grid-cols-1" : "grid-cols-2"))}>
+        <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
+        {isAdmin && !isMobile &&<QuickActionLink icon={<FileText className="size-5" />} label="会場書式" to={`/tenants/${tenantId}/lives/${liveId}/venue-form`} />}
+      </div>
+
+
 
       {/* Live Info */}
       <LiveInfoCard live={live} isAdmin={isAdmin} onUpdated={setLive} />

@@ -157,7 +157,7 @@ export const StagePlotSettingsPage = () => {
         <CardContent className="space-y-4">
           {isAdmin ? <PaletteEditor palette={draft.palette} onChange={(palette) => setDraft({ ...draft, palette })} /> : null}
           <div className="space-y-2">
-            <Label className="text-xs">アイコンの大きさ（ステージの幅に対して {Math.round(draft.iconScale * 100)}%）</Label>
+            <Label className="text-xs">アイコンの大きさ</Label>
             <Slider min={2} max={30} step={1} value={[Math.round(draft.iconScale * 100)]} disabled={!isAdmin}
               onValueChange={([value]) => setDraft({ ...draft, iconScale: value / 100 })} />
           </div>
