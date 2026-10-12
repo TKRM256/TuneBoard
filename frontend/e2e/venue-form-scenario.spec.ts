@@ -11,7 +11,7 @@ import {
   DANCE_FORM_PDF,
   loginAsTestUser,
   submitRichEntry,
-  useDanceForm,
+  applyDanceForm,
   type Live,
 } from './support/api';
 import { VenueEditor } from './support/venue-editor';
@@ -47,7 +47,7 @@ test('バンド以外のフォームで、提出から会場書式の PDF まで
   });
 
   await test.step('提出フォームをダンス発表会用に作り替えて公開する', async () => {
-    await useDanceForm(page, live.id);
+    await applyDanceForm(page, live.id);
     await apiPost(page, '/lives/update', { id: live.id, name: LIVE_NAME, status: 'PUBLISHED' });
   });
 

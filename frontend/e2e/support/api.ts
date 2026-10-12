@@ -55,7 +55,7 @@ function block(id: string, type: string, label: string, extra: Block = {}): Bloc
 }
 
 /** バンド向けの既定とはまったく違う、ダンス発表会の出演申込フォーム。 */
-export async function useDanceForm(page: Page, liveId: string) {
+export async function applyDanceForm(page: Page, liveId: string) {
   const blocks = [
     block('team', 'SECTION', '団体情報', {
       fields: [
@@ -136,7 +136,7 @@ export async function prepareVenueForm(page: Page, key: string) {
   await loginAsTestUser(page, key);
   const tenant = await createTenant(page, `${key} 用サークル`);
   const live = await createLive(page, tenant.id, `${key} のライブ`);
-  await useDanceForm(page, live.id);
+  await applyDanceForm(page, live.id);
   await submitRichEntry(page, live.publicToken);
   const asset = await uploadVenueAsset(page, live.id, DANCE_FORM_PDF);
   await apiPost(page, `/lives/${live.id}/venue-form`, {
