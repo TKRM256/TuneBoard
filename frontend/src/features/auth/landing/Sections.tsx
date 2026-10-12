@@ -109,7 +109,7 @@ export function Features() {
 
 const steps = [
   { icon: ClipboardList, title: 'フォームを作る', body: 'ライブを作って、項目を並べます。前のライブから取り込むこともできます。' },
-  { icon: Share2, title: 'リンクを配るだけ', body: '公開ページのリンクを出演者に送ります。出演者はログインせずに、そのまま書き込めます。', highlight: true },
+  { icon: Share2, title: 'リンクを配る', body: '公開ページのリンクを出演者に送ります。ログインは要りません。' },
   { icon: Users, title: '提出を確かめる', body: '届いた内容を一覧で見て、曲かぶりや足りない項目を確かめます。' },
   { icon: FileOutput, title: 'PDF を出力する', body: '提出ごとの PDF を、会場へ渡す書類として出力します。出力する前に、プレビューで仕上がりを確かめられます。' },
 ] as const;
@@ -120,21 +120,14 @@ export function Flow() {
       <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
         <Reveal><h2 className="text-center text-3xl font-bold tracking-tight">使い方は 4 ステップ</h2></Reveal>
         <ol className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map(({ icon: Icon, title, body, ...rest }, index) => (
-            <Reveal
-              key={title}
-              delay={index * 0.12}
-              className={`relative rounded-2xl border bg-card p-6 shadow-sm transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md ${'highlight' in rest ? 'border-primary ring-2 ring-primary/30' : ''}`}
-            >
+          {steps.map(({ icon: Icon, title, body }, index) => (
+            <Reveal key={title} delay={index * 0.12} className="relative rounded-2xl border bg-card p-6 shadow-sm transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md">
               <li className="list-none">
               <span className="absolute -top-3 left-6 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
                 {index + 1}
               </span>
               <Icon className="mb-4 size-7 text-primary" />
               <h3 className="mb-2 font-semibold">{title}</h3>
-              {'highlight' in rest ? (
-                <p className="mb-2 inline-block rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">出演者はログイン不要</p>
-              ) : null}
               <p className="text-sm leading-7 text-muted-foreground">{body}</p>
               </li>
             </Reveal>
