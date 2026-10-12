@@ -4,7 +4,6 @@
  *  Ctrl+D: 複製 / Ctrl+A: ページの要素を全部選ぶ / Ctrl+Z, Ctrl+Y: 元に戻す・やり直す
  *  矢印: 0.5mm 移動（Shift で 5mm） / Delete: 削除 / Esc: 選択を外す */
 import { useEffect } from 'react';
-import { toast } from 'sonner';
 
 import { boxInNextRow } from './assist/cell-fit';
 import type { PageLine } from './assist/ruled-lines';
@@ -59,9 +58,8 @@ export function useVenueKeyboardShortcuts(editor: VenueFormEditor, lines: PageLi
       if (!hasSelection) return;
       if (mod && (key === 'c' || key === 'x')) {
         event.preventDefault();
-        const count = editor.copySelected();
+        editor.copySelected();
         if (key === 'x') editor.removeSelected();
-        toast.success(`${count}個を${key === 'x' ? '切り取りました' : 'コピーしました'}`, { position: 'bottom-center', duration: 1200 });
         return;
       }
       if (mod && key === 'd') {
