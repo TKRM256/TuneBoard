@@ -24,10 +24,10 @@ export function VenueFormMock() {
           ))}
         </div>
         <div className={row}>
-          <span className="w-16 bg-slate-200 py-1 pl-1 text-slate-500">音出し</span>
-          <span className="ml-2 text-slate-500">リハのみ</span>
+          <span className="w-16 bg-slate-200 py-1 pl-1 text-slate-500">スモーク</span>
+          <span className="ml-2 text-slate-500">あり</span>
           <span className="mx-1 text-slate-400">・</span>
-          <span className="rounded-full border border-red-500 px-1.5 text-slate-900">本番も</span>
+          <span className="rounded-full border border-red-500 px-1.5 text-slate-900">なし</span>
         </div>
       </div>
       <div className="mt-3 grid grid-cols-[1fr_1.4fr] gap-2 text-[10px]">
@@ -59,7 +59,7 @@ export function DuplicateMock() {
       {item('Echo Notes', '小さな恋のうた', true)}
       {item('Neon Letters', 'ちいさなこいのうた', true)}
       {item('Blue Harbor', 'リライト', false)}
-      <p className="pt-1 text-center text-xs font-medium text-amber-600 dark:text-amber-400">表記がちがっても同じ曲として見つけます</p>
+      <p className="pt-1 text-center text-xs font-medium text-amber-600 dark:text-amber-400">表記が違っても同じ曲として見つけます</p>
     </div>
   );
 }
