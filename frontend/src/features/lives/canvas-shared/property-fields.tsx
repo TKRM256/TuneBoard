@@ -59,37 +59,40 @@ export function NumberField({
   );
 }
 
-export function ColorInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function ColorInput({ value, onChange, label = '色' }: { value: string; onChange: (v: string) => void; label?: string }) {
   return (
     <div className="flex items-center gap-2">
       <input
+        aria-label={label}
         type="color"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="h-9 w-11 cursor-pointer rounded border md:h-7 md:w-9"
       />
-      <Input value={value} onChange={(e) => onChange(e.target.value)} className="h-9 font-mono text-base md:h-7 md:text-xs" />
+      <Input aria-label={`${label}のコード`} value={value} onChange={(e) => onChange(e.target.value)} className="h-9 font-mono text-base md:h-7 md:text-xs" />
     </div>
   );
 }
 
-export function ColorInputWithClear({ value, onChange }: { value?: string; onChange: (v?: string) => void }) {
+export function ColorInputWithClear({ value, onChange, label = '色' }: { value?: string; onChange: (v?: string) => void; label?: string }) {
   return (
     <div className="flex items-center gap-2">
       <input
+        aria-label={label}
         type="color"
         value={value ?? '#ffffff'}
         onChange={(e) => onChange(e.target.value)}
         className="h-9 w-11 cursor-pointer rounded border md:h-7 md:w-9"
       />
       <Input
+        aria-label={`${label}のコード`}
         value={value ?? ''}
         placeholder="なし"
         onChange={(e) => onChange(e.target.value || undefined)}
         className="h-9 font-mono text-base md:h-7 md:text-xs"
       />
       {value && (
-        <Button variant="ghost" size="icon" className="size-7" onClick={() => onChange(undefined)}>
+        <Button variant="ghost" size="icon" className="size-7" onClick={() => onChange(undefined)} aria-label={`${label}をなしにする`}>
           <Trash2 className="size-3.5" />
         </Button>
       )}
@@ -153,7 +156,7 @@ export function TypographyGroup({
         <ToggleGroupItem value="bottom" className="text-[10px]">下寄せ</ToggleGroupItem>
       </ToggleGroup>
       <FieldGroup label="文字色">
-        <ColorInput value={color ?? '#111827'} onChange={(c) => onUpdate({ color: c })} />
+        <ColorInput value={color ?? '#111827'} onChange={(c) => onUpdate({ color: c })} label="文字色" />
       </FieldGroup>
     </div>
   );
@@ -174,10 +177,10 @@ export function BackgroundBorderGroup({
     <div className="space-y-2">
       <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">背景・枠</Label>
       <FieldGroup label="背景色">
-        <ColorInputWithClear value={backgroundColor} onChange={(c) => onUpdate({ backgroundColor: c })} />
+        <ColorInputWithClear value={backgroundColor} onChange={(c) => onUpdate({ backgroundColor: c })} label="背景色" />
       </FieldGroup>
       <FieldGroup label="枠線色">
-        <ColorInputWithClear value={borderColor} onChange={(c) => onUpdate({ borderColor: c })} />
+        <ColorInputWithClear value={borderColor} onChange={(c) => onUpdate({ borderColor: c })} label="枠線色" />
       </FieldGroup>
       <NumberField
         label="枠線の太さ (pt)"

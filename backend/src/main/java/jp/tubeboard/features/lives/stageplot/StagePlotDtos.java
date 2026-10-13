@@ -13,11 +13,13 @@ public final class StagePlotDtos {
     }
 
     /** 管理画面向け。下絵ファイルの情報も返す。 */
-    public record StagePlotResponse(StagePlotSettings settings, LiveAssetResponse base) {
+    /** @param revision 保存のときに送り返してもらう版の印（下絵の差し替えでは変わらない） */
+    public record StagePlotResponse(StagePlotSettings settings, LiveAssetResponse base, String revision) {
     }
 
     /** 保存。下絵は専用の API で差し替えるので、ここでは受け取らない。 */
-    public record StagePlotUpdateRequest(Double aspectRatio, Double iconScale, List<PaletteItem> palette) {
+    public record StagePlotUpdateRequest(Double aspectRatio, Double iconScale, List<PaletteItem> palette,
+            String baseRevision) {
     }
 
     /** 会場書式のページの一部を下絵にする。範囲はページ全体に対する比率（0〜1）。 */

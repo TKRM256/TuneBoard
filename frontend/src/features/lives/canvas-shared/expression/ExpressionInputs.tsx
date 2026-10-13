@@ -62,6 +62,7 @@ export function ExpressionInput({ catalog, value, onChange, placeholder, title, 
           onChange={onChange}
           placeholder={placeholder}
           multiline={false}
+          ariaLabel={title}
           className={`min-w-0 flex-1 rounded-md border bg-background font-mono text-xs ${className ?? ''}`}
           onReady={onReady}
         />

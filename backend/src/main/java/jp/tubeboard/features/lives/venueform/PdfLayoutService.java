@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jp.tubeboard.common.exception.BadRequestException;
+import jp.tubeboard.common.exception.EditConflictException;
+import jp.tubeboard.common.model.Revisions;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.asset.LiveAsset;
 import jp.tubeboard.features.lives.asset.LiveAssetResponse;
@@ -76,9 +78,12 @@ public class PdfLayoutService {
     }
 
     @Transactional
-    public LayoutResponse save(UUID liveId, UUID layoutId, String name, VenueFormDocument document) {
+    public LayoutResponse save(UUID liveId, UUID layoutId, String name, VenueFormDocument document, String baseRevision) {
         Live live = helper.findAdminLive(liveId);
         LivePdfLayout layout = findLayout(live, layoutId);
+        if (Revisions.conflicts(baseRevision, revisionOf(layout))) {
+            throw new EditConflictException("他の人がこの書式を更新しました。再読み込みしてから、もう一度保存してください。");
+        }
         validator.validate(document, assets.pageCounts(live));
         layout.setName(name.trim());
         documents.write(layout, document);
@@ -191,6 +196,11 @@ public class PdfLayoutService {
     private LayoutResponse toResponse(Live live, LivePdfLayout layout) {
         VenueFormDocument document = documents.read(layout);
         return new LayoutResponse(layout.getId(), layout.getName(),
-                document == null ? new VenueFormDocument(List.of(), List.of()) : document, assets.responses(live));
+                document == null ? new VenueFormDocument(List.of(), List.of()) : document, assets.responses(live),
+                revisionOf(layout));
+    }
+
+    private static String revisionOf(LivePdfLayout layout) {
+        return Revisions.of(layout.getName(), layout.getLayoutJson());
     }
 }

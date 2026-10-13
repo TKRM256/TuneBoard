@@ -24,6 +24,7 @@ import jp.tubeboard.features.lives.dto.response.LiveCopySourceResponse;
 import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetConfigWithRevision;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.response.SongDuplicateResponse;
 import jp.tubeboard.features.lives.service.crud.ILivesService;
@@ -95,12 +96,12 @@ public class LivesController {
     }
 
     @GetMapping("/{id}/setting-sheet/config")
-    public ResponseEntity<SettingSheetConfigResponse> getSettingSheetConfig(@PathVariable(name = "id") UUID id) {
+    public ResponseEntity<SettingSheetConfigWithRevision> getSettingSheetConfig(@PathVariable(name = "id") UUID id) {
         return ResponseEntity.ok(livesService.getSettingSheetConfig(id));
     }
 
     @PostMapping("/{id}/setting-sheet/config")
-    public ResponseEntity<SettingSheetConfigResponse> updateSettingSheetConfig(
+    public ResponseEntity<SettingSheetConfigWithRevision> updateSettingSheetConfig(
             @PathVariable(name = "id") UUID id,
             @RequestBody @Valid SettingSheetConfigUpdateRequest request) {
         return ResponseEntity.ok(livesService.updateSettingSheetConfig(id, request));

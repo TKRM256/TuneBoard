@@ -87,7 +87,7 @@ export const StagePlotSettingsPage = () => {
 
   const handleSave = () => void save.run(async () => {
     try {
-      const response = await saveStagePlot(liveId, draft);
+      const response = await saveStagePlot(liveId, { ...draft, baseRevision: stagePlot.revision });
       if (response) {
         setStagePlot(response);
         setDraft(toDraft(response));

@@ -104,6 +104,12 @@ public class GlobalExceptionHandler {
                         ex.latest()));
     }
 
+    @ExceptionHandler(EditConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleEditConflict(EditConflictException ex) {
+        log.info("設定の保存の競合を検出しました: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<ApiErrorResponse> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
         log.warn("楽観ロックの競合が発生しました: {}", ex.getMessage());

@@ -27,6 +27,8 @@ interface Props {
   className?: string;
   /** エディタができたときに呼ぶ（カーソル位置への挿入に使う） */
   onReady?: (view: EditorView) => void;
+  /** 読み上げなどで使う入力欄の名前 */
+  ariaLabel?: string;
 }
 
 const SINGLE_LINE_EXTENSIONS = [
@@ -37,13 +39,14 @@ const MULTI_LINE_EXTENSIONS = [
   keymap.of([indentWithTab]),
 ];
 
-export function ExpressionEditor({ catalog, value, onChange, placeholder, multiline = false, rows = 3, fillHeight = false, className, onReady }: Props) {
+export function ExpressionEditor({ catalog, value, onChange, placeholder, multiline = false, rows = 3, fillHeight = false, className, onReady, ariaLabel }: Props) {
   const extensions = [
     javascript({ jsx: false }),
     autocompletion({ override: [makeCatalogCompletionSource(catalog)], closeOnBlur: true }),
     EditorView.lineWrapping,
     uuidLabelDecoration(catalog),
     ...(multiline ? MULTI_LINE_EXTENSIONS : SINGLE_LINE_EXTENSIONS),
+    ...(ariaLabel ? [EditorView.contentAttributes.of({ 'aria-label': ariaLabel })] : []),
   ];
 
   const minHeight = fillHeight ? '100%' : multiline ? `${rows * 1.6}rem` : '2rem';

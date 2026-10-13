@@ -81,6 +81,8 @@ export interface SettingSheetConfigResponse {
   submitButtonLabel: string;
   publicSubmissionEnabled: boolean;
   blocks: SettingSheetBlock[];
+  /** 管理画面で読み込んだときの版の印。保存のときに送り返す */
+  revision?: string;
 }
 
 export interface LiveResponse {

@@ -12,6 +12,7 @@ import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetConfigWithRevision;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.request.PublicSongDuplicateCheckRequest;
 import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
@@ -44,9 +45,9 @@ public interface ILivesService {
 
         SettingSheetConfigResponse getDefaultSettingSheetConfig();
 
-        SettingSheetConfigResponse getSettingSheetConfig(UUID id);
+        SettingSheetConfigWithRevision getSettingSheetConfig(UUID id);
 
-        SettingSheetConfigResponse updateSettingSheetConfig(UUID id, SettingSheetConfigUpdateRequest request);
+        SettingSheetConfigWithRevision updateSettingSheetConfig(UUID id, SettingSheetConfigUpdateRequest request);
 
         SettingSheetSubmissionResponse submitPublicSettingSheet(String publicToken,
                         PublicSettingSheetSubmissionRequest request);

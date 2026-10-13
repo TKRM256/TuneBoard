@@ -140,10 +140,10 @@ export function GridProperties({ element, catalog, onUpdate, onChangeColumns, on
       </div>
       <NumberField label="文字 (pt)" value={element.fontSizePt} step={0.5} onChange={(fontSizePt) => onUpdate({ fontSizePt: Math.max(3, fontSizePt) })} />
       <FieldGroup label="見出しの色">
-        <ColorInput value={element.headerFill ?? '#e5edf6'} onChange={(headerFill) => onUpdate({ headerFill })} />
+        <ColorInput value={element.headerFill ?? '#e5edf6'} onChange={(headerFill) => onUpdate({ headerFill })} label="見出しの色" />
       </FieldGroup>
       <FieldGroup label="線の色">
-        <ColorInput value={element.borderColor ?? '#d1d5db'} onChange={(borderColor) => onUpdate({ borderColor })} />
+        <ColorInput value={element.borderColor ?? '#d1d5db'} onChange={(borderColor) => onUpdate({ borderColor })} label="線の色" />
       </FieldGroup>
     </div>
   );

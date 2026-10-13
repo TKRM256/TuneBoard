@@ -16,6 +16,8 @@ export interface LayoutResponse {
   name: string;
   document: VenueFormDocument;
   assets: VenueAsset[];
+  /** 読み込んだときの版の印。保存のときに送り返す */
+  revision?: string;
 }
 
 /** FORM はフォームの項目を並べて作る。BLANK は白紙から。 */
@@ -39,8 +41,8 @@ export async function createLayout(liveId: string, name: string, source: LayoutS
   return response;
 }
 
-export async function saveLayout(liveId: string, layoutId: string, name: string, document: VenueFormDocument): Promise<LayoutResponse> {
-  const response = await apiClient.put<LayoutResponse>(`${base(liveId)}/${layoutId}`, { name, document });
+export async function saveLayout(liveId: string, layoutId: string, name: string, document: VenueFormDocument, baseRevision?: string): Promise<LayoutResponse> {
+  const response = await apiClient.put<LayoutResponse>(`${base(liveId)}/${layoutId}`, { name, document, baseRevision });
   if (!response) throw new Error('書式を保存できませんでした');
   return response;
 }

@@ -7,7 +7,9 @@ public record SettingSheetConfigUpdateRequest(
                 String description,
                 String submitButtonLabel,
                 Boolean publicSubmissionEnabled,
-                List<FormBlockRequest> blocks) {
+                List<FormBlockRequest> blocks,
+                /** 読み込んだときの版の印。空なら他の人の保存と食い違っても確かめない */
+                String baseRevision) {
 
         public record FormBlockRequest(
                         String id,

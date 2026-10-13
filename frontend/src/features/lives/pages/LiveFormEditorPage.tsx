@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { apiClient } from '@/lib/api/client';
+import { useIsTenantAdmin } from '@/features/tenants/hooks/use-tenant-role';
+import { saveErrorMessage, saveSettingSheetConfig } from '../helpers/setting-sheet-config-api';
 
 import { BlockEditorTree } from '../form-editor/BlockEditorTree';
 import { FormEditorSidebar } from '../form-editor/FormEditorSidebar';
@@ -41,6 +43,9 @@ export const LiveFormEditorPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   /** 最後に保存した内容。未保存の変更があるかの判定に使う。 */
   const [savedSignature, setSavedSignature] = useState<string | null>(null);
+  /** 読み込んだ（保存した）ときの版の印。他の人の保存と食い違えば保存を止める */
+  const [revision, setRevision] = useState<string | undefined>(undefined);
+  const isAdmin = useIsTenantAdmin(tenantId);
 
   useEffect(() => {
     if (!liveId) {
@@ -58,6 +63,7 @@ export const LiveFormEditorPage = () => {
         const normalized = normalizeSettingSheetConfig(configResponse ?? null);
         setConfig(normalized);
         setSavedSignature(JSON.stringify(normalized));
+        setRevision(configResponse?.revision);
       })
       .catch(() => {
         toast.error('フォーム設定の読み込みに失敗しました', { position: 'top-center' });
@@ -77,6 +83,10 @@ export const LiveFormEditorPage = () => {
 
   if (!tenantId || !liveId) {
     return <Navigate to="/tenants" replace />;
+  }
+  // 編集できるのは管理者だけ。メンバーにはライブの画面を見せる
+  if (isAdmin === false) {
+    return <Navigate to={`/tenants/${tenantId}/lives/${liveId}`} replace />;
   }
 
   if (isLoading) {
@@ -172,8 +182,7 @@ export const LiveFormEditorPage = () => {
 
   const saveConfig = () => {
     setIsSaving(true);
-    apiClient
-      .post<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`, config)
+    saveSettingSheetConfig(liveId, config, revision)
       .then((response) => {
         if (!response) {
           return;
@@ -181,10 +190,11 @@ export const LiveFormEditorPage = () => {
         const normalized = normalizeSettingSheetConfig(response);
         setConfig(normalized);
         setSavedSignature(JSON.stringify(normalized));
+        setRevision(response.revision);
         toast.success('フォーム設定を保存しました', { position: 'top-center' });
       })
-      .catch(() => {
-        toast.error('フォーム設定の保存に失敗しました', { position: 'top-center' });
+      .catch((error) => {
+        toast.error(saveErrorMessage(error, 'フォーム設定の保存に失敗しました'), { position: 'top-center', duration: 8000 });
       })
       .finally(() => {
         setIsSaving(false);

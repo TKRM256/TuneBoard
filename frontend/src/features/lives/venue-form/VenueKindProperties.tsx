@@ -90,7 +90,7 @@ export function IconProperties({ element, onUpdate }: { element: VenueIconElemen
         <Button variant="outline" size="sm" onClick={() => setOpen(true)}>アイコンを変える</Button>
       </div>
       <FieldGroup label="色">
-        <ColorInput value={element.color ?? '#dc2626'} onChange={(color) => onUpdate({ color })} />
+        <ColorInput value={element.color ?? '#dc2626'} onChange={(color) => onUpdate({ color })} label="色" />
       </FieldGroup>
       <NumberField label="線の太さ" value={element.strokeWidth ?? 2} step={0.5} onChange={(v) => onUpdate({ strokeWidth: Math.max(0.5, v) })} />
       <IconPicker open={open} onOpenChange={setOpen} onSelect={(icon) => onUpdate({ iconName: icon.iconName, nodes: icon.nodes })} />
@@ -112,12 +112,12 @@ export function ShapeProperties({ element, onUpdate }: { element: VenueShapeElem
         </Select>
       </FieldGroup>
       <FieldGroup label="線の色">
-        <ColorInput value={element.strokeColor ?? '#dc2626'} onChange={(strokeColor) => onUpdate({ strokeColor })} />
+        <ColorInput value={element.strokeColor ?? '#dc2626'} onChange={(strokeColor) => onUpdate({ strokeColor })} label="線の色" />
       </FieldGroup>
       <NumberField label="線の太さ (pt)" value={element.strokeWidthPt ?? 1} step={0.25} onChange={(v) => onUpdate({ strokeWidthPt: Math.max(0, v) })} />
       {element.shape !== 'line' ? (
         <FieldGroup label="塗り">
-          <ColorInputWithClear value={element.fillColor} onChange={(fillColor) => onUpdate({ fillColor })} />
+          <ColorInputWithClear value={element.fillColor} onChange={(fillColor) => onUpdate({ fillColor })} label="塗り" />
         </FieldGroup>
       ) : null}
     </div>

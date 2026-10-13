@@ -80,7 +80,7 @@ public class PdfLayoutController {
     @PutMapping("/{layoutId}")
     public ResponseEntity<LayoutResponse> save(@PathVariable(name = "id") UUID id,
             @PathVariable(name = "layoutId") UUID layoutId, @RequestBody @Valid LayoutSaveRequest request) {
-        return ResponseEntity.ok(layoutService.save(id, layoutId, request.name(), request.document()));
+        return ResponseEntity.ok(layoutService.save(id, layoutId, request.name(), request.document(), request.baseRevision()));
     }
 
     @DeleteMapping("/{layoutId}")

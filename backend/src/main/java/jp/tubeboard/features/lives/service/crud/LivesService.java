@@ -24,6 +24,9 @@ import jp.tubeboard.features.lives.dto.response.LiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicLiveResponse;
 import jp.tubeboard.features.lives.dto.response.PublicSettingSheetSubmissionDetailResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
+import jp.tubeboard.features.lives.dto.response.SettingSheetConfigWithRevision;
+import jp.tubeboard.common.exception.EditConflictException;
+import jp.tubeboard.common.model.Revisions;
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionResponse;
 import jp.tubeboard.features.lives.dto.request.PublicSongDuplicateCheckRequest;
 import jp.tubeboard.features.lives.dto.response.PublicSongDuplicateCheckResponse;
@@ -251,19 +254,25 @@ public class LivesService implements ILivesService {
         }
 
         @Override
-        public SettingSheetConfigResponse getSettingSheetConfig(UUID id) {
-                return settingSheetConfigService.readSettingSheetConfig(helper.findOwnedLive(id));
+        public SettingSheetConfigWithRevision getSettingSheetConfig(UUID id) {
+                Live live = helper.findOwnedLive(id);
+                return new SettingSheetConfigWithRevision(settingSheetConfigService.readSettingSheetConfig(live),
+                                Revisions.of(live.getSettingsJson()));
         }
 
         @Override
         @Transactional
-        public SettingSheetConfigResponse updateSettingSheetConfig(UUID id, SettingSheetConfigUpdateRequest request) {
+        public SettingSheetConfigWithRevision updateSettingSheetConfig(UUID id, SettingSheetConfigUpdateRequest request) {
                 Live live = helper.findAdminLive(id);
+                // フォーム編集と表示設定は同じ設定を丸ごと保存するので、読み込んだあとに他の人が保存していたら止める
+                if (Revisions.conflicts(request.baseRevision(), Revisions.of(live.getSettingsJson()))) {
+                        throw new EditConflictException("他の人がフォームの設定を更新しました。再読み込みしてから、もう一度保存してください。");
+                }
 
                 SettingSheetConfigResponse normalized = settingSheetConfigService.normalizeSettingSheetConfig(request);
                 live.setSettingsJson(settingSheetConfigService.writeSettingSheetConfig(normalized));
                 liveRepository.save(live);
-                return normalized;
+                return new SettingSheetConfigWithRevision(normalized, Revisions.of(live.getSettingsJson()));
         }
 
         @Override

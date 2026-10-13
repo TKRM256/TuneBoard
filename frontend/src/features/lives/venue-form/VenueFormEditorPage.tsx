@@ -31,6 +31,8 @@ export const VenueFormEditorPage = () => {
   const [savedJson, setSavedJson] = useState(JSON.stringify(emptyVenueForm()));
   const [name, setName] = useState('');
   const [savedName, setSavedName] = useState('');
+  /** 読み込んだ（保存した）ときの版の印。他の人の保存と食い違えば保存を止める */
+  const [revision, setRevision] = useState<string | undefined>(undefined);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -41,6 +43,7 @@ export const VenueFormEditorPage = () => {
     setSavedJson(JSON.stringify(loaded.document));
     setName(loaded.name);
     setSavedName(loaded.name);
+    setRevision(loaded.revision);
     setPreviewId(pickedIds[0] ?? loaded.submissions[0]?.id ?? null);
   });
   const isDirty = JSON.stringify(editor.doc) !== savedJson || name !== savedName;
@@ -61,7 +64,8 @@ export const VenueFormEditorPage = () => {
       return;
     }
     try {
-      const response = await saveLayout(liveId, layoutId, trimmed, editor.doc);
+      const response = await saveLayout(liveId, layoutId, trimmed, editor.doc, revision);
+      setRevision(response.revision);
       setSavedJson(JSON.stringify(editor.doc));
       setName(trimmed);
       setSavedName(trimmed);

@@ -109,5 +109,5 @@ async function create(liveId: string, name: string, start: Start, file: File | n
   const asset = await uploadVenueAsset(liveId, file);
   const created = await createLayout(liveId, name, 'BLANK');
   const pages = asset.pages.map((_, index) => createPageFromAsset(asset, index));
-  return saveLayout(liveId, created.id, name, { pages, elements: [] });
+  return saveLayout(liveId, created.id, name, { pages, elements: [] }, created.revision);
 }

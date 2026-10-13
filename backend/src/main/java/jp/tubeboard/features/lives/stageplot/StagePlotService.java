@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+
+import jp.tubeboard.common.exception.EditConflictException;
+import jp.tubeboard.common.model.Revisions;
 import org.springframework.transaction.annotation.Transactional;
 
 import jp.tubeboard.common.exception.BadRequestException;
@@ -53,6 +56,9 @@ public class StagePlotService {
     public StagePlotResponse update(UUID liveId, StagePlotUpdateRequest request) {
         Live live = helper.findAdminLive(liveId);
         StagePlotSettings current = read(live);
+        if (Revisions.conflicts(request.baseRevision(), revisionOf(current))) {
+            throw new EditConflictException("他の人がステージ設定を更新しました。再読み込みしてから、もう一度保存してください。");
+        }
         List<PaletteItem> palette = validatePalette(request.palette());
         write(live, new StagePlotSettings(current.baseAssetId(), request.aspectRatio(), request.iconScale(), palette));
         return toResponse(live);
@@ -201,6 +207,11 @@ public class StagePlotService {
     private StagePlotResponse toResponse(Live live) {
         StagePlotSettings settings = read(live);
         LiveAsset base = findBase(live, settings);
-        return new StagePlotResponse(settings, base == null ? null : assetService.toResponse(base));
+        return new StagePlotResponse(settings, base == null ? null : assetService.toResponse(base), revisionOf(settings));
+    }
+
+    /** 下絵は別の API ですぐ差し替わるので、この画面で保存する横縦比・大きさ・アイコンだけから作る。 */
+    private String revisionOf(StagePlotSettings settings) {
+        return Revisions.of(settingsReader.write(new StagePlotSettings(null, settings.aspectRatio(), settings.iconScale(), settings.palette())));
     }
 }

@@ -19,14 +19,18 @@ public final class PdfLayoutDtos {
     public record LayoutSummary(UUID id, String name, int pageCount) {
     }
 
-    public record LayoutResponse(UUID id, String name, VenueFormDocument document, List<LiveAssetResponse> assets) {
+    /** @param revision 保存のときに送り返してもらう版の印 */
+    public record LayoutResponse(UUID id, String name, VenueFormDocument document, List<LiveAssetResponse> assets,
+            String revision) {
     }
 
     /** @param source {@code FORM}（フォームの項目を並べて作る）/ {@code BLANK}（白紙から） */
     public record LayoutCreateRequest(@NotBlank @Size(max = 100) String name, String source) {
     }
 
-    public record LayoutSaveRequest(@NotBlank @Size(max = 100) String name, VenueFormDocument document) {
+    /** @param baseRevision 読み込んだときの版の印。空なら他の人の保存と食い違っても確かめない */
+    public record LayoutSaveRequest(@NotBlank @Size(max = 100) String name, VenueFormDocument document,
+            String baseRevision) {
     }
 
     public record LayoutCopyRequest(UUID sourceLiveId, UUID sourceLayoutId) {

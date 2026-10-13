@@ -40,7 +40,7 @@ export function VenueTableProperties({ element, catalog, onUpdate, onChangeColum
         <NumberField label="文字 (pt)" value={element.fontSizePt} step={0.5} onChange={(v) => onUpdate({ fontSizePt: Math.max(3, v) })} />
       </div>
       <FieldGroup label="文字色">
-        <ColorInput value={element.color ?? '#111827'} onChange={(color) => onUpdate({ color })} />
+        <ColorInput value={element.color ?? '#111827'} onChange={(color) => onUpdate({ color })} label="文字色" />
       </FieldGroup>
 
       <div className="flex items-center justify-between">

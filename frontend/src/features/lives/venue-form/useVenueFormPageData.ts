@@ -18,6 +18,7 @@ export interface VenueFormPageData {
   config: SettingSheetConfigResponse;
   name: string;
   document: VenueFormDocument;
+  revision?: string;
   assets: VenueAsset[];
   submissions: SettingSheetSubmissionResponse[];
   isAdmin: boolean;
@@ -55,6 +56,7 @@ export function useVenueFormPageData(
           config: normalizeSettingSheetConfig(config),
           name: layout.name,
           document: layout.document,
+          revision: layout.revision,
           assets: layout.assets,
           submissions: submissions ?? [],
           isAdmin: tenant?.role === 'ADMIN' || tenant?.role === 'OWNER',

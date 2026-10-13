@@ -14,12 +14,15 @@ export interface StageBaseAsset {
 export interface StagePlotResponse {
   settings: StagePlotSettings;
   base: StageBaseAsset | null;
+  /** 読み込んだときの版の印。保存のときに送り返す（下絵の差し替えでは変わらない） */
+  revision?: string;
 }
 
 export interface StagePlotUpdate {
   aspectRatio: number | null;
   iconScale: number | null;
   palette: PaletteItem[];
+  baseRevision?: string;
 }
 
 /** 会場書式のページから切り出す範囲（ページに対する比率 0〜1）。 */

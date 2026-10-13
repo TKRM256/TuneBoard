@@ -4,6 +4,7 @@ import { CopyPlus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 import { FormConfigCopyDialog } from '../copy/FormConfigCopyDialog';
@@ -36,16 +37,16 @@ export const FormEditorSidebar = ({
           他のライブから取り込む
         </Button>
         <div>
-          <p className="text-sm font-medium">フォームタイトル</p>
-          <Input value={config.title} onChange={(event) => setConfig((current) => current ? { ...current, title: event.target.value } : current)} className="mt-2" />
+          <Label htmlFor="form-title" className="text-sm font-medium">フォームタイトル</Label>
+          <Input id="form-title" value={config.title} onChange={(event) => setConfig((current) => current ? { ...current, title: event.target.value } : current)} className="mt-2" />
         </div>
         <div>
-          <p className="text-sm font-medium">送信ボタン文言</p>
-          <Input value={config.submitButtonLabel} onChange={(event) => setConfig((current) => current ? { ...current, submitButtonLabel: event.target.value } : current)} className="mt-2" />
+          <Label htmlFor="form-submit-label" className="text-sm font-medium">送信ボタン文言</Label>
+          <Input id="form-submit-label" value={config.submitButtonLabel} onChange={(event) => setConfig((current) => current ? { ...current, submitButtonLabel: event.target.value } : current)} className="mt-2" />
         </div>
         <div>
-          <p className="text-sm font-medium">フォーム説明</p>
-          <Textarea value={config.description} onChange={(event) => setConfig((current) => current ? { ...current, description: event.target.value } : current)} rows={4} className="mt-2" />
+          <Label htmlFor="form-description" className="text-sm font-medium">フォーム説明</Label>
+          <Textarea id="form-description" value={config.description} onChange={(event) => setConfig((current) => current ? { ...current, description: event.target.value } : current)} rows={4} className="mt-2" />
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="secondary" onClick={onResetToDefault}>
