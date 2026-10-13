@@ -3,7 +3,7 @@
  * スマホではパンくずを 1 行に収めて今のページ名を省き、操作ボタンは見出しの下に回す。
  */
 import { Fragment, type ReactNode } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -15,7 +15,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export interface Crumb {
   label: string;
@@ -57,32 +57,29 @@ export function PageHeader({ crumbs, backTo, title, badge, description, actions 
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <Card className="px-4 py-4 sm:px-6 sm:py-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            {backTo ? <BackButton to={backTo} /> : null}
-            <div className="min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="wrap-break-word text-lg font-semibold sm:text-2xl">{title}</h1>
-                {badge}
-              </div>
-              {description ? <p className="text-xs text-muted-foreground sm:text-sm">{description}</p> : null}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-1.5">
+          {backTo ? <BackButton to={backTo} className="-ml-2" /> : null}
+          <div className="min-w-0 space-y-0.5">
+            <div className="flex min-h-9 flex-wrap items-center gap-2">
+              <h1 className="wrap-break-word text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
+              {badge}
             </div>
+            {description ? <p className="text-xs text-muted-foreground sm:text-sm">{description}</p> : null}
           </div>
-          {actions ? <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
         </div>
-      </Card>
+        {actions ? <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
+      </div>
     </div>
   );
 }
 
 /** 戻るボタン。全画面のエディタの帯でも同じ見た目にする。 */
-export function BackButton({ to }: { to: string }) {
+export function BackButton({ to, className }: { to: string; className?: string }) {
   return (
-    <Button asChild variant="outline" size="sm" className="shrink-0">
-      <Link to={to}>
-        <ChevronLeft className="size-4" />
-        戻る
+    <Button asChild variant="ghost" size="icon" className={cn('size-9 shrink-0 rounded-full', className)}>
+      <Link to={to} aria-label="戻る" title="戻る">
+        <ArrowLeft className="size-5" />
       </Link>
     </Button>
   );

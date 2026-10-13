@@ -8,6 +8,7 @@ import { useUndoableState } from '../canvas-shared/useUndoableState';
 import { copyElements, pasteElements, type PasteMode } from './venue-clipboard';
 import { createElement, type ElementInsert } from './venue-element-factory';
 import * as ops from './venue-form-ops';
+import { resizePage } from './page-resize';
 import { emptyVenueForm, type VenueElement, type VenueFormDocument, type VenuePage } from './venue-form-schema';
 
 /**
@@ -125,6 +126,8 @@ export function useVenueFormEditor() {
     addElements,
     addPage,
     updatePage: (id: string, patch: Partial<VenuePage>) => commit(ops.updatePage(current(), id, patch)),
+    /** 用紙の大きさを替え、そのページの要素も合わせて縮める */
+    resizePage: (id: string, size: { widthMm: number; heightMm: number }) => commit(resizePage(current(), id, size)),
     removePage: (id: string) => {
       commit(ops.removePage(current(), id));
       setPageId(null);

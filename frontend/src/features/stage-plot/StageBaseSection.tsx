@@ -70,7 +70,7 @@ export function StageBaseSection({ liveId, stagePlot, venueAssets, canEdit, onCh
             {isRunning ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}画像をアップロード
           </Button>
           <Button variant="outline" size="sm" className="gap-1" disabled={isRunning} onClick={() => setCropOpen(true)}>
-            <Crop className="size-4" />会場書式から切り出す
+            <Crop className="size-4" />会場の用紙から切り出す
           </Button>
           {base ? (
             <Button variant="ghost" size="sm" className="gap-1" disabled={isRunning} onClick={() => perform(() => deleteStageBase(liveId), '下絵を外しました')}>
@@ -85,7 +85,7 @@ export function StageBaseSection({ liveId, stagePlot, venueAssets, canEdit, onCh
         liveId={liveId}
         assets={venueAssets}
         isSaving={isRunning}
-        onConfirm={(crop: StageBaseCrop) => perform(() => stageBaseFromVenueForm(liveId, crop), '会場書式から下絵を作りました')}
+        onConfirm={(crop: StageBaseCrop) => perform(() => stageBaseFromVenueForm(liveId, crop), '会場の用紙から下絵を作りました')}
       />
     </div>
   );

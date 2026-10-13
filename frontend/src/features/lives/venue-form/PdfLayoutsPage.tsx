@@ -85,7 +85,7 @@ export const PdfLayoutsPage = () => {
         ]}
         backTo={`/tenants/${tenantId}/lives/${liveId}`}
         title="PDF書式"
-        description="提出を PDF にするときの書式です。会場の書式に書き込むことも、白紙に並べることもできます。"
+        description={live.name}
         actions={isAdmin ? (
           <>
             <Button variant="outline" size="sm" className="gap-1" onClick={() => setIsCopyOpen(true)}>
@@ -102,9 +102,6 @@ export const PdfLayoutsPage = () => {
         <Card className="items-center gap-2 px-4 py-10 text-center">
           <FileText className="size-8 text-muted-foreground" />
           <p className="text-sm font-medium">書式はまだありません</p>
-          <p className="max-w-md text-xs text-muted-foreground [word-break:auto-phrase]">
-            書式を作らなくても、提出確認の「PDF出力」からフォームの項目を並べた PDF を出せます。
-          </p>
         </Card>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -144,7 +141,7 @@ export const PdfLayoutsPage = () => {
         open={deleting !== null}
         onOpenChange={(open) => { if (!open) setDeleting(null); }}
         title={`「${deleting?.name ?? ''}」を消しますか？`}
-        description="この書式で PDF を出せなくなります。"
+        description="元に戻せません。"
         confirmLabel="消す"
         destructive
         onConfirm={handleDelete}

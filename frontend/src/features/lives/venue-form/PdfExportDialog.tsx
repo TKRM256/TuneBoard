@@ -5,7 +5,7 @@ import { Download, Loader2, PencilRuler } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSingleFlight } from '@/hooks/use-single-flight';
@@ -76,11 +76,11 @@ export function PdfExportDialog({ tenantId, liveId, submissionIds, onClose }: Pr
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="max-h-[90dvh] w-[95vw] max-w-md overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] w-[95vw] max-w-md overflow-y-auto sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>PDF出力</DialogTitle>
-          <DialogDescription className="[word-break:auto-phrase]">{count > 1 ? `${count}件を ZIP にまとめて保存します。` : '1件を PDF で保存します。'}使う書式を選んでください。</DialogDescription>
         </DialogHeader>
+        <p className="text-sm font-medium">使う書式</p>
         {layouts === null ? (
           <div className="flex justify-center py-6"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
         ) : (
@@ -88,7 +88,7 @@ export function PdfExportDialog({ tenantId, liveId, submissionIds, onClose }: Pr
             {layouts.map((layout) => (
               <ChoiceRow key={layout.id} value={layout.id} title={layout.name} detail={`${layout.pageCount}ページ`} />
             ))}
-            <ChoiceRow value={FROM_FORM} title="フォームどおり" detail="フォームの項目を順に並べます" />
+            <ChoiceRow value={FROM_FORM} title="フォームの項目を並べる" />
           </RadioGroup>
         )}
         <DialogFooter className="gap-2 sm:justify-between">
@@ -107,13 +107,13 @@ export function PdfExportDialog({ tenantId, liveId, submissionIds, onClose }: Pr
   );
 }
 
-function ChoiceRow({ value, title, detail }: { value: string; title: string; detail: string }) {
+function ChoiceRow({ value, title, detail }: { value: string; title: string; detail?: string }) {
   return (
     <label className="flex cursor-pointer items-center gap-3 rounded-md border p-3 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
       <RadioGroupItem value={value} />
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium">{title}</span>
-        <span className="block text-xs text-muted-foreground">{detail}</span>
+        {detail ? <span className="block text-xs text-muted-foreground">{detail}</span> : null}
       </span>
     </label>
   );

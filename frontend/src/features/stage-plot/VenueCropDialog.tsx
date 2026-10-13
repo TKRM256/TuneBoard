@@ -59,11 +59,11 @@ export function VenueCropDialog({ open, onOpenChange, liveId, assets, isSaving, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[94dvh] w-[95vw] max-w-3xl sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>会場書式から下絵を切り出す</DialogTitle>
+          <DialogTitle>会場の用紙から下絵を切り出す</DialogTitle>
           <DialogDescription className="sr-only">ステージ図の範囲を囲む</DialogDescription>
         </DialogHeader>
         {pages.length === 0 ? (
-          <p className="text-sm text-muted-foreground">会場書式がありません</p>
+          <p className="text-sm text-muted-foreground">PDF書式に取り込んだ用紙がありません</p>
         ) : (
           <>
             <Select value={selected?.key ?? ''} onValueChange={(next) => { setPageKey(next); setRect(null); }}>
@@ -83,7 +83,7 @@ export function VenueCropDialog({ open, onOpenChange, liveId, assets, isSaving, 
                   onPointerMove={handleMove}
                   onPointerUp={() => { startRef.current = null; }}
                 >
-                  <img src={url} alt="会場書式のページ" className="pointer-events-none block w-full" draggable={false} />
+                  <img src={url} alt="会場の用紙のページ" className="pointer-events-none block w-full" draggable={false} />
                   {rect ? (
                     <div
                       className="pointer-events-none absolute border-2 border-primary bg-primary/10"

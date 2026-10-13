@@ -331,7 +331,7 @@ export const LiveSubmissionsPage = () => {
                 : '一覧の全件をPDFで出力します'}
             >
               <FileDown className="size-4" />
-              {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF` : 'PDF出力'}
+              {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF出力` : '全件をPDF出力'}
             </Button>
           </>
         )}

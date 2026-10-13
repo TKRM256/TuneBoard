@@ -158,7 +158,8 @@ class PdfLayoutIntegrationTest {
                 .andExpect(jsonPath("$[0].id").value(first.toString()))
                 .andExpect(jsonPath("$[0].pageCount").value(1))
                 .andExpect(jsonPath("$[1].name").value("会場書式"))
-                .andExpect(jsonPath("$[1].pageCount").value(0));
+                // 白紙から作ると A4 のページが 1 枚ある
+                .andExpect(jsonPath("$[1].pageCount").value(1));
 
         mockMvc.perform(delete("/api/lives/{id}/pdf-layouts/{layoutId}", live.getId(), second)
                 .header("Authorization", "Bearer " + adminToken))

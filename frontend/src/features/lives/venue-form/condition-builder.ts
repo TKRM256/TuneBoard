@@ -16,8 +16,8 @@ export const CONDITION_OPERATOR_LABELS: Record<ConditionOperator, string> = {
   includes: 'に次の選択肢が含まれる',
   equals: 'が次と等しい',
   filled: 'が入力されている',
-  isTrue: 'がオン（はい）',
-  isFalse: 'がオフ（いいえ）',
+  isTrue: 'がオン',
+  isFalse: 'がオフ',
 };
 
 /** JEXL の文字列リテラルにする（' と \ を逃がす）。 */

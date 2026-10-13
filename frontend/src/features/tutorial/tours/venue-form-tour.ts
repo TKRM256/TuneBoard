@@ -8,8 +8,8 @@ export const VENUE_FORM_TOUR: TourStep[] = [
   },
   {
     target: 'venue-import',
-    title: '書式を取り込む',
-    body: '会場の用紙の PDF か画像を取り込みます。ページごとに背景になります。背景の無いページは「白紙を追加」で足します。',
+    title: '用紙を取り込む',
+    body: '会場の用紙の PDF か画像を取り込みます。ページごとに背景になります。背景の無いページは「白紙を足す」で足します。\n白紙のページの用紙の大きさを変えると、置いた要素も一緒に縮みます。',
     side: 'right',
   },
   {
@@ -75,7 +75,13 @@ export const VENUE_FORM_TOUR: TourStep[] = [
   {
     target: 'venue-preview',
     title: 'プレビュー',
-    body: '出力される PDF の仕上がりを、その場で確かめられます。',
+    body: '出力される PDF の仕上がりを、その場で確かめられます。矢印で前後の提出に送って、すべての提出を順に確かめられます。',
+    side: 'bottom',
+  },
+  {
+    target: 'venue-export',
+    title: 'PDF出力',
+    body: '編集中の書式のまま、すべての提出か見本の提出を PDF にします。',
     side: 'bottom',
   },
   {

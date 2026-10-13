@@ -105,7 +105,7 @@ export function ShapeProperties({ element, onUpdate }: { element: VenueShapeElem
         <Select value={element.shape} onValueChange={(shape) => onUpdate({ shape: shape as ShapeKind })}>
           <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="ellipse">丸（楕円）</SelectItem>
+            <SelectItem value="ellipse">丸</SelectItem>
             <SelectItem value="rect">四角</SelectItem>
             <SelectItem value="line">横線</SelectItem>
           </SelectContent>

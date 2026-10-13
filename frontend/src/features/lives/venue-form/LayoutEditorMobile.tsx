@@ -1,7 +1,7 @@
 /** スマホの書式エディタ。PC と同じ書式・部品を使い、書式・要素・設定をタブで切り替える。
  *  罫線への吸い付けなどの細かい補助は PC だけにする。 */
 import { useState } from 'react';
-import { Copy, Eye, Minus, Plus, Redo2, Trash2, Undo2 } from 'lucide-react';
+import { Copy, Minus, Plus, Redo2, Trash2, Undo2 } from 'lucide-react';
 
 import { BackButton } from '@/components/original/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import type { GridFitProps } from './GridProperties';
 import { useCanvasViewport } from './useCanvasViewport';
 import type { VenueFormEditor } from './useVenueFormEditor';
 import { VenueCanvas } from './VenueCanvas';
-import { DownloadButton, LayoutNameInput, SampleSelect, SaveButton, type EditorHeaderProps } from './VenueEditorHeader';
+import { ExportButton, LayoutNameInput, PreviewButton, SampleSelect, SaveButton, type EditorHeaderProps } from './VenueEditorHeader';
 import { VenuePagesPanel } from './VenuePagesPanel';
 import { VenuePalette } from './VenuePalette';
 import { VenuePropertyPanel } from './VenuePropertyPanel';
@@ -50,19 +50,17 @@ export function LayoutEditorMobile({ header, liveId, editor, catalog, blocksById
   return (
     <div className="flex h-full w-full flex-col">
       <header className="shrink-0 space-y-2 border-b bg-background px-2 py-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <BackButton to={header.backTo} />
           <div className="min-w-0 flex-1">
             <LayoutNameInput {...header} />
           </div>
           {header.canEdit ? <SaveButton {...header} /> : null}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SampleSelect {...header} />
-          <Button size="sm" className="gap-1" onClick={header.onOpenPreview} disabled={!header.previewSubmissionId}>
-            <Eye className="size-4" />プレビュー
-          </Button>
-          <DownloadButton {...header} />
+        <div className="flex items-center gap-2">
+          <SampleSelect {...header} className="min-w-0 flex-1" />
+          <PreviewButton {...header} />
+          <ExportButton {...header} />
         </div>
       </header>
 
@@ -103,9 +101,7 @@ export function LayoutEditorMobile({ header, liveId, editor, catalog, blocksById
                 />
               </div>
             ) : (
-              <p className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
-                「ページと要素」からページを足して始めます
-              </p>
+              <p className="flex h-full items-center justify-center text-sm text-muted-foreground">ページがありません</p>
             )}
           </div>
         </TabsContent>

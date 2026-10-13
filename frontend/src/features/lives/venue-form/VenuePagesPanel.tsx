@@ -51,9 +51,7 @@ export function VenuePagesPanel({ liveId, editor, assets, onAssetUploaded }: Pro
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ページ</h2>
-      </div>
+      <h2 className="text-xs font-semibold text-muted-foreground">ページ</h2>
       <input
         ref={fileRef}
         type="file"
@@ -64,11 +62,11 @@ export function VenuePagesPanel({ liveId, editor, assets, onAssetUploaded }: Pro
       <div className="grid grid-cols-2 gap-2">
         <Button size="sm" variant="outline" className="gap-1" onClick={() => fileRef.current?.click()} disabled={isRunning} data-tour="venue-import">
           {isRunning ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-          書式取込み
+          用紙を取込む
         </Button>
         <Button size="sm" variant="outline" className="gap-1" onClick={() => editor.addPage(createBlankPage())}>
           <FilePlus2 className="size-4" />
-          白紙を追加
+          白紙を足す
         </Button>
       </div>
       <ol className="space-y-1">
@@ -92,10 +90,10 @@ export function VenuePagesPanel({ liveId, editor, assets, onAssetUploaded }: Pro
           </li>
         ))}
       </ol>
-      {page && !isPdfBackground ? <PaperSizeSelect page={page} onChange={(size) => editor.updatePage(page.id, size)} /> : null}
+      {page && !isPdfBackground ? <PaperSizeSelect page={page} onChange={(size) => editor.resizePage(page.id, size)} /> : null}
       {page && !page.background ? (
         <NumberField
-          label="続きのページの上下の余白 (mm)"
+          label="表が続くページの余白 (mm)"
           value={page.marginMm ?? 10}
           step={1}
           onChange={(marginMm) => editor.updatePage(page.id, { marginMm: Math.min(Math.max(0, marginMm), Math.min(page.widthMm, page.heightMm) / 3) })}
@@ -116,13 +114,13 @@ function PaperSizeSelect({ page, onChange }: { page: VenuePage; onChange: (size:
   return (
     <div className="grid grid-cols-2 gap-2">
       <Select value={size ?? ''} onValueChange={(value) => apply(value as PaperSize, orientation)}>
-        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="用紙" /></SelectTrigger>
+        <SelectTrigger className="h-8 w-full text-xs" aria-label="用紙"><SelectValue placeholder="用紙" /></SelectTrigger>
         <SelectContent>
           {PAPER_SIZE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
         </SelectContent>
       </Select>
       <Select value={orientation} onValueChange={(value) => apply(size ?? 'A4', value as Orientation)}>
-        <SelectTrigger className="h-8 w-full text-xs"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-8 w-full text-xs" aria-label="向き"><SelectValue /></SelectTrigger>
         <SelectContent>
           {ORIENTATION_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
         </SelectContent>

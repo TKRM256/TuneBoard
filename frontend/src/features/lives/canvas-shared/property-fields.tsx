@@ -87,7 +87,7 @@ export function ColorInputWithClear({ value, onChange }: { value?: string; onCha
       />
       <Input
         value={value ?? ''}
-        placeholder="(なし)"
+        placeholder="なし"
         onChange={(e) => onChange(e.target.value || undefined)}
         className="h-9 font-mono text-base md:h-7 md:text-xs"
       />

@@ -4,7 +4,7 @@ import { ChevronLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSingleFlight } from '@/hooks/use-single-flight';
@@ -69,10 +69,10 @@ export function LayoutCopyDialog({ open, onOpenChange, currentLiveId, onCopied }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90dvh] w-[95vw] max-w-lg overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] w-[95vw] max-w-lg overflow-hidden p-0 sm:max-w-lg" aria-describedby={undefined}>
         <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
           <DialogTitle>他のライブから書式を取り込む</DialogTitle>
-          <DialogDescription>{source ? `${source.name} の書式から選びます。` : '書式のあるライブを選びます。'}</DialogDescription>
+          {source ? <p className="text-sm text-muted-foreground">{source.name}</p> : null}
         </DialogHeader>
         <ScrollArea className="max-h-[55dvh] px-4 sm:px-6">
           {source ? (

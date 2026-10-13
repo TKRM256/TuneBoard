@@ -21,7 +21,7 @@ export const SUBMISSIONS_TOUR: TourStep[] = [
   {
     target: 'submissions-pdf',
     title: 'PDF出力',
-    body: '提出された内容を PDF にします。使う書式を選んで出力します。チェックで選んだときは、選んだ分だけ出力します。',
+    body: '提出された内容を PDF にします。使う書式を選んで出力します。何も選んでいなければ全件、チェックで選んだときは選んだ分だけ出力します。',
     side: 'bottom',
   },
   {

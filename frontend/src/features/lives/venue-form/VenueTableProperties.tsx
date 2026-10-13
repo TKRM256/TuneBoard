@@ -55,7 +55,7 @@ export function VenueTableProperties({ element, catalog, onUpdate, onChangeColum
             <Select value={column.fieldId || '__none__'} onValueChange={(fieldId) => onChangeColumns(columnOps.update(column.id, { fieldId: fieldId === '__none__' ? '' : fieldId }))}>
               <SelectTrigger className="h-8 flex-1 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">（式で決める）</SelectItem>
+                <SelectItem value="__none__">式で決める</SelectItem>
                 {fieldOptions.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -90,7 +90,7 @@ export function VenueTableProperties({ element, catalog, onUpdate, onChangeColum
             catalog={catalog}
             value={column.format ?? ''}
             onChange={(format) => onChangeColumns(columnOps.update(column.id, { format: format || undefined }))}
-            placeholder="書式（任意）例: ${value}"
+            placeholder="例: ${value}"
             title="列の書式"
             scope={{ groupId: element.groupId, fieldId: column.fieldId }}
           />

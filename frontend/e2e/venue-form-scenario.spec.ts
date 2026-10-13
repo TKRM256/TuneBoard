@@ -67,20 +67,24 @@ test('バンド以外のフォームで、提出から会場の書式に書き�
 
   const editor = new VenueEditor(page, PAGE_WIDTH_MM);
 
-  await test.step('書式の一覧から何もない書式を作る', async () => {
+  await test.step('書式の一覧から、会場の用紙（PDF）に書き込む書式を作る', async () => {
     await page.goto(`/tenants/${tenant.id}/lives/${live.id}/pdf-layouts`);
     await expect(page.getByText('書式はまだありません')).toBeVisible();
     await page.getByRole('button', { name: '書式を作る' }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('名前').fill('会場書式');
-    await dialog.getByText('何もないところから').click();
+    await dialog.getByText('会場の用紙に書き込む').click();
+    // 用紙を選ぶまでは作れない
+    await expect(dialog.getByRole('button', { name: '作る', exact: true })).toBeDisabled();
+    await dialog.getByLabel('会場の用紙', { exact: true }).setInputFiles(DANCE_FORM_PDF);
+    await expect(dialog.getByText('dance-form.pdf')).toBeVisible();
     await dialog.getByRole('button', { name: '作る', exact: true }).click();
     await expect(page.getByRole('textbox', { name: '書式の名前' })).toHaveValue('会場書式');
   });
 
-  await test.step('会場の書式（PDF）を取り込み、罫線を読み取る', async () => {
-    await page.locator('input[type=file]').first().setInputFiles(DANCE_FORM_PDF);
-    await expect(page.getByText('1ページを追加しました')).toBeVisible();
+  await test.step('取り込んだ用紙が 1 ページ目になり、罫線を読み取れる', async () => {
+    await expect(page.getByRole('button', { name: /^1ページ目/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^2ページ目/ })).toHaveCount(0);
     await expect(editor.tool('罫線を表示')).toBeEnabled();
     await page.keyboard.press('Control+0');
   });
@@ -182,12 +186,44 @@ test('バンド以外のフォームで、提出から会場の書式に書き�
     expect((await pdf.body()).subarray(0, 4).toString()).toBe('%PDF');
   });
 
-  await test.step('提出確認の「PDF出力」で書式を選んで保存できる', async () => {
-    await page.goto(`/tenants/${tenant.id}/lives/${live.id}/submissions`);
+  await test.step('エディタのプレビューで、提出を前後に送って順に確かめられる', async () => {
+    await page.getByRole('button', { name: 'プレビュー' }).click();
+    const dialog = page.getByRole('dialog');
+    const submissions = await apiGet<unknown[]>(page, `/lives/${live.id}/setting-sheet/submissions`);
+    await expect(dialog.getByText(`1 / ${submissions.length}`)).toBeVisible();
+    await dialog.getByRole('button', { name: '次の提出' }).click();
+    await expect(dialog.getByText(`2 / ${submissions.length}`)).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'このPDFを保存' })).toBeEnabled();
+    await page.keyboard.press('Escape');
+  });
+
+  await test.step('エディタの「PDF出力」で、すべての提出を Zip で保存できる', async () => {
     await page.getByRole('button', { name: 'PDF出力' }).click();
     const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('radio', { name: /すべての提出/ })).toBeChecked();
+    const download = page.waitForEvent('download');
+    await dialog.getByRole('button', { name: /件をZipで保存/ }).click();
+    expect((await download).suggestedFilename()).toMatch(/\.zip$/);
+  });
+
+  await test.step('白紙のページの用紙を A4 から A5 にすると、置いた要素も縮む', async () => {
+    await page.getByRole('button', { name: '白紙を足す' }).click();
+    await expect(page.getByRole('button', { name: /^2ページ目/ })).toBeVisible();
+    await page.getByRole('button', { name: 'テキスト', exact: true }).click();
+    await editor.panelNumber(2).fill('100');
+    await expect(editor.panelNumber(2)).toHaveValue('100');
+    await page.getByRole('combobox', { name: '用紙' }).click();
+    await page.getByRole('option', { name: 'A5', exact: true }).click();
+    // A5 の幅は A4 の 148 / 210
+    expect(Number(await editor.panelNumber(2).inputValue())).toBeCloseTo(70.48, 1);
+  });
+
+  await test.step('提出確認の「全件をPDF出力」で書式を選んで保存できる', async () => {
+    await page.goto(`/tenants/${tenant.id}/lives/${live.id}/submissions`);
+    await page.getByRole('button', { name: '全件をPDF出力' }).click();
+    const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('会場書式')).toBeVisible();
-    await expect(dialog.getByText('フォームどおり')).toBeVisible();
+    await expect(dialog.getByText('フォームの項目を並べる')).toBeVisible();
     const download = page.waitForEvent('download');
     await dialog.getByRole('button', { name: /Zipで保存/ }).click();
     expect((await download).suggestedFilename()).toMatch(/\.zip$/);

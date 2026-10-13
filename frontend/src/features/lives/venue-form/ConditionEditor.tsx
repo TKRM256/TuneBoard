@@ -40,7 +40,7 @@ export function ConditionEditor({ catalog, blocksById, value, mixed = false, onC
       key: `${group.id}|${field.id}`,
       fieldId: field.id,
       groupId: group.id,
-      label: `${field.pathLabel}（いずれかの件）`,
+      label: `${field.pathLabel} · どれかの件`,
     }))),
   ].filter((target) => blocksById.get(target.fieldId)?.type !== 'STAGE_PLOT');
 

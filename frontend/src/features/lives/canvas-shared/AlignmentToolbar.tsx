@@ -67,7 +67,7 @@ export function AlignmentToolbar({
   const hasMulti = selectionCount > 1;
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex flex-wrap items-center gap-1 border-b bg-background/95 px-3 py-1.5">
+      <div className="flex items-center gap-1 overflow-x-auto border-b bg-background/95 px-3 py-1.5 [scrollbar-width:thin] [&>*]:shrink-0">
         <Group label="履歴">
           <IconButton tooltip="元に戻す (Ctrl+Z)" disabled={!canUndo} onClick={onUndo}>
             <Undo2 className="size-4" />

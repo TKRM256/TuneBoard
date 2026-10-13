@@ -76,7 +76,7 @@ function TableForm({ grid, catalog, onCreate, onClose }: Required<Pick<Props, 'c
           <NumberField label="何件目から" value={startIndex} onChange={(v) => setStartIndex(clampInt(v, 1, 999))} />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">列（左から）</Label>
+          <Label className="text-xs">左から順の列</Label>
           {/* 細い列でも項目名が読めるよう最低限の幅を持たせ、入りきらなければ横にずらして見る */}
           <div className="flex gap-1 overflow-x-auto pb-1">
             {grid.cols.slice(1).map((x, i) => (

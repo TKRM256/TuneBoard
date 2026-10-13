@@ -86,7 +86,7 @@ function ElementBody({ element, catalog, pxPerMm }: { element: VenueElement; cat
       return (
         <div className="flex size-full flex-col items-center justify-center gap-1 bg-sky-500/10 text-sky-700">
           <LayoutGrid className="size-5" />
-          <span className="text-[10px]">{label}（{element.mode === 'withBase' ? '下絵ごと' : 'アイコンだけ'}）</span>
+          <span className="text-[10px]">{label} · {element.mode === 'withBase' ? '下絵ごと' : 'アイコンだけ'}</span>
         </div>
       );
     }

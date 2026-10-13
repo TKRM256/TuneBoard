@@ -1,13 +1,16 @@
-/** 選んだ提出で書式を描いて確かめる。表のあふれや条件式の誤りは警告として並べる。 */
+/** 選んだ提出で書式を描いて確かめる。前後の提出へ送って、すべての提出を順に確かめられる。
+ *  表のあふれや条件式の誤りは警告として並べる。 */
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Download, Loader2 } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ApiClientError } from '@/lib/api/type';
 
 import { downloadBlob } from './blob-download';
+import type { SettingSheetSubmissionResponse } from '../types/live-types';
 import { checkLayout, fetchLayoutPdf } from './venue-form-api';
 import type { VenueFormDocument } from './venue-form-schema';
 
@@ -15,12 +18,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   liveId: string;
+  submissions: SettingSheetSubmissionResponse[];
   submissionId: string | null;
-  submissionLabel: string;
+  onChangeSubmission: (id: string) => void;
   document: VenueFormDocument;
 }
 
-export function VenuePreviewDialog({ open, onOpenChange, liveId, submissionId, submissionLabel, document }: Props) {
+export function VenuePreviewDialog({ open, onOpenChange, liveId, submissions, submissionId, onChangeSubmission, document }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   const [blob, setBlob] = useState<{ blob: Blob; filename: string } | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -70,10 +74,11 @@ export function VenuePreviewDialog({ open, onOpenChange, liveId, submissionId, s
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[94dvh] w-[96vw] max-w-none flex-col gap-3 sm:w-[96vw] sm:max-w-none">
-        <DialogHeader className="flex-row items-center justify-between gap-2 space-y-0 pr-8">
-          <DialogTitle className="text-sm">プレビュー — {submissionLabel || '提出を選んでください'}</DialogTitle>
-          <Button size="sm" variant="outline" className="gap-1" onClick={handleDownload} disabled={!blob || isLoading}>
+      <DialogContent className="flex h-[94dvh] w-[96vw] max-w-none flex-col gap-3 sm:w-[96vw] sm:max-w-none" aria-describedby={undefined}>
+        <DialogHeader className="flex-row flex-wrap items-center gap-2 space-y-0 pr-8">
+          <DialogTitle className="mr-2 text-base">プレビュー</DialogTitle>
+          <SubmissionStepper submissions={submissions} submissionId={submissionId} onChange={onChangeSubmission} />
+          <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={handleDownload} disabled={!blob || isLoading}>
             <Download className="size-4" />このPDFを保存
           </Button>
         </DialogHeader>
@@ -100,5 +105,33 @@ export function VenuePreviewDialog({ open, onOpenChange, liveId, submissionId, s
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** 提出を選ぶ欄と、前後の提出へ送るボタン。 */
+function SubmissionStepper({ submissions, submissionId, onChange }: { submissions: SettingSheetSubmissionResponse[]; submissionId: string | null; onChange: (id: string) => void }) {
+  const index = submissions.findIndex((submission) => submission.id === submissionId);
+  const go = (offset: number) => {
+    const next = submissions[index + offset];
+    if (next) onChange(next.id);
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <Button variant="ghost" size="icon" className="size-8" onClick={() => go(-1)} disabled={index <= 0} aria-label="前の提出">
+        <ChevronLeft className="size-4" />
+      </Button>
+      <Select value={submissionId ?? ''} onValueChange={onChange} disabled={submissions.length === 0}>
+        <SelectTrigger className="h-8 w-48 text-xs" aria-label="プレビューする提出">
+          <SelectValue placeholder="提出がありません" />
+        </SelectTrigger>
+        <SelectContent>
+          {submissions.map((submission) => <SelectItem key={submission.id} value={submission.id}>{submission.recordLabel}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Button variant="ghost" size="icon" className="size-8" onClick={() => go(1)} disabled={index < 0 || index >= submissions.length - 1} aria-label="次の提出">
+        <ChevronRight className="size-4" />
+      </Button>
+      <span className="w-14 text-xs tabular-nums text-muted-foreground">{index >= 0 ? `${index + 1} / ${submissions.length}` : ''}</span>
+    </div>
   );
 }

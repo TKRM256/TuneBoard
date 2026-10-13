@@ -19,6 +19,7 @@ import jp.tubeboard.features.lives.stageplot.StagePlotSettings;
 import jp.tubeboard.features.lives.venueform.PdfLayoutDtos.LayoutResponse;
 import jp.tubeboard.features.lives.venueform.PdfLayoutDtos.LayoutSummary;
 import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenueFormDocument;
+import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenuePage;
 import jp.tubeboard.features.lives.venueform.render.VenueFormRenderer;
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +31,8 @@ public class PdfLayoutService {
 
     static final String SOURCE_FORM = "FORM";
     static final String SOURCE_BLANK = "BLANK";
+    /** 白紙から作るときの 1 ページ目（A4 縦、続きのページの余白 10mm）。 */
+    private static final VenuePage BLANK_A4 = new VenuePage("page-1", 210f, 297f, null, 10f);
     static final int MAX_LAYOUTS = 20;
 
     private final LivePdfLayoutRepository repository;
@@ -65,7 +68,7 @@ public class PdfLayoutService {
         Live live = helper.findAdminLive(liveId);
         VenueFormDocument document = SOURCE_FORM.equals(source)
                 ? documents.fromForm(loader.loadLive(liveId).config())
-                : new VenueFormDocument(List.of(), List.of());
+                : new VenueFormDocument(List.of(BLANK_A4), List.of());
         if (!SOURCE_FORM.equals(source) && !SOURCE_BLANK.equals(source)) {
             throw new BadRequestException("書式の作り方を選んでください");
         }
