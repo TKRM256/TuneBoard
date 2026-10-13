@@ -83,11 +83,11 @@ export function StagePlotInput({ inputId, value, onChange }: Props) {
       />
       {selected && (
         <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-2">
+          <span className="shrink-0 text-xs text-muted-foreground">名前</span>
           <Input
             value={selected.label}
             maxLength={MAX_PLOT_LABEL_LENGTH}
             onChange={(event) => updateItem(selected.id, { label: event.target.value })}
-            placeholder="名前（例: Gt 田中）"
             aria-label="選んだアイコンの名前"
             className="h-9 flex-1 text-base sm:text-sm"
           />

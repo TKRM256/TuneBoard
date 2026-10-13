@@ -82,7 +82,7 @@ for (const seed of SEEDS) {
         return `palette ${label}`;
       },
       panel: async () => {
-        const inputs = page.locator('aside').last().locator('input[type=number]');
+        const inputs = page.locator('aside').last().locator('input[inputmode=decimal]');
         const count = await inputs.count();
         if (count === 0) return 'no input';
         const value = pick(['0', '-5', '3.5', '999', '7', '0.5']);

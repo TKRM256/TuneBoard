@@ -53,7 +53,7 @@ test('Ctrl+Shift+V で次の件を同じ表の下の枠に置き、表の外で�
     await editor.drag({ x: 13, y: 73.5 }, { x: 91.5, y: 91 });
     const dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('2行 × 4列');
-    await dialog.locator('input[type=number]').first().fill('1');
+    await dialog.locator('input[inputmode=decimal]').first().fill('1');
     await editor.chooseInDialog(1, 'なし');
     await editor.chooseInDialog(2, '名前');
     await editor.chooseInDialog(3, '学年');

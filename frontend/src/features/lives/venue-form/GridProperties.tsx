@@ -74,7 +74,7 @@ export function GridProperties({ element, catalog, onUpdate, onChangeColumns, on
           {element.columns.map((column, index) => (
             <div key={column.id} className="space-y-1 rounded border p-2">
               <div className="flex items-center gap-1">
-                <Input value={column.header} placeholder="見出し" onChange={(e) => updateColumn(column.id, { header: e.target.value })} className="h-7 text-xs" />
+                <Input value={column.header} aria-label="見出し" onChange={(e) => updateColumn(column.id, { header: e.target.value })} className="h-7 text-xs" />
                 <Button variant="ghost" size="icon" className="size-7" aria-label="左へ" disabled={index === 0} onClick={() => onChangeColumns(columnOps.move(column.id, -1))}>
                   <ChevronLeft className="size-3.5" />
                 </Button>
@@ -101,10 +101,10 @@ export function GridProperties({ element, catalog, onUpdate, onChangeColumns, on
               {column.shrinkToFit ? (
                 <NumberField label="いちばん小さい文字" inline unit="pt" step={0.5} value={column.minFontSizePt ?? DEFAULT_MIN_FONT_SIZE_PT} onChange={(v) => updateColumn(column.id, { minFontSizePt: Math.max(1, v) })} />
               ) : null}
+              <p className="text-[10px] text-muted-foreground">書式</p>
               <ExpressionInput
                 catalog={catalog}
                 value={column.format ?? ''}
-                placeholder="書式 例: ${value} 名"
                 onChange={(format) => updateColumn(column.id, { format: format || undefined })}
                 title={`${column.header || '列'}の書式`}
                 // 行ごとに評価する式なので、1 件目を見本にして見せる

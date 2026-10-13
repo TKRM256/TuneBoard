@@ -44,7 +44,7 @@ export function ExpressionSnippetList({ catalog, onInsert, className }: Props) {
         <div className="flex items-center gap-2 rounded-md border bg-background px-2">
           <Search className="size-3.5 shrink-0 text-muted-foreground" />
           <Input
-            placeholder="変数・ヘルパーを検索 (例: 氏名, join, formatDate)"
+            placeholder="検索してみましょう"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="h-7 border-0 px-0 text-xs shadow-none focus-visible:ring-0"

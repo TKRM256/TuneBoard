@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
+import { NumberInput } from '@/components/original/NumberInput';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -255,7 +256,7 @@ export const BlockSettingsPanel = ({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">最小件数</p>
-                  <Input type="number" min={0} value={block.minItems} onChange={(event) => onUpdateBlock(block.id, { minItems: Math.max(0, Number(event.target.value || 0)) })} className="mt-1" />
+                  <NumberInput min={0} value={block.minItems} onValueChange={(minItems) => onUpdateBlock(block.id, { minItems: Math.round(minItems) })} aria-label="最小件数" className="mt-1" />
                 </div>
                 <div className="lg:col-span-2 rounded-xl border bg-muted/30 p-3">
                   <div className="flex items-center gap-3 text-sm">

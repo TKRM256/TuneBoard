@@ -96,7 +96,7 @@ export function ConditionEditor({ catalog, blocksById, value, mixed = false, onC
                 </SelectContent>
               </Select>
             ) : (
-              <Input value={operand} onChange={(event) => setOperand(event.target.value)} placeholder="比べる値" className="h-8 text-xs" />
+              <Input value={operand} onChange={(event) => setOperand(event.target.value)} aria-label="比べる値" className="h-8 text-xs" />
             )
           ) : null}
           <Button size="sm" className="w-full" onClick={apply} disabled={!target || (needsValue && !operand)}>

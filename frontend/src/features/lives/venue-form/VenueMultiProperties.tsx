@@ -1,4 +1,5 @@
 /** 複数選んだ要素の設定。どの要素にもある設定だけを出し、変えると選んだ要素すべてに当てる。値がばらばらの欄は空にしておく。 */
+import { NumberInput } from '@/components/original/NumberInput';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -148,18 +149,7 @@ function MixedNumberField({ label, value, step, onChange }: { label: string; val
   return (
     <div className="space-y-1">
       <Label className="text-[10px] text-muted-foreground">{label}</Label>
-      <Input
-        type="number"
-        value={value ?? ''}
-        placeholder="—"
-        step={step}
-        onChange={(event) => {
-          const n = Number(event.target.value);
-          if (event.target.value === '' || !Number.isFinite(n)) return;
-          onChange(n);
-        }}
-        className="h-8 text-xs"
-      />
+      <NumberInput value={value} placeholder="—" step={step} onValueChange={onChange} aria-label={label} className="h-8 text-xs" />
     </div>
   );
 }

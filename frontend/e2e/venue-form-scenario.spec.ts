@@ -73,7 +73,7 @@ test('バンド以外のフォームで、提出から会場の書式に書き�
     await page.getByRole('button', { name: '書式を作る' }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('名前').fill('会場書式');
-    await dialog.getByText('会場の用紙に書き込む').click();
+    await dialog.getByText('会場の用紙から作成する').click();
     // 用紙を選ぶまでは作れない
     await expect(dialog.getByRole('button', { name: '作る', exact: true })).toBeDisabled();
     await dialog.getByLabel('会場の用紙', { exact: true }).setInputFiles(DANCE_FORM_PDF);
@@ -94,7 +94,7 @@ test('バンド以外のフォームで、提出から会場の書式に書き�
     await editor.drag(MEMBERS_TABLE.from, MEMBERS_TABLE.to);
     const dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('6行 × 4列');
-    await dialog.locator('input[type=number]').first().fill('1');
+    await dialog.locator('input[inputmode=decimal]').first().fill('1');
     await editor.chooseInDialog(1, 'なし');
     await editor.chooseInDialog(2, '名前');
     await editor.chooseInDialog(3, '学年');
@@ -114,7 +114,7 @@ test('バンド以外のフォームで、提出から会場の書式に書き�
     await editor.tool('表の欄に項目を並べる').click();
     await editor.drag(TRACKS_TABLE.from, TRACKS_TABLE.to);
     await editor.chooseInDialog(0, '使用音源');
-    await page.getByRole('dialog').locator('input[type=number]').first().fill('1');
+    await page.getByRole('dialog').locator('input[inputmode=decimal]').first().fill('1');
     await editor.chooseInDialog(1, 'なし');
     await editor.chooseInDialog(2, '曲名');
     await editor.chooseInDialog(3, '尺');
@@ -223,7 +223,7 @@ test('バンド以外のフォームで、提出から会場の書式に書き�
     await page.getByRole('button', { name: '全件をPDF出力' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('会場書式')).toBeVisible();
-    await expect(dialog.getByText('フォームの項目を並べる')).toBeVisible();
+    await expect(dialog.getByText('テンプレート', { exact: true })).toBeVisible();
     const download = page.waitForEvent('download');
     await dialog.getByRole('button', { name: /Zipで保存/ }).click();
     expect((await download).suggestedFilename()).toMatch(/\.zip$/);

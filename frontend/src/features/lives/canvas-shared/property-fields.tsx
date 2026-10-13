@@ -1,6 +1,7 @@
 /** Small form controls shared by the property panels. */
 import { Trash2 } from 'lucide-react';
 
+import { NumberInput } from '@/components/original/NumberInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,15 +33,11 @@ export function NumberField({
 }) {
   // スマホ(md未満)ではタップしやすく、iOSの自動ズームも起きない大きさにする
   const input = (
-    <Input
-      type="number"
+    <NumberInput
       value={value}
       step={step}
-      onChange={(e) => {
-        const n = Number(e.target.value);
-        if (!Number.isFinite(n)) return;
-        onChange(n);
-      }}
+      onValueChange={onChange}
+      aria-label={label}
       className={inline ? 'h-9 text-base md:h-7 md:text-xs' : 'h-9 text-base md:h-8 md:text-xs'}
     />
   );

@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Copy, ExternalLink, FileCheck2, FileText, LayoutGrid, Settings2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,7 +22,6 @@ import {
 } from '../types/live-types';
 import { LiveInfoCard } from '../components/LiveInfoCard';
 import { LiveSummaryCard } from '../components/LiveSummaryCard';
-import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -30,8 +29,7 @@ export const LiveManagementPage = () => {
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
   const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('');
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -67,8 +65,6 @@ export const LiveManagementPage = () => {
   const publicUrl = buildPublicLiveUrl(live.publicToken);
   const sharedListUrl = `${window.location.origin}/public/lives/${live.publicToken}/submissions/shared`;
   const badgeVariant = live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary';
-  const selectedDetail = details.find((d) => d.id === selectedSubmissionId) ?? null;
-  const buildEditFormUrl = (submissionId: string) => `${window.location.origin}/public/lives/${live.publicToken}/submissions/${submissionId}`;
 
   const copyPublicUrl = async () => {
     try {
@@ -85,15 +81,6 @@ export const LiveManagementPage = () => {
       toast.success('共有一覧リンクをコピーしました', { position: 'top-center' });
     } catch {
       toast.error('コピーに失敗しました', { position: 'top-center' });
-    }
-  };
-
-  const copyEditLink = async (submissionId: string) => {
-    try {
-      await navigator.clipboard.writeText(buildEditFormUrl(submissionId));
-      toast.success('編集リンクをコピーしました', { position: 'top-center' });
-    } catch {
-      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
     }
   };
 
@@ -141,19 +128,7 @@ export const LiveManagementPage = () => {
         details={details}
         duplicates={duplicates}
         submissionsPath={`/tenants/${tenantId}/lives/${liveId}/submissions`}
-        onSelectSubmission={(submissionId) => {
-          setSelectedSubmissionId(submissionId);
-          setIsDetailDialogOpen(true);
-        }}
-      />
-
-      <SubmissionDetailDialog
-        open={isDetailDialogOpen}
-        onOpenChange={setIsDetailDialogOpen}
-        detail={selectedDetail}
-        config={config}
-        recordLabel="回答"
-        onCopyEditLink={copyEditLink}
+        onSelectSubmission={(submissionId) => navigate(`/tenants/${tenantId}/lives/${liveId}/submissions?submission=${submissionId}`)}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-/** 書式を新しく作る。フォームの項目を並べるか、会場の用紙を取り込むか、白紙から始めるかを選ぶ。 */
+/** 書式を新しく作る。テンプレート（フォームの項目を並べたもの）・会場の用紙・白紙から選ぶ。 */
 import { useRef, useState } from 'react';
 import { FileUp, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,9 +17,9 @@ import { createLayout, saveLayout, uploadVenueAsset, type LayoutResponse } from 
 type Start = 'FORM' | 'VENUE' | 'BLANK';
 
 const STARTS: Array<{ value: Start; title: string }> = [
-  { value: 'FORM', title: 'フォームの項目を並べる' },
-  { value: 'VENUE', title: '会場の用紙に書き込む' },
-  { value: 'BLANK', title: '白紙から作る' },
+  { value: 'FORM', title: 'テンプレートから作成する' },
+  { value: 'VENUE', title: '会場の用紙から作成する' },
+  { value: 'BLANK', title: '白紙から作成する' },
 ];
 
 interface Props {

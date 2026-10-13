@@ -1,6 +1,5 @@
 import { CalendarRange } from 'lucide-react';
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 
 import type { LiveResponse } from '../types/live-types';
@@ -19,14 +18,12 @@ interface LiveListCardProps {
 
 export const LiveListCard = ({ lives, tenantName, tenantId, isAdmin, onUpdateSuccess, onDelete, onRestore, trashTrigger }: LiveListCardProps) => {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{tenantName} のライブ一覧</h2>
-          {trashTrigger}
-        </div>
-      </CardHeader>
-      <CardContent>
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold">{tenantName} のライブ一覧</h2>
+        {trashTrigger}
+      </div>
+      <div>
         {lives.length === 0 ? (
           <Empty className="border">
             <EmptyHeader>
@@ -37,7 +34,7 @@ export const LiveListCard = ({ lives, tenantName, tenantId, isAdmin, onUpdateSuc
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {lives.map((live) => (
               <LiveCard
                 key={live.id}
@@ -51,7 +48,7 @@ export const LiveListCard = ({ lives, tenantName, tenantId, isAdmin, onUpdateSuc
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 };

@@ -170,7 +170,7 @@ export const SubmissionValueCopyDialog = ({
               <Input
                 value={link}
                 onChange={(event) => setLink(event.target.value)}
-                placeholder="https://.../public/lives/xxxx/submissions/xxxx"
+                aria-label="編集用リンク"
                 autoComplete="off"
               />
             </div>

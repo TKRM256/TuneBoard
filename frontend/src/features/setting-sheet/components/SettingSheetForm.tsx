@@ -197,15 +197,9 @@ export const SettingSheetForm = ({ publicToken, live, submission }: SettingSheet
             </Alert>
           ) : null}
 
-          <Card className="gap-4 py-4 sm:gap-6 sm:py-6">
-            <CardHeader className="border-b px-4 pb-3 sm:px-6 sm:pb-5">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                <h2 className="text-lg font-semibold text-card-foreground sm:text-xl">セッティングシート回答</h2>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="grid min-w-0 gap-3 px-3 sm:gap-4 sm:px-6 xl:grid-cols-6">
+          {/* スマホでは外枠をなくし、項目の枠だけにして横幅を広く使う */}
+          <Card className="gap-4 py-4 max-sm:border-0 max-sm:bg-transparent max-sm:py-0 max-sm:shadow-none sm:gap-6 sm:py-6">
+            <CardContent className="grid min-w-0 gap-3 px-0 sm:gap-4 sm:px-6 xl:grid-cols-6">
               {settingSheetConfig.blocks.map((block) => (
                 <SettingSheetFieldRenderer
                   key={block.id}

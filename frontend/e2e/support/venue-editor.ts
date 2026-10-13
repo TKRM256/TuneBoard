@@ -41,7 +41,7 @@ export class VenueEditor {
 
   /** 右側の設定欄の数値の欄（X・Y・幅・高さ・文字の大きさ…の順） */
   panelNumber(index: number): Locator {
-    return this.page.locator('aside').last().locator('input[type=number]').nth(index);
+    return this.page.locator('aside').last().locator('input[inputmode=decimal]').nth(index);
   }
 
   async panelNumbers(count = 4) {

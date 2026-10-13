@@ -1,14 +1,13 @@
-/** Live submissions list with detail dialog and song duplicate detection. */
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
-import { FileDown, Search } from 'lucide-react';
+/** 提出確認。提出一覧と曲かぶりをタブで切り替え、提出を押すと同じ画面の中で詳細を読む。 */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Copy, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { PageHeader } from '@/components/original/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 import { apiClient } from '@/lib/api/client';
 import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
@@ -23,35 +22,36 @@ import {
 import { applyAdminAnswers, collectAdminBlocks } from '../admin-answers/admin-answer-model';
 import { PdfExportDialog } from '../venue-form/PdfExportDialog';
 import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
-import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
-import { SubmissionsTable } from '../components/SubmissionsTable';
+import { SubmissionDetailView } from '../components/SubmissionDetailView';
+import { SubmissionsListCard } from '../components/SubmissionsListCard';
+import { formatSubmittedAt } from '../helpers/submission-detail-helpers';
 import { collectColumns } from '../helpers/submission-table-helpers';
-import { ALL_COLUMNS_VALUE, useSubmissionTableView } from '../hooks/use-submission-table-view';
-import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
+import { useSubmissionTableView } from '../hooks/use-submission-table-view';
+import { useSubmissionTrash } from '../hooks/use-submission-trash';
+import { TrashSheet } from '@/components/original/TrashSheet';
 import { TourButton } from '@/features/tutorial/TourButton';
 import { SUBMISSIONS_TOUR } from '@/features/tutorial/tours/submissions-tour';
 import { useKeyedSingleFlight, useSingleFlight } from '@/hooks/use-single-flight';
 
-const getSubmissionActionKey = (id: string) => `submission:${id}`;
 const getDuplicateActionKey = (normalizedTitle: string) => `duplicate:${normalizedTitle}`;
+const DETAIL_PARAM = 'submission';
+type SubmissionsTab = 'list' | 'duplicates';
 
 export const LiveSubmissionsPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
   const [live, setLive] = useState<LiveResponse | null>(null);
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('');
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState<SubmissionsTab>('list');
   const [isLoading, setIsLoading] = useState(true);
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [trashedDetails, setTrashedDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
-  const [trashOpen, setTrashOpen] = useState(false);
-  const [trashFetched, setTrashFetched] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const { isRunning: isDuplicateLoading, run: runDuplicateRefresh } = useSingleFlight();
-  const { run: runSubmissionAction, isRunning: isSubmissionActionRunning } = useKeyedSingleFlight<string>();
   const { run: runDuplicateDismiss, isRunning: isDuplicateDismissRunning } = useKeyedSingleFlight<string>();
+  const trash = useSubmissionTrash(liveId, details, setDetails);
+  const { trashedDetails, trashOpen, setTrashOpen, handleOpenTrash, handleDeleteSubmission, handleRestoreFromTrash, handlePurgeSubmission } = trash;
 
   useEffect(() => {
     if (!liveId) {
@@ -102,15 +102,12 @@ export const LiveSubmissionsPage = () => {
     };
   }, [liveId, tenantId]);
 
-  const recordLabel = '回答';
   const tableColumns = useMemo(() => collectColumns(config, 'admin'), [config]);
-  const hasVisibleColumns = tableColumns.length > 0;
   const {
     searchQuery,
     setSearchQuery,
     searchColumnId,
     setSearchColumnId,
-    searchColumn,
     sort,
     toggleSort,
     visibleDetails,
@@ -143,17 +140,6 @@ export const LiveSubmissionsPage = () => {
     });
   }, [liveId, runDuplicateRefresh]);
 
-  const restoreDeletedSubmission = useCallback((id: string, deleted: PublicSettingSheetSubmissionDetailResponse | undefined) => {
-    return runSubmissionAction(getSubmissionActionKey(id), async () => {
-      await apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/restore`, {});
-      setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
-      if (deleted) {
-        setDetails((prev) => [deleted, ...prev]);
-      }
-      toast.success('バンドを復元しました', { position: 'top-center' });
-    });
-  }, [liveId, runSubmissionAction]);
-
   const handleDismiss = useCallback((normalizedTitle: string) => {
     void runDuplicateDismiss(getDuplicateActionKey(normalizedTitle), async () => {
       try {
@@ -168,57 +154,6 @@ export const LiveSubmissionsPage = () => {
     });
   }, [liveId, runDuplicateDismiss]);
 
-  const fetchTrash = useCallback(() => {
-    apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/trash`)
-      .then((res) => {
-        setTrashedDetails(res ?? []);
-        setTrashFetched(true);
-      });
-  }, [liveId]);
-
-  const handleOpenTrash = useCallback(() => {
-    if (!trashFetched) fetchTrash();
-    setTrashOpen(true);
-  }, [trashFetched, fetchTrash]);
-
-  const handleDeleteSubmission = useCallback((id: string) => {
-    const deleted = details.find((d) => d.id === id);
-    void runSubmissionAction(getSubmissionActionKey(id), async () => {
-      try {
-        await apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/delete`, {});
-        setDetails((prev) => prev.filter((d) => d.id !== id));
-        if (deleted) setTrashedDetails((prev) => [deleted, ...prev]);
-        toast.success('バンドを削除しました', {
-          position: 'top-center',
-          action: {
-            label: '取り消す',
-            onClick: () => {
-              void restoreDeletedSubmission(id, deleted).catch(() => {
-                toast.error('復元に失敗しました', { position: 'top-center' });
-              });
-            },
-          },
-        });
-      } catch {
-        toast.error('バンドの削除に失敗しました', { position: 'top-center' });
-      }
-    });
-  }, [details, liveId, runSubmissionAction, restoreDeletedSubmission]);
-
-  const handleRestoreFromTrash = useCallback((id: string) => {
-    void runSubmissionAction(getSubmissionActionKey(id), async () => {
-      try {
-        await apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/restore`, {});
-        setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
-        const response = await apiClient.get<PublicSettingSheetSubmissionDetailResponse[]>(`/lives/${liveId}/setting-sheet/submissions/details`);
-        setDetails(response ?? []);
-        toast.success('バンドを復元しました', { position: 'top-center' });
-      } catch {
-        toast.error('復元に失敗しました', { position: 'top-center' });
-      }
-    });
-  }, [liveId, runSubmissionAction]);
-
   const toggleSelectOne = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -226,18 +161,6 @@ export const LiveSubmissionsPage = () => {
       return next;
     });
   }, []);
-
-  const handlePurgeSubmission = useCallback((id: string) => {
-    void runSubmissionAction(getSubmissionActionKey(id), async () => {
-      try {
-        await apiClient.post<void>(`/lives/${liveId}/setting-sheet/submissions/${id}/purge`, {});
-        setTrashedDetails((prev) => prev.filter((d) => d.id !== id));
-        toast.success('バンドを完全に削除しました', { position: 'top-center' });
-      } catch {
-        toast.error('完全削除に失敗しました', { position: 'top-center' });
-      }
-    });
-  }, [liveId, runSubmissionAction]);
 
   const visibleSelectedCount = useMemo(
     () => visibleDetails.reduce((acc, d) => (selectedIds.has(d.id) ? acc + 1 : acc), 0),
@@ -276,10 +199,21 @@ export const LiveSubmissionsPage = () => {
     setDetails((prev) => prev.map((d) => (d.id === submissionId ? applyAdminAnswers(d, adminIds, answers) : d)));
   }, [adminBlocks]);
 
-  const openSubmissionDetail = useCallback((id: string) => {
-    setSelectedSubmissionId(id);
-    setIsDetailDialogOpen(true);
-  }, []);
+  // 詳細は一覧と同じ画面の中で開く。URL に残すので、ブラウザの戻るで一覧へ戻れる
+  const openedId = searchParams.get(DETAIL_PARAM);
+  const listScrollRef = useRef(0);
+  const openSubmissionDetail = useCallback((id: string, replace = false) => {
+    if (!replace) listScrollRef.current = window.scrollY;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set(DETAIL_PARAM, id);
+      return next;
+    }, { replace });
+    window.scrollTo(0, 0);
+  }, [setSearchParams]);
+  useEffect(() => {
+    if (!openedId) window.scrollTo(0, listScrollRef.current);
+  }, [openedId]);
 
   if (!tenantId || !liveId) {
     return <Navigate to="/tenants" replace />;
@@ -293,30 +227,72 @@ export const LiveSubmissionsPage = () => {
     return <Navigate to={`/tenants/${tenantId}/lives`} replace />;
   }
 
-  const selectedDetail = details.find((d) => d.id === selectedSubmissionId) ?? null;
-  const buildEditFormUrl = (submissionId: string) => `${window.location.origin}/public/lives/${live.publicToken}/submissions/${submissionId}`;
-  
+  const listPath = `/tenants/${tenantId}/lives/${liveId}/submissions`;
+  const crumbs = [
+    { label: 'テナント一覧', to: '/tenants' },
+    { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
+    { label: live.name, to: `/tenants/${tenantId}/lives/${liveId}` },
+  ];
+  const openedDetail = openedId ? details.find((d) => d.id === openedId) ?? null : null;
   const copyEditLink = async (submissionId: string) => {
     try {
-      await navigator.clipboard.writeText(buildEditFormUrl(submissionId));
+      await navigator.clipboard.writeText(`${window.location.origin}/public/lives/${live.publicToken}/submissions/${submissionId}`);
       toast.success('編集リンクをコピーしました', { position: 'top-center' });
     } catch {
       toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
     }
   };
+  const exportDialog = <PdfExportDialog tenantId={tenantId} liveId={liveId} submissionIds={exportIds} onClose={() => setExportIds(null)} />;
+
+  if (openedDetail) {
+    const order = visibleDetails.some((d) => d.id === openedDetail.id) ? visibleDetails : details;
+    const index = order.findIndex((d) => d.id === openedDetail.id);
+    const move = (offset: number) => {
+      const next = order[index + offset];
+      if (next) openSubmissionDetail(next.id, true);
+    };
+    return (
+      <div className="space-y-6 pb-20 sm:pb-0">
+        <PageHeader
+          crumbs={[...crumbs, { label: '提出確認', to: listPath }, { label: openedDetail.recordLabel }]}
+          backTo={listPath}
+          title={openedDetail.recordLabel}
+          description={`${formatSubmittedAt(openedDetail.submittedAt)} 提出`}
+          actions={(
+            <>
+              <SubmissionStepper index={index} total={order.length} onMove={move} className="hidden sm:flex" />
+              <Button variant="outline" size="sm" onClick={() => void copyEditLink(openedDetail.id)}>
+                <Copy className="size-4" />編集リンクをコピー
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setExportIds([openedDetail.id])}>
+                <FileDown className="size-4" />PDF出力
+              </Button>
+            </>
+          )}
+        />
+        <SubmissionDetailView
+          detail={openedDetail}
+          config={config}
+          adminAnswers={isAdmin ? { liveId, blocks: adminBlocks, onSaved: handleAdminSaved } : undefined}
+        />
+        {/* スマホは前後の送りを親指の届く画面下に置く */}
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
+          <SubmissionStepper index={index} total={order.length} onMove={move} className="justify-between" wide />
+        </div>
+        {exportDialog}
+      </div>
+    );
+  }
+
+  const duplicateCount = duplicates?.groups.filter((group) => !group.dismissed).length ?? 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader
-        crumbs={[
-          { label: 'テナント一覧', to: '/tenants' },
-          { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
-          { label: live.name, to: `/tenants/${tenantId}/lives/${liveId}` },
-          { label: '提出確認' },
-        ]}
+        crumbs={[...crumbs, { label: '提出確認' }]}
         backTo={`/tenants/${tenantId}/lives/${liveId}`}
-        title="提出済みフォーム"
-        description={`${live.name} / ${formatLiveDate(live.date)} / 全${details.length}件`}
+        title="提出確認"
+        description={`${live.name} · ${formatLiveDate(live.date)}`}
         actions={(
           <>
             <TourButton steps={SUBMISSIONS_TOUR} />
@@ -326,9 +302,6 @@ export const LiveSubmissionsPage = () => {
               data-tour="submissions-pdf"
               onClick={handleClickBulkPdf}
               disabled={visibleDetails.length === 0}
-              title={visibleSelectedCount > 0
-                ? `選択中の${visibleSelectedCount}件をPDFで出力します`
-                : '一覧の全件をPDFで出力します'}
             >
               <FileDown className="size-4" />
               {visibleSelectedCount > 0 ? `選択 ${visibleSelectedCount}件をPDF出力` : '全件をPDF出力'}
@@ -337,89 +310,59 @@ export const LiveSubmissionsPage = () => {
         )}
       />
 
-      <div data-tour="submissions-duplicates">
-      <SongDuplicatesPanel data={duplicates} isLoading={isDuplicateLoading} onRefresh={refreshDuplicates} onDismiss={isAdmin ? handleDismiss : undefined} isDismissing={(normalizedTitle) => isDuplicateDismissRunning(getDuplicateActionKey(normalizedTitle))} isAdmin={isAdmin} />
-      </div>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as SubmissionsTab)} className="gap-4">
+        <TabsList className="h-10 w-full sm:w-auto">
+          <TabsTrigger value="list" className="px-4" data-tour="submissions-list-tab">
+            提出一覧<span className="ml-1.5 text-xs text-muted-foreground tabular-nums">{details.length}</span>
+          </TabsTrigger>
+          <TabsTrigger value="duplicates" className="px-4" data-tour="submissions-duplicates">
+            曲かぶり
+            {duplicateCount > 0 ? <span className="ml-1.5 rounded-full bg-destructive px-1.5 text-[11px] font-medium text-white tabular-nums">{duplicateCount}</span> : null}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="list" className="mt-0">
+          <SubmissionsListCard
+            columns={tableColumns}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            searchColumnId={searchColumnId}
+            onSearchColumnChange={setSearchColumnId}
+            onOpenTrash={isAdmin ? handleOpenTrash : undefined}
+            trashCount={trashedDetails.length}
+            table={{
+              details: visibleDetails,
+              selectedIds,
+              allSelected: allVisibleSelected,
+              onToggleSelectAll: toggleSelectAllVisible,
+              onToggleSelect: toggleSelectOne,
+              onRowClick: (id) => openSubmissionDetail(id),
+              duplicateMap,
+              isAdmin,
+              onDelete: handleDeleteSubmission,
+              isDeleting: (id) => trash.isSubmissionPending(id),
+              sort,
+              onToggleSort: toggleSort,
+              isHighlightColumn,
+              liveId,
+              adminBlocks: isAdmin ? adminBlocks : [],
+              onAdminSaved: handleAdminSaved,
+            }}
+          />
+        </TabsContent>
+        <TabsContent value="duplicates" className="mt-0">
+          <SongDuplicatesPanel
+            data={duplicates}
+            isLoading={isDuplicateLoading}
+            onRefresh={refreshDuplicates}
+            onDismiss={isAdmin ? handleDismiss : undefined}
+            isDismissing={(normalizedTitle) => isDuplicateDismissRunning(getDuplicateActionKey(normalizedTitle))}
+            isAdmin={isAdmin}
+            onSelectSubmission={(id) => openSubmissionDetail(id)}
+          />
+        </TabsContent>
+      </Tabs>
 
-      {/* テーブルの表示幅を稼ぐため、このカードだけ左右の余白を詰める */}
-      <Card data-tour="submissions-list">
-        <CardHeader className="px-3 sm:px-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <CardTitle className="text-base sm:text-lg">提出一覧</CardTitle>
-              </div>
-              {isAdmin && <span data-tour="submissions-trash"><TrashButton onClick={handleOpenTrash} count={trashedDetails.length} /></span>}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="relative w-full sm:max-w-sm">
-                <Search className="pointer-events-none absolute left-2 top-2.5 size-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  className="pl-8"
-                  placeholder={searchColumn ? `${searchColumn.label}から検索` : 'すべての項目から検索'}
-                  disabled={!hasVisibleColumns}
-                />
-              </div>
-              <Select value={searchColumnId} onValueChange={setSearchColumnId} disabled={!hasVisibleColumns}>
-                <SelectTrigger className="w-full sm:w-64" aria-label="検索対象の項目">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_COLUMNS_VALUE}>すべての項目</SelectItem>
-                  {tableColumns.map((column) => (
-                    <SelectItem key={column.id} value={column.id}>{column.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <p>提出: {visibleDetails.length}件</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-3 sm:px-4">
-          {!hasVisibleColumns ? (
-            <p className="text-sm text-muted-foreground">「表示設定」で「管理」をONにした項目が表示されます</p>
-          ) : visibleDetails.length === 0 ? (
-            <p className="text-sm text-muted-foreground">該当する提出はありません。</p>
-          ) : (
-            <SubmissionsTable
-              columns={tableColumns}
-              details={visibleDetails}
-              selectedIds={selectedIds}
-              allSelected={allVisibleSelected}
-              onToggleSelectAll={toggleSelectAllVisible}
-              onToggleSelect={toggleSelectOne}
-              onRowClick={openSubmissionDetail}
-              duplicateMap={duplicateMap}
-              isAdmin={isAdmin}
-              onDelete={handleDeleteSubmission}
-              isDeleting={(id) => isSubmissionActionRunning(getSubmissionActionKey(id))}
-              sort={sort}
-              onToggleSort={toggleSort}
-              searchQuery={searchQuery}
-              isHighlightColumn={isHighlightColumn}
-              liveId={liveId}
-              adminBlocks={isAdmin ? adminBlocks : []}
-              onAdminSaved={handleAdminSaved}
-            />
-          )}
-        </CardContent>
-      </Card>
-      <SubmissionDetailDialog
-        open={isDetailDialogOpen}
-        onOpenChange={setIsDetailDialogOpen}
-        detail={selectedDetail}
-        config={config}
-        recordLabel={recordLabel}
-        onCopyEditLink={copyEditLink}
-        onOpenPdfPreview={(submissionId) => setExportIds([submissionId])}
-        adminAnswers={isAdmin ? { liveId, blocks: adminBlocks, onSaved: handleAdminSaved } : undefined}
-      />
-
-      <PdfExportDialog tenantId={tenantId} liveId={liveId} submissionIds={exportIds} onClose={() => setExportIds(null)} />
+      {exportDialog}
 
       <TrashSheet
         open={trashOpen}
@@ -428,9 +371,23 @@ export const LiveSubmissionsPage = () => {
         onRestore={handleRestoreFromTrash}
         onPurge={handlePurgeSubmission}
         entityLabel="バンド"
-        isPending={(id) => isSubmissionActionRunning(getSubmissionActionKey(id))}
+        isPending={(id) => trash.isSubmissionPending(id)}
       />
     </div>
   );
 };
 
+/** 詳細で、絞り込んだ一覧の並びどおりに前後の提出へ送る。 */
+function SubmissionStepper({ index, total, onMove, className, wide = false }: { index: number; total: number; onMove: (offset: number) => void; className?: string; wide?: boolean }) {
+  return (
+    <div className={cn('flex items-center gap-1', className)}>
+      <Button variant="outline" size={wide ? 'default' : 'icon'} className={wide ? 'gap-1' : 'size-8'} onClick={() => onMove(-1)} disabled={index <= 0} aria-label="前の提出">
+        <ChevronLeft className="size-4" />{wide ? '前へ' : null}
+      </Button>
+      <span className="min-w-14 text-center text-sm tabular-nums text-muted-foreground">{index + 1} / {total}</span>
+      <Button variant="outline" size={wide ? 'default' : 'icon'} className={wide ? 'gap-1' : 'size-8'} onClick={() => onMove(1)} disabled={index >= total - 1} aria-label="次の提出">
+        {wide ? '次へ' : null}<ChevronRight className="size-4" />
+      </Button>
+    </div>
+  );
+}

@@ -79,9 +79,9 @@ export const BlockChildrenEditor = ({ block, depth, onInsert, onUpdateBlock, ren
                           value={variant.label}
                           onChange={(e) => updateVariantLabel(variant.id, e.target.value)}
                           className="h-8 text-sm font-medium"
-                          placeholder="バリアント名"
+                          aria-label="バリアント名"
                         />
-                        <span className="shrink-0 text-xs text-muted-foreground">({variant.id})</span>
+                        <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{variant.id}</span>
                       </div>
                       <div className="space-y-3">
                         {variant.fields.map((child, childIndex) => (

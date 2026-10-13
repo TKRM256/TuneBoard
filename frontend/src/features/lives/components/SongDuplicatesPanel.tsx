@@ -18,9 +18,11 @@ interface SongDuplicatesPanelProps {
   onDismiss?: (normalizedTitle: string) => void;
   isDismissing?: (normalizedTitle: string) => boolean;
   isAdmin?: boolean;
+  /** 渡すと、重複した提出を押してその提出を開ける */
+  onSelectSubmission?: (submissionId: string) => void;
 }
 
-export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isDismissing, isAdmin = true }: SongDuplicatesPanelProps) => {
+export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isDismissing, isAdmin = true, onSelectSubmission }: SongDuplicatesPanelProps) => {
 
   const menuButton = isAdmin ? (
     <DropdownMenu>
@@ -53,9 +55,6 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isD
             </div>
             {menuButton}
           </div>
-          <p className="text-xs text-muted-foreground">
-            提出があるたびに自動で曲の重複を検出します。
-          </p>
         </CardHeader>
       </Card>
     );
@@ -96,6 +95,7 @@ export const SongDuplicatesPanel = ({ data, isLoading, onRefresh, onDismiss, isD
               index={groupIndex}
               onDismiss={onDismiss}
               isDismissing={isDismissing}
+              onSelectSubmission={onSelectSubmission}
             />
           ))}
           </div>
@@ -154,11 +154,13 @@ function DuplicateGroupCard({
   index,
   onDismiss,
   isDismissing,
+  onSelectSubmission,
 }: {
   group: SongDuplicateGroup;
   index: number;
   onDismiss?: (normalizedTitle: string) => void;
   isDismissing?: (normalizedTitle: string) => boolean;
+  onSelectSubmission?: (submissionId: string) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -192,12 +194,19 @@ function DuplicateGroupCard({
       </div>
       <ul className="divide-y rounded-lg border">
         {group.entries.map((entry, entryIndex) => (
-          <li key={entryIndex} className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-amber-50/30 px-3 py-2 dark:bg-amber-950/10">
-            <Badge variant="secondary" className="font-normal">{entry.recordLabel}</Badge>
-            <span className="min-w-0 text-sm">
-              {entry.originalTitle}
-              <span className="text-muted-foreground"> — {entry.originalArtist || '—'}</span>
-            </span>
+          <li key={entryIndex} className="bg-amber-50/30 dark:bg-amber-950/10">
+            <button
+              type="button"
+              disabled={!onSelectSubmission}
+              onClick={() => onSelectSubmission?.(entry.submissionId)}
+              className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left enabled:hover:bg-amber-100/50 dark:enabled:hover:bg-amber-900/20"
+            >
+              <Badge variant="secondary" className="font-normal">{entry.recordLabel}</Badge>
+              <span className="min-w-0 text-sm">
+                {entry.originalTitle}
+                <span className="text-muted-foreground"> — {entry.originalArtist || '—'}</span>
+              </span>
+            </button>
           </li>
         ))}
       </ul>

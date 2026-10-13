@@ -88,7 +88,7 @@ export function PdfExportDialog({ tenantId, liveId, submissionIds, onClose }: Pr
             {layouts.map((layout) => (
               <ChoiceRow key={layout.id} value={layout.id} title={layout.name} detail={`${layout.pageCount}ページ`} />
             ))}
-            <ChoiceRow value={FROM_FORM} title="フォームの項目を並べる" />
+            <ChoiceRow value={FROM_FORM} title="テンプレート" />
           </RadioGroup>
         )}
         <DialogFooter className="gap-2 sm:justify-between">

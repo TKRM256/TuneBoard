@@ -86,11 +86,11 @@ export function VenueTableProperties({ element, catalog, onUpdate, onChangeColum
             <Checkbox checked={column.shrinkToFit === true} onCheckedChange={(checked) => onChangeColumns(columnOps.update(column.id, { shrinkToFit: checked === true }))} />
             はみ出すときは文字を小さくする
           </Label>
+          <p className="text-[10px] text-muted-foreground">書式</p>
           <ExpressionInput
             catalog={catalog}
             value={column.format ?? ''}
             onChange={(format) => onChangeColumns(columnOps.update(column.id, { format: format || undefined }))}
-            placeholder="例: ${value}"
             title="列の書式"
             scope={{ groupId: element.groupId, fieldId: column.fieldId }}
           />

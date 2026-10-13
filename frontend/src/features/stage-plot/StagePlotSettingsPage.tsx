@@ -9,7 +9,7 @@ import { SaveBar } from '@/components/original/SaveBar';
 import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/original/NumberInput';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useSingleFlight } from '@/hooks/use-single-flight';
@@ -152,8 +152,8 @@ export const StagePlotSettingsPage = () => {
           {!stagePlot.base ? (
             <div className="flex items-center gap-2">
               <Label htmlFor="stage-aspect" className="text-xs">ステージの横縦比（幅 ÷ 高さ）</Label>
-              <Input id="stage-aspect" type="number" step={0.1} min={0.2} max={5} value={draft.aspectRatio} disabled={!isAdmin}
-                onChange={(event) => setDraft({ ...draft, aspectRatio: Number(event.target.value) || DEFAULT_ASPECT_RATIO })} className="h-8 w-24" />
+              <NumberInput id="stage-aspect" step={0.1} min={0.2} max={5} value={draft.aspectRatio} disabled={!isAdmin}
+                onValueChange={(aspectRatio) => setDraft({ ...draft, aspectRatio })} className="h-8 w-24" />
             </div>
           ) : null}
         </CardContent>
