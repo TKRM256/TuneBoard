@@ -53,7 +53,7 @@ function Rows({ blocks, answers, path }: { blocks: SettingSheetBlock[]; answers:
         if (isSectionBlock(block.type)) {
           return (
             <div key={key} className="py-3">
-              <p className="mb-1 text-sm font-semibold">{block.label}</p>
+              <p className="px-0.5 text-sm font-semibold">{block.label}</p>
               <Rows blocks={block.fields} answers={answers} path={key} />
             </div>
           );
@@ -83,10 +83,10 @@ function GroupRow({ block, items, path }: { block: SettingSheetBlock; items: Non
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">未入力</p>
       ) : (
-        <ol className="space-y-2">
+        <ol className="space-y-3">
           {items.map((item, itemIndex) => (
-            <li key={`${path}-item-${itemIndex}`} className="rounded-lg bg-muted/40 px-3 py-2.5">
-              <p className="mb-1 text-sm font-semibold">
+            <li key={`${path}-item-${itemIndex}`} className="rounded-lg bg-muted/50 p-2.5 sm:p-3">
+              <p className="px-0.5 text-sm font-semibold">
                 <span className="mr-2 text-xs font-normal text-muted-foreground tabular-nums">{itemIndex + 1}</span>
                 {resolveItemTitle(block, item.answers, itemIndex)}
               </p>
@@ -99,30 +99,28 @@ function GroupRow({ block, items, path }: { block: SettingSheetBlock; items: Non
   );
 }
 
-/** 繰り返しの 1 件の中身。表題に使った項目も含めて並べる。 */
+/** 繰り返しの 1 件の中身。項目ごとに線で区切り、長い回答でも境目が分かるようにする。 */
 function ItemFields({ fields, answers, path }: { fields: SettingSheetBlock[]; answers: SettingSheetSubmissionAnswerResponse[]; path: string }) {
   const answerMap = new Map(answers.map((a) => [a.fieldId, a]));
   return (
-    <dl className="mt-1">
+    <dl className="mt-2 divide-y overflow-hidden rounded-md border bg-background">
       {fields.map((field, index) => {
         const key = `${path}-${field.id}-${index}`;
         const answer = answerMap.get(field.id);
         if (isRepeatableGroupBlock(field.type) && (answer?.items?.length ?? 0) > 0) {
-          return <GroupRow key={key} block={field} items={answer?.items ?? []} path={key} />;
-        }
-        if (isRepeatableGroupBlock(field.type)) {
           return (
-            <div key={key} className="grid grid-cols-[minmax(5rem,9rem)_1fr] gap-3 py-0.5 text-sm">
-              <dt className="text-muted-foreground">{field.label}</dt>
-              <dd className="text-muted-foreground">未入力</dd>
+            <div key={key} className="px-3">
+              <GroupRow block={field} items={answer?.items ?? []} path={key} />
             </div>
           );
         }
-        const empty = !answer || answer.values.length === 0;
+        const empty = isRepeatableGroupBlock(field.type) || !answer || answer.values.length === 0;
         return (
-          <div key={key} className="grid grid-cols-[minmax(5rem,9rem)_1fr] gap-3 py-0.5 text-sm">
-            <dt className="text-muted-foreground">{field.label}</dt>
-            <dd className={empty ? 'text-muted-foreground' : 'whitespace-pre-wrap wrap-break-word'}>{formatAnswerValue(answer?.values ?? [], field.type)}</dd>
+          <div key={key} className="grid gap-0.5 px-3 py-2 text-sm sm:grid-cols-[9rem_1fr] sm:gap-3">
+            <dt className="text-xs text-muted-foreground sm:text-sm">{field.label}</dt>
+            <dd className={empty ? 'text-muted-foreground' : 'whitespace-pre-wrap wrap-break-word'}>
+              {isRepeatableGroupBlock(field.type) ? '未入力' : formatAnswerValue(answer?.values ?? [], field.type)}
+            </dd>
           </div>
         );
       })}

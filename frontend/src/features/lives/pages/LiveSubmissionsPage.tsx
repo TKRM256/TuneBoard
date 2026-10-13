@@ -1,13 +1,12 @@
-/** 提出確認。提出一覧と曲かぶりをタブで切り替え、提出を押すと同じ画面の中で詳細を読む。 */
+/** 提出確認。提出一覧と曲かぶりをタブで切り替え、提出を押すと一覧の上に詳細を開く。 */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Copy, FileDown } from 'lucide-react';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { PageHeader } from '@/components/original/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 
 import { apiClient } from '@/lib/api/client';
 import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
@@ -22,9 +21,8 @@ import {
 import { applyAdminAnswers, collectAdminBlocks } from '../admin-answers/admin-answer-model';
 import { PdfExportDialog } from '../venue-form/PdfExportDialog';
 import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
-import { SubmissionDetailView } from '../components/SubmissionDetailView';
+import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { SubmissionsListCard } from '../components/SubmissionsListCard';
-import { formatSubmittedAt } from '../helpers/submission-detail-helpers';
 import { collectColumns } from '../helpers/submission-table-helpers';
 import { useSubmissionTableView } from '../hooks/use-submission-table-view';
 import { useSubmissionTrash } from '../hooks/use-submission-trash';
@@ -43,6 +41,7 @@ export const LiveSubmissionsPage = () => {
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<SubmissionsTab>('list');
   const [isLoading, setIsLoading] = useState(true);
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
@@ -199,21 +198,29 @@ export const LiveSubmissionsPage = () => {
     setDetails((prev) => prev.map((d) => (d.id === submissionId ? applyAdminAnswers(d, adminIds, answers) : d)));
   }, [adminBlocks]);
 
-  // 詳細は一覧と同じ画面の中で開く。URL に残すので、ブラウザの戻るで一覧へ戻れる
+  // 詳細は一覧の上に開く。URL にも残すので、スマホの戻る操作で閉じられる
   const openedId = searchParams.get(DETAIL_PARAM);
-  const listScrollRef = useRef(0);
+  const openedHereRef = useRef(false);
   const openSubmissionDetail = useCallback((id: string, replace = false) => {
-    if (!replace) listScrollRef.current = window.scrollY;
+    if (!replace) openedHereRef.current = true;
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set(DETAIL_PARAM, id);
       return next;
     }, { replace });
-    window.scrollTo(0, 0);
   }, [setSearchParams]);
-  useEffect(() => {
-    if (!openedId) window.scrollTo(0, listScrollRef.current);
-  }, [openedId]);
+  const closeSubmissionDetail = useCallback(() => {
+    if (openedHereRef.current) {
+      openedHereRef.current = false;
+      navigate(-1);
+      return;
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete(DETAIL_PARAM);
+      return next;
+    }, { replace: true });
+  }, [navigate, setSearchParams]);
 
   if (!tenantId || !liveId) {
     return <Navigate to="/tenants" replace />;
@@ -227,7 +234,6 @@ export const LiveSubmissionsPage = () => {
     return <Navigate to={`/tenants/${tenantId}/lives`} replace />;
   }
 
-  const listPath = `/tenants/${tenantId}/lives/${liveId}/submissions`;
   const crumbs = [
     { label: 'テナント一覧', to: '/tenants' },
     { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
@@ -244,45 +250,8 @@ export const LiveSubmissionsPage = () => {
   };
   const exportDialog = <PdfExportDialog tenantId={tenantId} liveId={liveId} submissionIds={exportIds} onClose={() => setExportIds(null)} />;
 
-  if (openedDetail) {
-    const order = visibleDetails.some((d) => d.id === openedDetail.id) ? visibleDetails : details;
-    const index = order.findIndex((d) => d.id === openedDetail.id);
-    const move = (offset: number) => {
-      const next = order[index + offset];
-      if (next) openSubmissionDetail(next.id, true);
-    };
-    return (
-      <div className="space-y-6 pb-20 sm:pb-0">
-        <PageHeader
-          crumbs={[...crumbs, { label: '提出確認', to: listPath }, { label: openedDetail.recordLabel }]}
-          backTo={listPath}
-          title={openedDetail.recordLabel}
-          description={`${formatSubmittedAt(openedDetail.submittedAt)} 提出`}
-          actions={(
-            <>
-              <SubmissionStepper index={index} total={order.length} onMove={move} className="hidden sm:flex" />
-              <Button variant="outline" size="sm" onClick={() => void copyEditLink(openedDetail.id)}>
-                <Copy className="size-4" />編集リンクをコピー
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setExportIds([openedDetail.id])}>
-                <FileDown className="size-4" />PDF出力
-              </Button>
-            </>
-          )}
-        />
-        <SubmissionDetailView
-          detail={openedDetail}
-          config={config}
-          adminAnswers={isAdmin ? { liveId, blocks: adminBlocks, onSaved: handleAdminSaved } : undefined}
-        />
-        {/* スマホは前後の送りを親指の届く画面下に置く */}
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
-          <SubmissionStepper index={index} total={order.length} onMove={move} className="justify-between" wide />
-        </div>
-        {exportDialog}
-      </div>
-    );
-  }
+  const detailOrder = openedDetail && visibleDetails.some((d) => d.id === openedDetail.id) ? visibleDetails : details;
+  const detailIndex = openedDetail ? detailOrder.findIndex((d) => d.id === openedDetail.id) : -1;
 
   const duplicateCount = duplicates?.groups.filter((group) => !group.dismissed).length ?? 0;
 
@@ -362,6 +331,21 @@ export const LiveSubmissionsPage = () => {
         </TabsContent>
       </Tabs>
 
+      <SubmissionDetailDialog
+        detail={openedDetail}
+        index={detailIndex}
+        total={detailOrder.length}
+        onMove={(offset) => {
+          const next = detailOrder[detailIndex + offset];
+          if (next) openSubmissionDetail(next.id, true);
+        }}
+        onClose={closeSubmissionDetail}
+        onCopyEditLink={(id) => void copyEditLink(id)}
+        onExport={(id) => setExportIds([id])}
+        config={config}
+        adminAnswers={isAdmin ? { liveId, blocks: adminBlocks, onSaved: handleAdminSaved } : undefined}
+      />
+
       {exportDialog}
 
       <TrashSheet
@@ -376,18 +360,3 @@ export const LiveSubmissionsPage = () => {
     </div>
   );
 };
-
-/** 詳細で、絞り込んだ一覧の並びどおりに前後の提出へ送る。 */
-function SubmissionStepper({ index, total, onMove, className, wide = false }: { index: number; total: number; onMove: (offset: number) => void; className?: string; wide?: boolean }) {
-  return (
-    <div className={cn('flex items-center gap-1', className)}>
-      <Button variant="outline" size={wide ? 'default' : 'icon'} className={wide ? 'gap-1' : 'size-8'} onClick={() => onMove(-1)} disabled={index <= 0} aria-label="前の提出">
-        <ChevronLeft className="size-4" />{wide ? '前へ' : null}
-      </Button>
-      <span className="min-w-14 text-center text-sm tabular-nums text-muted-foreground">{index + 1} / {total}</span>
-      <Button variant="outline" size={wide ? 'default' : 'icon'} className={wide ? 'gap-1' : 'size-8'} onClick={() => onMove(1)} disabled={index >= total - 1} aria-label="次の提出">
-        {wide ? '次へ' : null}<ChevronRight className="size-4" />
-      </Button>
-    </div>
-  );
-}
