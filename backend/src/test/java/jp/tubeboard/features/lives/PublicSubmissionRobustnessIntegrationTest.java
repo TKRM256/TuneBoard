@@ -3,6 +3,7 @@ package jp.tubeboard.features.lives;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -150,6 +151,13 @@ class PublicSubmissionRobustnessIntegrationTest {
         List<ItunesTrackLink> links = itunesTrackLinkRepository.findAllBySubmissionId(id);
         assertThat(links).extracting(ItunesTrackLink::getSongTitle, ItunesTrackLink::getItunesDurationMs)
                 .containsExactlyInAnyOrder(tuple("白日", 181000L), tuple("Lemon", null));
+
+        // 提出確認の一覧でも、提出ごとの曲がそろって返る（詳細でジャケットを出すため）
+        String token = jwtTokenService.generateToken("robust-sub", "R", "robust@example.com", "");
+        mockMvc.perform(get("/api/lives/{id}/setting-sheet/submissions/details", live.getId())
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].itunesLinks.length()").value(2));
     }
 
     @Test

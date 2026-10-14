@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -133,15 +134,30 @@ public class LiveServiceHelper {
 
         public List<PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse> mapItunesLinks(UUID submissionId) {
                 return itunesTrackLinkRepository.findAllBySubmissionId(submissionId).stream()
-                                .map(link -> new PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse(
-                                                link.getSongTitle(),
-                                                link.getSongArtist(),
-                                                link.getItunesTrackId(),
-                                                link.getItunesTitle(),
-                                                link.getItunesArtist(),
-                                                link.getItunesAlbumArtUrl(),
-                                                link.getItunesDurationMs()))
+                                .map(LiveServiceHelper::toItunesLinkResponse)
                                 .toList();
+        }
+
+        /** 提出ごとの iTunes の曲。一覧で 1 件ずつ引かないよう、まとめて読む。 */
+        public Map<UUID, List<PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse>> mapItunesLinksBySubmission(
+                        List<UUID> submissionIds) {
+                if (submissionIds.isEmpty()) {
+                        return Map.of();
+                }
+                return itunesTrackLinkRepository.findAllBySubmissionIdIn(submissionIds).stream()
+                                .collect(Collectors.groupingBy(link -> link.getSubmission().getId(),
+                                                Collectors.mapping(LiveServiceHelper::toItunesLinkResponse, Collectors.toList())));
+        }
+
+        private static PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse toItunesLinkResponse(ItunesTrackLink link) {
+                return new PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse(
+                                link.getSongTitle(),
+                                link.getSongArtist(),
+                                link.getItunesTrackId(),
+                                link.getItunesTitle(),
+                                link.getItunesArtist(),
+                                link.getItunesAlbumArtUrl(),
+                                link.getItunesDurationMs());
         }
 
         public SettingSheetSubmissionResponse saveSubmission(Live live,

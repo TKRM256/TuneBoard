@@ -331,8 +331,9 @@ public class LivesService implements ILivesService {
 
                 List<SettingSheetSubmission> submissions = settingSheetSubmissionRepository
                                 .findAllByLiveIdAndAccessibleByUserId(liveId, currentUser.getId());
-                Map<UUID, List<FieldAnswerRequest>> adminAnswers = adminAnswerService
-                                .readAll(submissions.stream().map(SettingSheetSubmission::getId).toList());
+                List<UUID> submissionIds = submissions.stream().map(SettingSheetSubmission::getId).toList();
+                Map<UUID, List<FieldAnswerRequest>> adminAnswers = adminAnswerService.readAll(submissionIds);
+                var itunesLinks = helper.mapItunesLinksBySubmission(submissionIds);
                 return submissions.stream()
                                 .map(submission -> {
                                         PublicSettingSheetSubmissionRequest payload = settingSheetSubmissionService
@@ -347,7 +348,7 @@ public class LivesService implements ILivesService {
                                                         adminAnswerService.merge(settingSheetSubmissionService
                                                                         .mapFieldAnswers(payload.answers()),
                                                                         adminAnswers.get(submission.getId()), config),
-                                                        List.of());
+                                                        itunesLinks.getOrDefault(submission.getId(), List.of()));
                                 })
                                 .toList();
         }

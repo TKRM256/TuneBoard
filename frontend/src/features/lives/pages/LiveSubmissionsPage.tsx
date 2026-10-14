@@ -19,7 +19,6 @@ import {
   type SongDuplicateResponse,
 } from '../types/live-types';
 import { applyAdminAnswers, collectAdminBlocks } from '../admin-answers/admin-answer-model';
-import { PdfExportDialog } from '../venue-form/PdfExportDialog';
 import { SongDuplicatesPanel } from '../components/SongDuplicatesPanel';
 import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 import { SubmissionsListCard } from '../components/SubmissionsListCard';
@@ -182,15 +181,18 @@ export const LiveSubmissionsPage = () => {
     ? visibleDetails.filter((d) => selectedIds.has(d.id)).map((d) => d.id)
     : visibleDetails.map((d) => d.id)), [visibleDetails, visibleSelectedCount, selectedIds]);
 
-  const [exportIds, setExportIds] = useState<string[] | null>(null);
+  // 出力は PDF 書式の画面で、書式を選んでそのまま保存する
+  const openExport = useCallback((ids: string[]) => {
+    navigate(`/tenants/${tenantId}/lives/${liveId}/pdf-layouts?ids=${ids.join(',')}`);
+  }, [navigate, tenantId, liveId]);
   const handleClickBulkPdf = useCallback(() => {
     const ids = targetIds();
     if (ids.length === 0) {
       toast.error('対象の提出を選択してください', { position: 'top-center' });
       return;
     }
-    setExportIds(ids);
-  }, [targetIds]);
+    openExport(ids);
+  }, [targetIds, openExport]);
   const adminBlocks = useMemo(() => collectAdminBlocks(config), [config]);
   // 管理者入力を保存したら、表と詳細に出している回答もその場で差し替える
   const handleAdminSaved = useCallback((submissionId: string, answers: SettingSheetSubmissionAnswerResponse[]) => {
@@ -248,7 +250,6 @@ export const LiveSubmissionsPage = () => {
       toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
     }
   };
-  const exportDialog = <PdfExportDialog tenantId={tenantId} liveId={liveId} submissionIds={exportIds} onClose={() => setExportIds(null)} />;
 
   const detailOrder = openedDetail && visibleDetails.some((d) => d.id === openedDetail.id) ? visibleDetails : details;
   const detailIndex = openedDetail ? detailOrder.findIndex((d) => d.id === openedDetail.id) : -1;
@@ -341,12 +342,10 @@ export const LiveSubmissionsPage = () => {
         }}
         onClose={closeSubmissionDetail}
         onCopyEditLink={(id) => void copyEditLink(id)}
-        onExport={(id) => setExportIds([id])}
+        onExport={(id) => openExport([id])}
         config={config}
         adminAnswers={isAdmin ? { liveId, blocks: adminBlocks, onSaved: handleAdminSaved } : undefined}
       />
-
-      {exportDialog}
 
       <TrashSheet
         open={trashOpen}

@@ -29,6 +29,13 @@ export async function fetchLayouts(liveId: string): Promise<LayoutSummary[]> {
   return (await apiClient.get<LayoutSummary[]>(base(liveId))) ?? [];
 }
 
+/** 今のフォームの項目を順に並べた書式（保存はされない）。 */
+export async function fetchFormTemplate(liveId: string): Promise<VenueFormDocument> {
+  const response = await apiClient.get<VenueFormDocument>(`${base(liveId)}/form-template`);
+  if (!response) throw new Error('フォームから並べられませんでした');
+  return response;
+}
+
 export async function fetchLayout(liveId: string, layoutId: string): Promise<LayoutResponse> {
   const response = await apiClient.get<LayoutResponse>(`${base(liveId)}/${layoutId}`);
   if (!response) throw new Error('書式を読み込めませんでした');

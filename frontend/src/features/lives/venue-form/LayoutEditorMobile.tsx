@@ -15,6 +15,7 @@ import type { VenueFormEditor } from './useVenueFormEditor';
 import { VenueCanvas } from './VenueCanvas';
 import { ExportButton, LayoutNameInput, PreviewButton, SampleSelect, SaveButton, type EditorHeaderProps } from './VenueEditorHeader';
 import { VenuePagesPanel } from './VenuePagesPanel';
+import { FormTemplateFill } from './FormTemplateFill';
 import { VenuePalette } from './VenuePalette';
 import { VenuePropertyPanel } from './VenuePropertyPanel';
 import type { ElementInsert } from './venue-element-factory';
@@ -108,6 +109,7 @@ export function LayoutEditorMobile({ header, liveId, editor, catalog, blocksById
 
         <TabsContent value="parts" className="m-0 min-h-0 flex-1 space-y-6 overflow-y-auto p-3 pb-16">
           <VenuePagesPanel liveId={liveId} editor={editor} assets={assets} onAssetUploaded={onAssetUploaded} />
+          {header.canEdit ? <FormTemplateFill liveId={liveId} editor={editor} onFilled={() => setTab('canvas')} /> : null}
           <VenuePalette catalog={catalog} disabled={!editor.currentPage} onInsert={handleInsert} />
         </TabsContent>
 

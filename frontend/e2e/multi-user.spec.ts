@@ -164,7 +164,8 @@ test('管理者 2 人・メンバー・出演者が同時に操作しても、�
     await admin.page.getByText(target.recordLabel, { exact: true }).first().click();
     const dialog = admin.page.getByRole('dialog');
     await dialog.getByRole('button', { name: 'PDF出力' }).click();
-    await admin.page.getByRole('dialog').getByRole('button', { name: 'PDFを保存' }).click();
+    await expect(admin.page).toHaveURL(new RegExp(`pdf-layouts\\?ids=${target.id}`));
+    await admin.page.getByRole('button', { name: 'テンプレートで保存' }).click();
     await expect(admin.page.getByText(/見つかりません|失敗しました/)).toBeVisible();
   });
 

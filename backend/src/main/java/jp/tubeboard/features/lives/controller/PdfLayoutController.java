@@ -38,6 +38,7 @@ import jp.tubeboard.features.lives.venueform.PdfLayoutDtos.RenderRequest;
 import jp.tubeboard.features.lives.venueform.PdfLayoutDtos.ZipRequest;
 import jp.tubeboard.features.lives.venueform.PdfLayoutPdfService;
 import jp.tubeboard.features.lives.venueform.PdfLayoutService;
+import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenueFormDocument;
 import jp.tubeboard.features.lives.venueform.lines.RuledLineService;
 import lombok.AllArgsConstructor;
 
@@ -69,6 +70,11 @@ public class PdfLayoutController {
             throw new BadRequestException("コピー元の書式を選んでください");
         }
         return ResponseEntity.ok(layoutService.copyFrom(id, request.sourceLiveId(), request.sourceLayoutId()));
+    }
+
+    @GetMapping("/form-template")
+    public ResponseEntity<VenueFormDocument> formTemplate(@PathVariable(name = "id") UUID id) {
+        return ResponseEntity.ok(layoutService.formTemplate(id));
     }
 
     @GetMapping("/{layoutId}")

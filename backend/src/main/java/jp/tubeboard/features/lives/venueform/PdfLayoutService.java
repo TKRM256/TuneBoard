@@ -60,6 +60,12 @@ public class PdfLayoutService {
                 .toList();
     }
 
+    /** 今のフォームの項目を順に並べた書式。白紙の書式に流し込むときに使う（保存はしない）。 */
+    public VenueFormDocument formTemplate(UUID liveId) {
+        helper.findAdminLive(liveId);
+        return documents.fromForm(loader.loadLive(liveId).config());
+    }
+
     public LayoutResponse get(UUID liveId, UUID layoutId) {
         Live live = helper.findOwnedLive(liveId);
         return toResponse(live, findLayout(live, layoutId));

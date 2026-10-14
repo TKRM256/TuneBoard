@@ -210,6 +210,20 @@ class PdfLayoutIntegrationTest {
     }
 
     @Test
+    void フォームの項目を並べた書式を保存せずに受け取れメンバーは受け取れない() throws Exception {
+        mockMvc.perform(get("/api/lives/{id}/pdf-layouts/form-template", live.getId())
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pages").isNotEmpty())
+                .andExpect(jsonPath("$.elements").isNotEmpty());
+        assertThat(layoutRepository.findAll()).isEmpty();
+
+        mockMvc.perform(get("/api/lives/{id}/pdf-layouts/form-template", live.getId())
+                .header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void 確認APIは条件式の誤りを警告で返す() throws Exception {
         UUID assetId = uploadBackground(live, adminToken);
         Map<String, Object> doc = Map.of(

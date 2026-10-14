@@ -53,7 +53,7 @@ export const VenueFormEditorPage = () => {
   const gridFit = useGridHeightFit({ liveId: liveId ?? '', submissionId: previewId, doc: editor.doc, onUpdateElement: editor.updateElement });
 
   if (!tenantId || !liveId || !layoutId) return <Navigate to="/tenants" replace />;
-  const backTo = `/tenants/${tenantId}/lives/${liveId}/${pickedIds.length > 0 ? 'submissions' : 'pdf-layouts'}`;
+  const backTo = `/tenants/${tenantId}/lives/${liveId}/pdf-layouts${pickedIds.length > 0 ? `?ids=${pickedIds.join(',')}` : ''}`;
   if (isLoading) return <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">読み込み中...</div>;
   if (!data) return <Navigate to={`/tenants/${tenantId}/lives/${liveId}/pdf-layouts`} replace />;
 

@@ -49,6 +49,13 @@ export function useVenueFormEditor() {
     setPageId(next.pages[0]?.id ?? null);
   }, [replace]);
 
+  /** 書式をまるごと差し替える。load と違い、元に戻せる */
+  const replaceAll = useCallback((next: VenueFormDocument) => {
+    commit(next);
+    setSelectedIds(new Set());
+    setPageId(next.pages[0]?.id ?? null);
+  }, [commit]);
+
   const select = useCallback((id: string | null, additive: boolean) => {
     setSelectedIds((prev) => {
       if (id === null) return new Set();
@@ -114,6 +121,7 @@ export function useVenueFormEditor() {
     paste,
     selectAllOnPage,
     load,
+    replaceAll,
     currentPage,
     pageElements,
     selectedIds,

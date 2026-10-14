@@ -218,15 +218,53 @@ test('バンド以外のフォームで、提出から会場の書式に書き�
     expect(Number(await editor.panelNumber(2).inputValue())).toBeCloseTo(70.48, 1);
   });
 
-  await test.step('提出確認の「全件をPDF出力」で書式を選んで保存できる', async () => {
+  await test.step('提出確認の「全件をPDF出力」で PDF 書式の画面に移り、書式を選んでそのまま保存できる', async () => {
     await page.goto(`/tenants/${tenant.id}/lives/${live.id}/submissions`);
     await page.getByRole('button', { name: '全件をPDF出力' }).click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog.getByText('会場書式')).toBeVisible();
-    await expect(dialog.getByText('テンプレート', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/pdf-layouts\?ids=/);
+    await expect(page.getByRole('region', { name: '出力する提出' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'テンプレートで保存' })).toBeVisible();
     const download = page.waitForEvent('download');
-    await dialog.getByRole('button', { name: /Zipで保存/ }).click();
+    await page.getByRole('button', { name: '会場書式で保存' }).click();
     expect((await download).suggestedFilename()).toMatch(/\.zip$/);
+  });
+
+  await test.step('提出の詳細の「PDF出力」から、その提出だけを PDF にでき、戻ると詳細に戻る', async () => {
+    await page.goto(`/tenants/${tenant.id}/lives/${live.id}/submissions`);
+    await page.getByText('ステップスクエア', { exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    const label = 'ステップスクエア';
+    await dialog.getByRole('button', { name: 'PDF出力' }).click();
+    await expect(page.getByRole('region', { name: '出力する提出' })).toContainText(label);
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: '会場書式で保存' }).click();
+    expect((await download).suggestedFilename()).toMatch(/\.pdf$/);
+    await page.getByRole('link', { name: '戻る' }).click();
+    await expect(page.getByRole('dialog').getByRole('heading', { name: label })).toBeVisible();
+  });
+
+  await test.step('白紙の書式に、今のフォームの項目を用紙の大きさに合わせて並べられる', async () => {
+    await page.goto(`/tenants/${tenant.id}/lives/${live.id}/pdf-layouts`);
+    await page.getByRole('button', { name: '書式を作る' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('名前').fill('白紙書式');
+    await dialog.getByText('白紙から作成する').click();
+    await dialog.getByRole('button', { name: '作る', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: '書式の名前' })).toHaveValue('白紙書式');
+    await page.getByRole('combobox', { name: '用紙' }).click();
+    await page.getByRole('option', { name: 'A5', exact: true }).click();
+    await page.getByRole('button', { name: 'フォームの項目を並べる' }).click();
+    await expect(page.getByText('フォームの項目を並べました')).toBeVisible();
+    // 何か置いたあとは出さない
+    await expect(page.getByRole('button', { name: 'フォームの項目を並べる' })).toHaveCount(0);
+    await page.getByRole('button', { name: /^保存/ }).click();
+    await expect(page.getByText('書式を保存しました')).toBeVisible();
+    const layoutId = page.url().split('/pdf-layouts/')[1].split('?')[0];
+    const saved = await apiGet<{ document: { pages: { widthMm: number }[]; elements: { xMm: number; wMm: number }[] } }>(
+      page, `/lives/${live.id}/pdf-layouts/${layoutId}`);
+    expect(saved.document.pages.every((paper) => Math.abs(paper.widthMm - 148) < 0.5)).toBeTruthy();
+    expect(saved.document.elements.length).toBeGreaterThan(0);
+    expect(saved.document.elements.every((element) => element.xMm + element.wMm <= 148.5)).toBeTruthy();
   });
 
   expect(pageErrors).toEqual([]);

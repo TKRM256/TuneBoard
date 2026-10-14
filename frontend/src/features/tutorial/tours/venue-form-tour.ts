@@ -87,7 +87,7 @@ export const VENUE_FORM_TOUR: TourStep[] = [
   {
     target: 'venue-save',
     title: '保存',
-    body: '保存すると、提出確認の「PDF出力」でこの書式を選べます。',
+    body: '保存すると、提出確認の「PDF出力」からこの書式で保存できます。',
     side: 'bottom',
   },
 ];

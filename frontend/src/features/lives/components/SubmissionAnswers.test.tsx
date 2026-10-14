@@ -54,6 +54,21 @@ describe('提出内容の表示', () => {
     expect(rows[3]).toHaveTextContent('未入力');
   });
 
+  it('楽曲は iTunes で選んだ曲があればジャケットを添える', () => {
+    const song = block('song', 'SONG', '楽曲');
+    const { container } = render(
+      <SubmissionAnswers
+        path="s3"
+        blocks={[song]}
+        answers={[answer('song', '夏祭り', 'Whiteberry')]}
+        links={[{ songTitle: '夏祭り', songArtist: 'whiteberry ', itunesTrackId: '1', itunesTitle: '夏祭り', itunesArtist: 'Whiteberry', itunesAlbumArtUrl: 'https://example.com/a.jpg', itunesDurationMs: 245000 }]}
+      />,
+    );
+    expect(container.querySelector('img')).toHaveAttribute('src', 'https://example.com/a.jpg');
+    expect(screen.getByRole('definition')).toHaveTextContent('夏祭り');
+    expect(screen.getByRole('definition')).toHaveTextContent('演奏時間の目安 5分');
+  });
+
   it('答えていない項目は未入力と出す', () => {
     render(<SubmissionAnswers path="s2" blocks={[block('memo', 'LONG_TEXT', '備考')]} answers={[]} />);
     expect(screen.getByRole('definition')).toHaveTextContent('未入力');

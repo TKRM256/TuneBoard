@@ -17,6 +17,7 @@ import { useVenueKeyboardShortcuts } from './useVenueKeyboardShortcuts';
 import { VenueCanvas } from './VenueCanvas';
 import { VenueEditorHeader, type EditorHeaderProps } from './VenueEditorHeader';
 import { VenuePagesPanel } from './VenuePagesPanel';
+import { FormTemplateFill } from './FormTemplateFill';
 import { VenuePalette } from './VenuePalette';
 import { VenuePropertyPanel } from './VenuePropertyPanel';
 import type { VenueAsset } from './venue-form-schema';
@@ -64,6 +65,7 @@ export function LayoutEditorDesktop({ header, liveId, editor, catalog, blocksByI
         <ResizablePanel id="parts" defaultSize="16rem" minSize="13rem" maxSize="32rem" groupResizeBehavior="preserve-pixel-size">
           <aside className="h-full space-y-6 overflow-y-auto p-3">
             <VenuePagesPanel liveId={liveId} editor={editor} assets={assets} onAssetUploaded={onAssetUploaded} />
+            {header.canEdit ? <FormTemplateFill liveId={liveId} editor={editor} /> : null}
             <VenuePalette catalog={catalog} disabled={!editor.currentPage} onInsert={editor.insert} />
           </aside>
         </ResizablePanel>
