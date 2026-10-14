@@ -2,6 +2,8 @@ import { useParams } from 'react-router-dom';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { SettingSheetForm } from '@/features/setting-sheet/components/SettingSheetForm';
+import { StagePlotProvider } from '@/features/stage-plot/StagePlotContext';
+import { publicStagePlotBaseUrl } from '@/features/stage-plot/stage-plot-api';
 import { usePublicLiveData } from '../hooks/usePublicLiveData';
 
 export const PublicLivePage = () => {
@@ -32,5 +34,9 @@ export const PublicLivePage = () => {
     return null;
   }
 
-  return <SettingSheetForm key={`${publicToken}:${submissionId ?? 'new'}`} publicToken={publicToken} live={live} submission={submission} />;
+  return (
+    <StagePlotProvider settings={live.stagePlot ?? null} baseUrl={live.stagePlot?.hasBase ? publicStagePlotBaseUrl(publicToken) : null}>
+      <SettingSheetForm key={`${publicToken}:${submissionId ?? 'new'}`} publicToken={publicToken} live={live} submission={submission} />
+    </StagePlotProvider>
+  );
 };

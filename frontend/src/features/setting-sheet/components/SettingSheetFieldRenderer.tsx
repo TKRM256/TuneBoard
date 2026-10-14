@@ -19,6 +19,7 @@ import {
   type SettingSheetBlock,
   type ItunesLinkSelection,
 } from '@/features/lives/types/live-types';
+import { StagePlotInput } from '@/features/stage-plot/StagePlotInput';
 import { cn } from '@/lib/utils';
 
 import {
@@ -30,6 +31,7 @@ import {
   type SettingSheetGroupItemValue,
 } from '../types';
 import { appearanceClass, fieldWidthClass, formatGroupItemTitle, moveItem, optionLayoutClass } from '../helpers/layout-classes';
+import { DurationField } from './DurationField';
 import { ItunesTrackSelector } from './ItunesTrackSelector';
 import { SongBlockField } from './SongBlockField';
 
@@ -167,6 +169,14 @@ export const SettingSheetFieldRenderer = ({
 
       {block.type === 'SHORT_TEXT' ? (
         <Input id={inputId} value={firstValue} onChange={(event) => setScopedAnswer(block.id, toSingleValue(event.target.value))} className="mt-3" />
+      ) : null}
+
+      {block.type === 'DURATION' ? (
+        <DurationField inputId={inputId} value={firstValue} onChange={(next) => setScopedAnswer(block.id, toSingleValue(next))} />
+      ) : null}
+
+      {block.type === 'STAGE_PLOT' ? (
+        <StagePlotInput inputId={inputId} value={firstValue} onChange={(next) => setScopedAnswer(block.id, toSingleValue(next))} />
       ) : null}
 
       {block.type === 'LONG_TEXT' ? (

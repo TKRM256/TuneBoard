@@ -21,7 +21,7 @@ export interface VisibilityScope {
 export const VISIBILITY_SCOPES: VisibilityScope[] = [
   {
     key: 'shared',
-    label: '共有用提出一覧',
+    label: '共有用',
     description: '',
     field: 'publicVisible',
     inverted: false,
@@ -30,7 +30,7 @@ export const VISIBILITY_SCOPES: VisibilityScope[] = [
   },
   {
     key: 'admin',
-    label: '管理者用提出一覧',
+    label: '管理者用',
     description: '',
     field: 'adminVisible',
     inverted: false,
@@ -39,7 +39,7 @@ export const VISIBILITY_SCOPES: VisibilityScope[] = [
   },
   {
     key: 'form',
-    label: 'フォーム',
+    label: '提出フォーム',
     description: '',
     field: 'hidden',
     inverted: true,

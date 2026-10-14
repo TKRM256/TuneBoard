@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -31,10 +32,13 @@ import jp.tubeboard.features.tenants.model.Tenants;
 import jp.tubeboard.features.tenants.repository.TenantsRepository;
 import jp.tubeboard.features.tenants.repository.UserTenantRepository;
 import lombok.AllArgsConstructor;
+import jp.tubeboard.features.lives.service.ItunesDuration;
 import jp.tubeboard.features.lives.service.SettingSheetConstants;
 import jp.tubeboard.features.lives.service.SettingSheetSubmissionService;
+import jp.tubeboard.features.lives.service.config.AdminOnlyBlocks;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.duplicate.SongDuplicateDetectionService;
+import jp.tubeboard.features.lives.stageplot.StagePlotSettingsReader;
 
 @Component
 @AllArgsConstructor
@@ -48,6 +52,7 @@ public class LiveServiceHelper {
         private final SettingSheetSubmissionService settingSheetSubmissionService;
         private final SongDuplicateDetectionService songDuplicateDetectionService;
         private final UserTenantRepository userTenantRepository;
+        private final StagePlotSettingsReader stagePlotSettingsReader;
 
         public Tenants findTenant(UUID tenantId, Long userId) {
                 return tenantsRepository.findByIdAndAccessibleByUserId(tenantId, userId)
@@ -129,14 +134,30 @@ public class LiveServiceHelper {
 
         public List<PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse> mapItunesLinks(UUID submissionId) {
                 return itunesTrackLinkRepository.findAllBySubmissionId(submissionId).stream()
-                                .map(link -> new PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse(
-                                                link.getSongTitle(),
-                                                link.getSongArtist(),
-                                                link.getItunesTrackId(),
-                                                link.getItunesTitle(),
-                                                link.getItunesArtist(),
-                                                link.getItunesAlbumArtUrl()))
+                                .map(LiveServiceHelper::toItunesLinkResponse)
                                 .toList();
+        }
+
+        /** 提出ごとの iTunes の曲。一覧で 1 件ずつ引かないよう、まとめて読む。 */
+        public Map<UUID, List<PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse>> mapItunesLinksBySubmission(
+                        List<UUID> submissionIds) {
+                if (submissionIds.isEmpty()) {
+                        return Map.of();
+                }
+                return itunesTrackLinkRepository.findAllBySubmissionIdIn(submissionIds).stream()
+                                .collect(Collectors.groupingBy(link -> link.getSubmission().getId(),
+                                                Collectors.mapping(LiveServiceHelper::toItunesLinkResponse, Collectors.toList())));
+        }
+
+        private static PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse toItunesLinkResponse(ItunesTrackLink link) {
+                return new PublicSettingSheetSubmissionDetailResponse.ItunesLinkResponse(
+                                link.getSongTitle(),
+                                link.getSongArtist(),
+                                link.getItunesTrackId(),
+                                link.getItunesTitle(),
+                                link.getItunesArtist(),
+                                link.getItunesAlbumArtUrl(),
+                                link.getItunesDurationMs());
         }
 
         public SettingSheetSubmissionResponse saveSubmission(Live live,
@@ -145,8 +166,11 @@ public class LiveServiceHelper {
                 assertAcceptingPublicSubmission(live);
                 PublicSettingSheetSubmissionRequest normalizedRequest = settingSheetSubmissionService
                                 .normalizeSubmissionRequest(request);
-                SettingSheetConfigResponse config = settingSheetConfigService.readSettingSheetConfig(live);
-                settingSheetSubmissionService.validateSubmission(normalizedRequest, config);
+                // 出演者は管理者入力の項目を見られないので、それを除いた設定で検証する
+                SettingSheetConfigResponse config = AdminOnlyBlocks.stripForPublic(
+                                settingSheetConfigService.readSettingSheetConfig(live));
+                settingSheetSubmissionService.validateSubmission(normalizedRequest, config,
+                                stagePlotSettingsReader.read(live));
                 String summary = settingSheetSubmissionService.resolveSubmissionSummary(config, normalizedRequest,
                                 live.getName());
 
@@ -213,6 +237,7 @@ public class LiveServiceHelper {
                                         .itunesTitle(link.itunesTitle())
                                         .itunesArtist(link.itunesArtist())
                                         .itunesAlbumArtUrl(link.itunesAlbumArtUrl())
+                                        .itunesDurationMs(ItunesDuration.sanitizeMillis(link.itunesDurationMs()))
                                         .build();
                         itunesTrackLinkRepository.save(entity);
                 }

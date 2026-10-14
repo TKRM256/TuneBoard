@@ -7,6 +7,12 @@ import {
   type SettingSheetBlock,
   type SettingSheetConfigResponse,
 } from '@/features/lives/types/live-types';
+import {
+  MAX_PLOT_ITEMS,
+  MAX_PLOT_LABEL_LENGTH,
+  parseStagePlotValue,
+} from '@/features/stage-plot/stage-plot-types';
+import { isValidDuration } from './duration';
 import { createSettingSheetFieldValue, type SettingSheetFieldValue, type SettingSheetFormValues } from './form-state';
 import { resolveOptionSourceValues } from './serialization';
 
@@ -58,12 +64,23 @@ export function validateSettingSheetForm(values: SettingSheetFormValues, config:
         issues.push({ key, label: block.label, message: `${maxLength}文字以内で入力してください。` });
         continue;
       }
-      if (['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'BOOLEAN'].includes(block.type) && answerValues.length > 1) {
+      if (['SHORT_TEXT', 'LONG_TEXT', 'SINGLE_SELECT', 'BOOLEAN', 'DURATION', 'STAGE_PLOT'].includes(block.type) && answerValues.length > 1) {
         issues.push({ key, label: block.label, message: '回答は1つだけにしてください。' });
         continue;
       }
       if (block.type === 'BOOLEAN' && answerValues.some((value) => !['true', 'false'].includes(value))) {
         issues.push({ key, label: block.label, message: '真偽値の形式が不正です。' });
+        continue;
+      }
+      if (block.type === 'DURATION' && answerValues.length > 0 && !isValidDuration(answerValues[0])) {
+        issues.push({ key, label: block.label, message: '「分:秒」の形（例: 3:45）で入力してください。' });
+        continue;
+      }
+      if (block.type === 'STAGE_PLOT' && answerValues.length > 0) {
+        const message = validateStagePlot(answerValues[0]);
+        if (message) {
+          issues.push({ key, label: block.label, message });
+        }
         continue;
       }
 
@@ -85,6 +102,15 @@ export const LONG_TEXT_MAX_LENGTH = 5000;
 export function resolveTextMaxLength(block: SettingSheetBlock): number | null {
   if (block.type === 'LONG_TEXT') return LONG_TEXT_MAX_LENGTH;
   if (block.type === 'SHORT_TEXT' || block.type === 'SONG') return SHORT_TEXT_MAX_LENGTH;
+  return null;
+}
+
+function validateStagePlot(raw: string): string | null {
+  const { items } = parseStagePlotValue(raw);
+  if (items.length > MAX_PLOT_ITEMS) return `アイコンは${MAX_PLOT_ITEMS}個までです。`;
+  if (items.some((item) => item.label.length > MAX_PLOT_LABEL_LENGTH)) {
+    return `ラベルは${MAX_PLOT_LABEL_LENGTH}文字以内で入力してください。`;
+  }
   return null;
 }
 

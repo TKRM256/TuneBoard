@@ -120,7 +120,6 @@ export const SongBlockField = ({
                 id={`${inputId}-title`}
                 value={title}
                 onChange={(e) => updateValues(e.target.value, artist)}
-                placeholder="曲名を入力"
                 className="mt-1"
               />
             </div>
@@ -130,7 +129,6 @@ export const SongBlockField = ({
                 id={`${inputId}-artist`}
                 value={artist}
                 onChange={(e) => updateValues(title, e.target.value)}
-                placeholder="アーティスト名を入力"
                 className="mt-1"
               />
             </div>
@@ -146,7 +144,6 @@ export const SongBlockField = ({
               id={`${inputId}-title`}
               value={title}
               onChange={(e) => updateValues(e.target.value, artist)}
-              placeholder="曲名を入力"
               className="mt-1"
             />
           </div>
@@ -156,7 +153,6 @@ export const SongBlockField = ({
               id={`${inputId}-artist`}
               value={artist}
               onChange={(e) => updateValues(title, e.target.value)}
-              placeholder="アーティスト名を入力"
               className="mt-1"
             />
           </div>

@@ -15,7 +15,7 @@ export const Layout = () => {
 
 export const FullWidthLayout = () => {
     return (
-        <div className="h-screen flex flex-col border-4 bg-background overflow-hidden">
+        <div className="flex h-screen flex-col overflow-hidden bg-background">
             <AppHeader containerClassName="max-w-screen" />
             {/* min-h-0 が無いと中身の高さで main が伸び、子の h-full / 内部スクロールが効かなくなる */}
             <main className="mx-auto min-h-0 w-full flex-1">

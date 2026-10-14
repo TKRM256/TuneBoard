@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jp.tubeboard.features.lives.model.LiveStatus;
+import jp.tubeboard.features.lives.stageplot.StagePlotDtos.PublicStagePlotResponse;
 
 public record PublicLiveResponse(
                 String name,
@@ -11,5 +12,6 @@ public record PublicLiveResponse(
                 String location,
                 LocalDateTime deadlineAt,
                 LiveStatus status,
-                SettingSheetConfigResponse settingSheetConfig) {
+                SettingSheetConfigResponse settingSheetConfig,
+                PublicStagePlotResponse stagePlot) {
 }

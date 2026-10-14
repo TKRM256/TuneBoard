@@ -109,7 +109,6 @@ export const TenantsCard = ({tenant,onUpdateSuccess, onDelete, onRestore}: { ten
                         {tenant.role === "OWNER" ? "ホスト" : isAdmin ? "管理者" : "メンバー"}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Button asChild size="sm">

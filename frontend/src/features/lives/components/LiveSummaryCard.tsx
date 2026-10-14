@@ -25,7 +25,7 @@ export function LiveSummaryCard({ details, duplicates, submissionsPath, onSelect
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold">サマリ</h2>
           <Button asChild variant="outline" size="sm">
             <Link to={submissionsPath}>

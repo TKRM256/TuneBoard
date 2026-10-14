@@ -26,7 +26,7 @@ import {
 import { useSingleFlight } from '@/hooks/use-single-flight';
 import { useSubmissionMerge } from './useSubmissionMerge';
 import { buildDraftStorageKey, readSettingSheetDraft, useSettingSheetDraft } from './useSettingSheetDraft';
-import { resolveIssueLabel } from '../helpers/issue-labels';
+import { hasFieldMissingFromForm, resolveIssueLabel } from '../helpers/issue-labels';
 import { parseSubmissionConflict } from '../merge/conflict-error';
 
 interface UseSettingSheetFormParams {
@@ -214,6 +214,15 @@ export function useSettingSheetForm({ publicToken, live, submission, onSubmitted
         }
 
         const apiError = error instanceof ApiClientError ? error : undefined;
+        // 開いている間に管理者がフォームを変え、画面に無い項目でつまずいたときは、読み込み直しを勧める
+        if (apiError && hasFieldMissingFromForm(Object.keys(apiError.apiError?.fieldErrors ?? {}), settingSheetConfig)) {
+          toast.error('フォームが新しくなりました。読み込み直すと、足された項目が出ます。入力した内容は下書きに残っています。', {
+            position: 'top-center',
+            duration: Infinity,
+            action: { label: '読み込み直す', onClick: () => window.location.reload() },
+          });
+          return;
+        }
         if (apiError) {
           applyServerErrors(apiError);
         }

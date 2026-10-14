@@ -48,7 +48,7 @@ export function MergeConflictDialog({
         <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="size-5 text-destructive" />
-            他の人がこのシートを更新しました
+            他の人が同時に更新しました
           </DialogTitle>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <Badge variant={unresolved > 0 ? 'destructive' : 'secondary'}>要選択 {unresolved}件</Badge>
@@ -57,7 +57,7 @@ export function MergeConflictDialog({
             <div className="ml-auto flex items-center gap-2">
               <Switch id="merge-diff-only" checked={diffOnly} onCheckedChange={setDiffOnly} />
               <Label htmlFor="merge-diff-only" className="text-xs font-normal text-muted-foreground">
-                差分のある項目だけ表示
+                差分のある項目のみ表示
               </Label>
             </div>
           </div>
@@ -67,7 +67,7 @@ export function MergeConflictDialog({
           <div className="pb-4">
             {rows.length === 0 ? (
               <p className="py-4 text-sm text-muted-foreground">
-                内容の差分はありませんでした。そのまま保存できます。
+                内容の差分はありません。
               </p>
             ) : (
               <MergeOutline nodes={visibleNodes} selections={selections} onSelect={onSelect} />

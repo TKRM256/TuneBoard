@@ -3,6 +3,7 @@ package jp.tubeboard.features.lives;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -104,11 +105,28 @@ class LiveValidationIntegrationTest {
     }
 
     @Test
-    void pageやelementsが無いPDFレイアウトは保存できない() throws Exception {
-        mockMvc.perform(post("/api/lives/{id}/pdf-canvas", live.getId())
+    void ページや要素の一覧が無い書式は保存できない() throws Exception {
+        String created = mockMvc.perform(post("/api/lives/{id}/pdf-layouts", live.getId())
                 .header("Authorization", "Bearer " + token)
                 .contentType(APPLICATION_JSON)
-                .content("{\"canvas\":{\"foo\":1}}"))
+                .content("{\"name\":\"標準\",\"source\":\"BLANK\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String layoutId = created.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+        mockMvc.perform(put("/api/lives/{id}/pdf-layouts/{layoutId}", live.getId(), layoutId)
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content("{\"name\":\"標準\",\"document\":{\"foo\":1}}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 名前の無い書式は作れない() throws Exception {
+        mockMvc.perform(post("/api/lives/{id}/pdf-layouts", live.getId())
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content("{\"name\":\" \",\"source\":\"BLANK\"}"))
                 .andExpect(status().isBadRequest());
     }
 

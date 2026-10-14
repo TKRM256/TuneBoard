@@ -25,6 +25,7 @@ public record PublicSettingSheetSubmissionRequest(
                         @NotNull String itunesTrackId,
                         String itunesTitle,
                         String itunesArtist,
-                        String itunesAlbumArtUrl) {
+                        String itunesAlbumArtUrl,
+                        Long itunesDurationMs) {
         }
 }

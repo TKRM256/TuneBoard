@@ -53,4 +53,7 @@ public class ItunesTrackLink extends Audit {
 
     @Column(name = "itunes_album_art_url", length = 1000)
     private String itunesAlbumArtUrl;
+
+    @Column(name = "itunes_duration_ms")
+    private Long itunesDurationMs;
 }

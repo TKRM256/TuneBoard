@@ -8,7 +8,7 @@ import java.util.Map;
 import jp.tubeboard.features.lives.pdf.FontChain;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasElement;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableColumn;
-import jp.tubeboard.features.lives.pdf.canvas.ExpressionEvaluator;
+import jp.tubeboard.features.lives.export.context.ExpressionEvaluator;
 import jp.tubeboard.features.lives.pdf.canvas.TextWrapper;
 
 /**

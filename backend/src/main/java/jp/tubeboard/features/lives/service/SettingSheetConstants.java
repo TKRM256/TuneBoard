@@ -23,6 +23,8 @@ public final class SettingSheetConstants {
         public static final String BLOCK_BOOLEAN = "BOOLEAN";
         public static final String BLOCK_REPEATABLE_GROUP = "REPEATABLE_GROUP";
         public static final String BLOCK_SONG = "SONG";
+        public static final String BLOCK_DURATION = "DURATION";
+        public static final String BLOCK_STAGE_PLOT = "STAGE_PLOT";
 
         public static final Set<String> SUPPORTED_BLOCK_TYPES = Set.of(
                         BLOCK_SECTION,
@@ -33,12 +35,25 @@ public final class SettingSheetConstants {
                         BLOCK_CHECKBOX,
                         BLOCK_BOOLEAN,
                         BLOCK_REPEATABLE_GROUP,
-                        BLOCK_SONG);
+                        BLOCK_SONG,
+                        BLOCK_DURATION,
+                        BLOCK_STAGE_PLOT);
         public static final Set<String> OPTION_BLOCK_TYPES = Set.of(
                         BLOCK_SINGLE_SELECT,
                         BLOCK_MULTI_SELECT,
                         BLOCK_CHECKBOX);
         public static final Set<String> VALUE_BLOCK_TYPES = Set.of(
+                        BLOCK_SHORT_TEXT,
+                        BLOCK_LONG_TEXT,
+                        BLOCK_SINGLE_SELECT,
+                        BLOCK_MULTI_SELECT,
+                        BLOCK_CHECKBOX,
+                        BLOCK_BOOLEAN,
+                        BLOCK_SONG,
+                        BLOCK_DURATION,
+                        BLOCK_STAGE_PLOT);
+        /** 曲かぶり検出の曲名・アーティスト名に使えるブロック。 */
+        public static final Set<String> DUPLICATE_ROLE_BLOCK_TYPES = Set.of(
                         BLOCK_SHORT_TEXT,
                         BLOCK_LONG_TEXT,
                         BLOCK_SINGLE_SELECT,

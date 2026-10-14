@@ -7,7 +7,9 @@ public record SettingSheetConfigUpdateRequest(
                 String description,
                 String submitButtonLabel,
                 Boolean publicSubmissionEnabled,
-                List<FormBlockRequest> blocks) {
+                List<FormBlockRequest> blocks,
+                /** 読み込んだときの版の印。空なら他の人の保存と食い違っても確かめない */
+                String baseRevision) {
 
         public record FormBlockRequest(
                         String id,
@@ -30,7 +32,21 @@ public record SettingSheetConfigUpdateRequest(
                         LayoutRequest layout,
                         OptionSourceRequest optionSource,
                         String duplicateDetectionRole,
-                        List<VariantRequest> variants) {
+                        List<VariantRequest> variants,
+                        Boolean adminOnly) {
+
+                /** adminOnly を持たない旧来の組み立て用。 */
+                public FormBlockRequest(String id, String type, String label, String description, Boolean hidden,
+                                Boolean publicVisible, Boolean adminVisible, Boolean required, Boolean collapsible,
+                                String appearance, String itemAppearance, List<String> options, Integer minItems,
+                                String addButtonLabel, String entryTitle, String titleSourceFieldId,
+                                List<FormBlockRequest> fields, LayoutRequest layout, OptionSourceRequest optionSource,
+                                String duplicateDetectionRole, List<VariantRequest> variants) {
+                        this(id, type, label, description, hidden, publicVisible, adminVisible, required, collapsible,
+                                        appearance, itemAppearance, options, minItems, addButtonLabel, entryTitle,
+                                        titleSourceFieldId, fields, layout, optionSource, duplicateDetectionRole,
+                                        variants, null);
+                }
         }
 
         public record VariantRequest(

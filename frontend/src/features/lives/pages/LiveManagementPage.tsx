@@ -1,19 +1,12 @@
 import { type ReactNode, useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Copy, ExternalLink, FileCheck2, Settings2, Wrench } from 'lucide-react';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Copy, ExternalLink, FileCheck2, FileText, LayoutGrid, Settings2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+import { PageHeader } from '@/components/original/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { apiClient } from '@/lib/api/client';
 import type { TenantsResponse } from '@/features/tenants/types/tenant-types';
 import {
@@ -29,7 +22,6 @@ import {
 } from '../types/live-types';
 import { LiveInfoCard } from '../components/LiveInfoCard';
 import { LiveSummaryCard } from '../components/LiveSummaryCard';
-import { SubmissionDetailDialog } from '../components/SubmissionDetailDialog';
 
 export const LiveManagementPage = () => {
   const { tenantId, liveId } = useParams<{ tenantId: string; liveId: string }>();
@@ -37,11 +29,10 @@ export const LiveManagementPage = () => {
   const [config, setConfig] = useState<SettingSheetConfigResponse | null>(null);
   const [duplicates, setDuplicates] = useState<SongDuplicateResponse | null>(null);
   const [details, setDetails] = useState<PublicSettingSheetSubmissionDetailResponse[]>([]);
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('');
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
+  
   useEffect(() => {
     if (!liveId || !tenantId) return;
 
@@ -74,8 +65,6 @@ export const LiveManagementPage = () => {
   const publicUrl = buildPublicLiveUrl(live.publicToken);
   const sharedListUrl = `${window.location.origin}/public/lives/${live.publicToken}/submissions/shared`;
   const badgeVariant = live.status === 'CLOSED' ? 'destructive' : live.status === 'PUBLISHED' ? 'default' : 'secondary';
-  const selectedDetail = details.find((d) => d.id === selectedSubmissionId) ?? null;
-  const buildEditFormUrl = (submissionId: string) => `${window.location.origin}/public/lives/${live.publicToken}/submissions/${submissionId}`;
 
   const copyPublicUrl = async () => {
     try {
@@ -95,61 +84,23 @@ export const LiveManagementPage = () => {
     }
   };
 
-  const copyEditLink = async (submissionId: string) => {
-    try {
-      await navigator.clipboard.writeText(buildEditFormUrl(submissionId));
-      toast.success('編集リンクをコピーしました', { position: 'top-center' });
-    } catch {
-      toast.error('リンクのコピーに失敗しました', { position: 'top-center' });
-    }
-  };
-
   return (
     <div className="space-y-4">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/tenants">テナント一覧</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/tenants/${tenantId}/lives`}>{live.tenantName}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{live.name}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg font-semibold sm:text-2xl">{live.name}</h1>
-                <Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground sm:text-sm">{formatLiveDate(live.date)} · {formatOptionalText(live.location)}</p>
-            </div>
-            <Button asChild variant="outline" size="sm" className="shrink-0">
-              <Link to={`/tenants/${tenantId}/lives`}>
-                <ChevronLeft className="size-4" />
-                戻る
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        crumbs={[
+          { label: 'テナント一覧', to: '/tenants' },
+          { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
+          { label: live.name },
+        ]}
+        backTo={`/tenants/${tenantId}/lives`}
+        title={live.name}
+        badge={<Badge variant={badgeVariant}>{LIVE_STATUS_LABELS[live.status]}</Badge>}
+        description={`${formatLiveDate(live.date)} · ${formatOptionalText(live.location)}`}
+      />
 
       {/* リンク */}
       <Card>
-        <CardContent className="space-y-2 pt-4">
+        <CardContent className="space-y-2">
           <LinkRow label="公開フォーム" url={publicUrl} onCopy={copyPublicUrl} />
           {config?.publicSubmissionEnabled === true ? (
             <LinkRow label="共有提出一覧" url={sharedListUrl} onCopy={copySharedListLink} />
@@ -160,10 +111,13 @@ export const LiveManagementPage = () => {
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-3">
-        {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
+      {/* 並ぶ数が権限や画面幅で変わっても、同じ幅で詰めて並べる */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3">
         <QuickActionLink icon={<FileCheck2 className="size-5" />} label="提出確認" to={`/tenants/${tenantId}/lives/${liveId}/submissions`} />
+        {isAdmin && <QuickActionLink icon={<Wrench className="size-5" />} label="フォーム編集" to={`/tenants/${tenantId}/lives/${liveId}/form`} />}
         {isAdmin && <QuickActionLink icon={<Settings2 className="size-5" />} label="表示設定" to={`/tenants/${tenantId}/lives/${liveId}/settings`} />}
+        {isAdmin && <QuickActionLink icon={<LayoutGrid className="size-5" />} label="ステージ設定" to={`/tenants/${tenantId}/lives/${liveId}/stage-plot`} />}
+        <QuickActionLink icon={<FileText className="size-5" />} label="PDF書式" to={`/tenants/${tenantId}/lives/${liveId}/pdf-layouts`} />
       </div>
 
       {/* Live Info */}
@@ -174,19 +128,7 @@ export const LiveManagementPage = () => {
         details={details}
         duplicates={duplicates}
         submissionsPath={`/tenants/${tenantId}/lives/${liveId}/submissions`}
-        onSelectSubmission={(submissionId) => {
-          setSelectedSubmissionId(submissionId);
-          setIsDetailDialogOpen(true);
-        }}
-      />
-
-      <SubmissionDetailDialog
-        open={isDetailDialogOpen}
-        onOpenChange={setIsDetailDialogOpen}
-        detail={selectedDetail}
-        config={config}
-        recordLabel="回答"
-        onCopyEditLink={copyEditLink}
+        onSelectSubmission={(submissionId) => navigate(`/tenants/${tenantId}/lives/${liveId}/submissions?submission=${submissionId}`)}
       />
     </div>
   );

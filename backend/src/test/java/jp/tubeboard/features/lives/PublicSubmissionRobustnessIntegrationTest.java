@@ -1,6 +1,9 @@
 package jp.tubeboard.features.lives;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -26,8 +29,10 @@ import jp.tubeboard.features.auth.User;
 import jp.tubeboard.features.auth.UserRepository;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse.FormBlockResponse;
+import jp.tubeboard.features.lives.model.ItunesTrackLink;
 import jp.tubeboard.features.lives.model.Live;
 import jp.tubeboard.features.lives.model.LiveStatus;
+import jp.tubeboard.features.lives.repository.ItunesTrackLinkRepository;
 import jp.tubeboard.features.lives.repository.LiveRepository;
 import jp.tubeboard.features.lives.repository.SettingSheetSubmissionRepository;
 import jp.tubeboard.features.lives.service.config.FormBuilderHelper;
@@ -63,6 +68,9 @@ class PublicSubmissionRobustnessIntegrationTest {
     private SettingSheetSubmissionRepository settingSheetSubmissionRepository;
 
     @Autowired
+    private ItunesTrackLinkRepository itunesTrackLinkRepository;
+
+    @Autowired
     private JwtTokenService jwtTokenService;
 
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
@@ -70,6 +78,7 @@ class PublicSubmissionRobustnessIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        itunesTrackLinkRepository.deleteAll();
         settingSheetSubmissionRepository.deleteAll();
         liveRepository.deleteAll();
         userTenantRepository.deleteAll();
@@ -124,6 +133,31 @@ class PublicSubmissionRobustnessIntegrationTest {
                  "itunesLinks":[null]}
                 """))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void iTunesの曲の長さを保存し範囲外の値は捨てる() throws Exception {
+        Live live = createLive(List.of(setlist(false)));
+
+        UUID id = submitAndGetId(live, """
+                {"answers":[{"fieldId":"setlist","items":[
+                   {"variantId":"song","answers":[{"fieldId":"song","values":["白日","King Gnu"]}]},
+                   {"variantId":"song","answers":[{"fieldId":"song","values":["Lemon","米津玄師"]}]}]}],
+                 "itunesLinks":[
+                   {"songTitle":"白日","songArtist":"King Gnu","itunesTrackId":"1","itunesDurationMs":181000},
+                   {"songTitle":"Lemon","songArtist":"米津玄師","itunesTrackId":"2","itunesDurationMs":-5}]}
+                """);
+
+        List<ItunesTrackLink> links = itunesTrackLinkRepository.findAllBySubmissionId(id);
+        assertThat(links).extracting(ItunesTrackLink::getSongTitle, ItunesTrackLink::getItunesDurationMs)
+                .containsExactlyInAnyOrder(tuple("白日", 181000L), tuple("Lemon", null));
+
+        // 提出確認の一覧でも、提出ごとの曲がそろって返る（詳細でジャケットを出すため）
+        String token = jwtTokenService.generateToken("robust-sub", "R", "robust@example.com", "");
+        mockMvc.perform(get("/api/lives/{id}/setting-sheet/submissions/details", live.getId())
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].itunesLinks.length()").value(2));
     }
 
     @Test

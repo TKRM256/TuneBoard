@@ -157,7 +157,31 @@ class LivesControllerIntegrationTest {
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{\"expression\":\"${joinField(}\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result").value(org.hamcrest.Matchers.containsString("[")));
+                .andExpect(jsonPath("$.result").value(org.hamcrest.Matchers.containsString("[")))
+                .andExpect(jsonPath("$.error").value("true"));
+    }
+
+    @Test
+    void かんたん設定が作る表示条件をプレビューで評価できる() throws Exception {
+        givenLiveWithMembersGroup();
+
+        for (String[] c : new String[][] {
+                { "${count(filter(groups['members'].items, (m) -> m.field('member-name').value == 'Alice')) > 0}", "true" },
+                { "${count(filter(groups['members'].items, (m) -> contains(m.field('member-name').values, 'Zed'))) > 0}", "false" },
+                { "${count(filter(groups['members'].items, (m) -> count(m.field('member-name').values) > 0)) > 0}", "true" },
+        }) {
+            String body = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .writeValueAsString(java.util.Map.of("expression", c[0]));
+            String response = mockMvc.perform(post(
+                    "/api/lives/{id}/setting-sheet/submissions/{submissionId}/preview-expression",
+                    live.getId(), submission.getId())
+                    .header("Authorization", "Bearer " + adminToken)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .content(body))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+            assertThat(response).as(c[0]).contains("\"result\":\"" + c[1] + "\"").doesNotContain("\"error\"");
+        }
     }
 
     @Test
@@ -190,7 +214,7 @@ class LivesControllerIntegrationTest {
     void 表の必要な高さを測定できる() throws Exception {
         givenLiveWithMembersGroup();
 
-        mockMvc.perform(post("/api/lives/{id}/pdf-canvas/measure", live.getId())
+        mockMvc.perform(post("/api/lives/{id}/pdf-layouts/measure", live.getId())
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content(membersTableCanvasRequest()))
@@ -207,7 +231,7 @@ class LivesControllerIntegrationTest {
         // レイアウト編集の補助であり書き込みは伴わないので、閲覧できる人には開いている
         givenLiveWithMembersGroup();
 
-        mockMvc.perform(post("/api/lives/{id}/pdf-canvas/measure", live.getId())
+        mockMvc.perform(post("/api/lives/{id}/pdf-layouts/measure", live.getId())
                 .header("Authorization", "Bearer " + memberToken)
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content(membersTableCanvasRequest()))
@@ -215,11 +239,11 @@ class LivesControllerIntegrationTest {
                 .andExpect(jsonPath("$.tables.length()").value(1));
     }
 
-    /** 出演者グループを 1 列で出す、意図的に低すぎる高さの表 1 つだけのレイアウト。 */
+    /** 出演者グループを 1 列で出す、意図的に低すぎる高さの表 1 つだけの書式。 */
     private String membersTableCanvasRequest() {
         return """
-                {"canvas":{"page":{"size":"A4","orientation":"LANDSCAPE","marginMm":8,"baseFontSizePt":9},
-                  "elements":[{"kind":"table","id":"members-table","xMm":8,"yMm":20,"wMm":280,"hMm":5,
+                {"document":{"pages":[{"id":"p1","widthMm":297,"heightMm":210}],
+                  "elements":[{"kind":"grid","id":"members-table","pageId":"p1","xMm":8,"yMm":20,"wMm":280,"hMm":5,
                     "source":{"kind":"group","groupId":"members","fallbackLabel":"出演者"},
                     "columns":[{"id":"c1","header":"氏名","fieldId":"member-name","widthRatio":1.0,
                       "align":"left","format":null,"shrinkToFit":null,"minFontSizePt":null}],

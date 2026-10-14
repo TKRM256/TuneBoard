@@ -1,0 +1,16 @@
+@page { size: A4 portrait; margin: 0; }
+* { box-sizing: border-box; }
+body { margin: 0; width: 210mm; height: 297mm; font-family: "Yu Gothic", "Meiryo", sans-serif; font-size: 9pt; color: #000; }
+.page { position: relative; padding: 12mm 14mm; }
+h1 { font-size: 16pt; margin: 0 0 1mm; text-align: center; letter-spacing: 0.1em; }
+.sub { text-align: center; font-size: 8pt; margin-bottom: 4mm; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 4mm; }
+td, th { border: 0.25mm solid #000; padding: 0 1.5mm; height: 8mm; font-weight: normal; text-align: left; vertical-align: middle; }
+th { background: #d9d9d9; width: 24mm; }
+.box { display: inline-block; width: 3.2mm; height: 3.2mm; border: 0.25mm solid #000; vertical-align: -0.5mm; margin: 0 1mm 0 3mm; }
+.list td { height: 7mm; }
+.list th { width: auto; text-align: center; }
+.circle-choice span { margin: 0 3mm; }
+.stage { height: 62mm; position: relative; }
+.stage .front { position: absolute; bottom: 1mm; left: 0; right: 0; text-align: center; font-size: 7pt; }
+.notes { height: 22mm; vertical-align: top; padding-top: 1mm; }

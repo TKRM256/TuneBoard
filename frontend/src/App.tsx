@@ -12,9 +12,10 @@ const TenantLivesPage = lazy(() => import('./features/lives/pages/TenantLivesPag
 const LiveManagementPage = lazy(() => import('./features/lives/pages/LiveManagementPage').then((module) => ({ default: module.LiveManagementPage })));
 const LiveFormEditorPage = lazy(() => import('./features/lives/pages/LiveFormEditorPage').then((module) => ({ default: module.LiveFormEditorPage })));
 const LiveSubmissionsPage = lazy(() => import('./features/lives/pages/LiveSubmissionsPage').then((module) => ({ default: module.LiveSubmissionsPage })));
-const PdfPreviewPage = lazy(() => import('./features/lives/pdf/PdfPreviewPage').then((module) => ({ default: module.PdfPreviewPage })));
-const PdfPreviewPageMobile = lazy(() => import('./features/lives/pdf/PdfPreviewPageMobile').then((module) => ({ default: module.PdfPreviewPageMobile })));
 const LiveVisibilitySettingsPage = lazy(() => import('./features/lives/pages/LiveVisibilitySettingsPage').then((module) => ({ default: module.LiveVisibilitySettingsPage })));
+const VenueFormEditorPage = lazy(() => import('./features/lives/venue-form/VenueFormEditorPage').then((module) => ({ default: module.VenueFormEditorPage })));
+const PdfLayoutsPage = lazy(() => import('./features/lives/venue-form/PdfLayoutsPage').then((module) => ({ default: module.PdfLayoutsPage })));
+const StagePlotSettingsPage = lazy(() => import('./features/stage-plot/StagePlotSettingsPage').then((module) => ({ default: module.StagePlotSettingsPage })));
 const InvitationAcceptPage = lazy(() => import('./features/tenants/pages/InvitationAcceptPage').then((module) => ({ default: module.InvitationAcceptPage })));
 
 const routeFallback = (
@@ -48,6 +49,12 @@ const router = createBrowserRouter([
       { path: 'tenants/:tenantId/lives/:liveId/form', element: lazyRoute(<LiveFormEditorPage />) },
       { path: 'tenants/:tenantId/lives/:liveId/submissions', element: lazyRoute(<LiveSubmissionsPage />) },
       { path: 'tenants/:tenantId/lives/:liveId/settings', element: lazyRoute(<LiveVisibilitySettingsPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId/stage-plot', element: lazyRoute(<StagePlotSettingsPage />) },
+      { path: 'tenants/:tenantId/lives/:liveId/pdf-layouts', element: lazyRoute(<PdfLayoutsPage />) },
+      // 書式を 1 つにまとめる前の URL。ブックマークから来ても迷わないよう、書式の一覧へ送る
+      { path: 'tenants/:tenantId/lives/:liveId/venue-form', element: <Navigate to="../pdf-layouts" relative="path" replace /> },
+      { path: 'tenants/:tenantId/lives/:liveId/submissions/pdf-preview', element: <Navigate to=".." relative="path" replace /> },
+      { path: 'tenants/:tenantId/lives/:liveId/submissions/pdf-preview-mobile', element: <Navigate to=".." relative="path" replace /> },
     ],
   },
   {
@@ -58,10 +65,7 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { path: 'tenants/:tenantId/lives/:liveId/submissions/pdf-preview', element: lazyRoute(<PdfPreviewPage />) },
-      { path: 'tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview', element: lazyRoute(<PdfPreviewPage />) },
-      { path: 'tenants/:tenantId/lives/:liveId/submissions/pdf-preview-mobile', element: lazyRoute(<PdfPreviewPageMobile />) },
-      { path: 'tenants/:tenantId/lives/:liveId/submissions/:submissionId/pdf-preview-mobile', element: lazyRoute(<PdfPreviewPageMobile />) },
+      { path: 'tenants/:tenantId/lives/:liveId/pdf-layouts/:layoutId', element: lazyRoute(<VenueFormEditorPage />) },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

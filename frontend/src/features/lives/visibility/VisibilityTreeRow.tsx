@@ -193,7 +193,7 @@ const VisibilityVariantRow = ({
 const ChildBranch = ({ collapsed, children }: { collapsed: boolean; children: ReactNode }) => (
   <div className={cn('grid transition-[grid-template-rows] duration-200 ease-in-out', collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]')}>
     <div className="overflow-hidden">
-      <div className="mt-1 ml-2 space-y-1 border-l-2 border-border/60 pl-1.5 sm:ml-4 sm:pl-2.5">
+      <div className="mt-1 ml-1.5 space-y-1 border-l-2 border-border/60 pl-1 sm:ml-4 sm:pl-2.5">
         {children}
       </div>
     </div>

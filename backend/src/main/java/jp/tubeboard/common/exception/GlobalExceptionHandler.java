@@ -17,13 +17,16 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import jp.tubeboard.features.lives.dto.response.SettingSheetSubmissionConflictResponse;
 import jp.tubeboard.features.lives.exception.LivesNotFoundException;
 import jp.tubeboard.features.lives.exception.SettingSheetSubmissionConflictException;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasException;
+import jp.tubeboard.features.lives.export.context.CanvasException;
 import jp.tubeboard.features.tenants.exception.TenantsNotFoundException;
 
 @RestControllerAdvice
@@ -101,6 +104,12 @@ public class GlobalExceptionHandler {
                         ex.latest()));
     }
 
+    @ExceptionHandler(EditConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleEditConflict(EditConflictException ex) {
+        log.info("設定の保存の競合を検出しました: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<ApiErrorResponse> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
         log.warn("楽観ロックの競合が発生しました: {}", ex.getMessage());
@@ -113,6 +122,16 @@ public class GlobalExceptionHandler {
         if (ex.elementId() != null) details.put("elementId", ex.elementId());
         log.warn("キャンバスレイアウトエラー: {} {}", ex.getMessage(), details);
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), details.isEmpty() ? null : details);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "ファイルは5MB以下にしてください");
+    }
+
+    @ExceptionHandler({ MissingServletRequestPartException.class, MultipartException.class })
+    public ResponseEntity<ApiErrorResponse> handleMultipart(Exception ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "ファイルを選んでください");
     }
 
     @ExceptionHandler(Exception.class)

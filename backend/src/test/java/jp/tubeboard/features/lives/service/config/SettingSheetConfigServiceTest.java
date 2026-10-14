@@ -112,4 +112,33 @@ class SettingSheetConfigServiceTest {
         assertThat(firstBlock(reloaded).publicVisible()).isTrue();
         assertThat(firstBlock(reloaded).adminVisible()).isFalse();
     }
+
+    @Test
+    void 既定のフォームには説明文を入れない() {
+        SettingSheetConfigResponse config = service.defaultSettingSheetConfig();
+
+        assertThat(config.description()).isEmpty();
+        assertThat(allBlocks(config.blocks())).allSatisfy(block -> assertThat(block.description()).isEmpty());
+    }
+
+    @Test
+    void 説明文を空で保存したら空のまま読み込む() {
+        String json = """
+                { "title": "ダンス発表会", "description": "", "blocks": [] }
+                """;
+
+        assertThat(service.readSettingSheetConfig(liveWithSettings(json)).description()).isEmpty();
+    }
+
+    private static java.util.List<FormBlockResponse> allBlocks(java.util.List<FormBlockResponse> blocks) {
+        java.util.List<FormBlockResponse> out = new java.util.ArrayList<>();
+        for (FormBlockResponse block : blocks == null ? java.util.List.<FormBlockResponse>of() : blocks) {
+            out.add(block);
+            out.addAll(allBlocks(block.fields()));
+            if (block.variants() != null) {
+                block.variants().forEach(variant -> out.addAll(allBlocks(variant.fields())));
+            }
+        }
+        return out;
+    }
 }

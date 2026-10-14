@@ -29,25 +29,30 @@ public class SettingSheetConfigServiceHelper {
                 if (values == null) {
                         return defaultConfig.blocks();
                 }
-                return normalizeChildBlocks(values, defaultConfig);
+                return normalizeChildBlocks(values, defaultConfig, false);
         }
 
         /** 子ブロックの null は「子なし」。既定フォームで補うのはトップレベルだけにする。 */
         private List<FormBlockResponse> normalizeChildBlocks(List<FormBlockRequest> values,
-                        SettingSheetConfigResponse defaultConfig) {
+                        SettingSheetConfigResponse defaultConfig, boolean insideGroup) {
                 if (values == null) {
                         return List.of();
                 }
                 List<FormBlockResponse> normalizedBlocks = new ArrayList<>();
                 for (FormBlockRequest block : values) {
                         if (block != null) {
-                                normalizedBlocks.add(normalizeBlock(block, defaultConfig));
+                                normalizedBlocks.add(normalizeBlock(block, defaultConfig, insideGroup));
                         }
                 }
                 return List.copyOf(normalizedBlocks);
         }
 
-        public FormBlockResponse normalizeBlock(FormBlockRequest block, SettingSheetConfigResponse defaultConfig) {
+        /**
+         * @param insideGroup 繰り返しグループの中のブロックか。管理者入力は提出ごとに 1 つの値なので、
+         *                    グループの中では使えない
+         */
+        private FormBlockResponse normalizeBlock(FormBlockRequest block, SettingSheetConfigResponse defaultConfig,
+                        boolean insideGroup) {
                 String type = formBuilderHelper.normalizeBlockType(block.type());
                 boolean valueBlock = SettingSheetConstants.VALUE_BLOCK_TYPES.contains(type);
                 boolean sectionBlock = SettingSheetConstants.BLOCK_SECTION.equals(type);
@@ -58,6 +63,7 @@ public class SettingSheetConfigServiceHelper {
                 List<VariantResponse> normalizedVariants = repeatableGroup
                                 ? normalizeVariants(block.variants(), defaultConfig)
                                 : List.of();
+                boolean childrenInsideGroup = insideGroup || repeatableGroup;
                 return new FormBlockResponse(
                                 formBuilderHelper.safeTextOrDefault(block.id(), UUID.randomUUID().toString()),
                                 type,
@@ -86,15 +92,18 @@ public class SettingSheetConfigServiceHelper {
                                                 : "",
                                 repeatableGroup ? formBuilderHelper.safeTextOrDefault(block.entryTitle(), "項目") : "",
                                 repeatableGroup ? formBuilderHelper.safeText(block.titleSourceFieldId()) : "",
-                                (repeatableGroup || sectionBlock) ? normalizeChildBlocks(block.fields(), defaultConfig)
+                                (repeatableGroup || sectionBlock)
+                                                ? normalizeChildBlocks(block.fields(), defaultConfig,
+                                                                childrenInsideGroup)
                                                 : List.of(),
                                 formBuilderHelper.normalizeLayout(block.layout()),
                                 optionSource,
-                                valueBlock
+                                SettingSheetConstants.DUPLICATE_ROLE_BLOCK_TYPES.contains(type)
                                                 ? formBuilderHelper.normalizeDuplicateDetectionRole(
                                                                 block.duplicateDetectionRole())
                                                 : "",
-                                normalizedVariants);
+                                normalizedVariants,
+                                valueBlock && !insideGroup && Boolean.TRUE.equals(block.adminOnly()));
         }
 
         private List<VariantResponse> normalizeVariants(List<VariantRequest> variants,
@@ -108,7 +117,7 @@ public class SettingSheetConfigServiceHelper {
                                                 formBuilderHelper.safeTextOrDefault(v.id(),
                                                                 UUID.randomUUID().toString()),
                                                 formBuilderHelper.safeTextOrDefault(v.label(), "バリアント"),
-                                                normalizeChildBlocks(v.fields(), defaultConfig)))
+                                                normalizeChildBlocks(v.fields(), defaultConfig, true)))
                                 .toList();
         }
 
@@ -142,7 +151,8 @@ public class SettingSheetConfigServiceHelper {
                                                 : new OptionSourceRequest(block.optionSource().blockId(),
                                                                 block.optionSource().fieldId()),
                                 block.duplicateDetectionRole(),
-                                mapToVariantRequests(block.variants())))
+                                mapToVariantRequests(block.variants()),
+                                block.adminOnly()))
                                 .toList();
         }
 

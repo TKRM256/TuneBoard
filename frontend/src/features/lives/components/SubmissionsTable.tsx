@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-import type { PublicSettingSheetSubmissionDetailResponse } from '../types/live-types';
+import type {
+  PublicSettingSheetSubmissionDetailResponse,
+  SettingSheetBlock,
+  SettingSheetSubmissionAnswerResponse,
+} from '../types/live-types';
+import { AdminAnswerCell } from '../admin-answers/AdminAnswerCell';
+import { isInlineEditable } from '../admin-answers/admin-answer-model';
 import { extractCellValue, type ColumnDef } from '../helpers/submission-table-helpers';
 import { highlightKeyword } from '../helpers/submission-search-helpers';
 import type { SubmissionSort } from '../hooks/use-submission-table-view';
@@ -27,6 +33,10 @@ interface SubmissionsTableProps {
   onToggleSort: (columnId: string) => void;
   searchQuery: string;
   isHighlightColumn: (columnId: string) => boolean;
+  liveId: string;
+  /** 管理者が表の中で入力できる項目（管理者でなければ空） */
+  adminBlocks: SettingSheetBlock[];
+  onAdminSaved: (submissionId: string, answers: SettingSheetSubmissionAnswerResponse[]) => void;
 }
 
 const getAriaSort = (sort: SubmissionSort | null, columnId: string) => {
@@ -61,8 +71,14 @@ export const SubmissionsTable = ({
   onToggleSort,
   searchQuery,
   isHighlightColumn,
+  liveId,
+  adminBlocks,
+  onAdminSaved,
 }: SubmissionsTableProps) => {
   const keyword = searchQuery.trim();
+  const editableAdminBlocks = new Map(
+    adminBlocks.filter((block) => isInlineEditable(block.type)).map((block) => [block.id, block]),
+  );
 
   return (
     <div className="rounded-lg border">
@@ -114,6 +130,14 @@ export const SubmissionsTable = ({
                 />
               </TableCell>
               {columns.map((column) => {
+                const adminBlock = editableAdminBlocks.get(column.id);
+                if (adminBlock) {
+                  return (
+                    <TableCell key={`${detail.id}-${column.id}`} className="min-w-[150px] align-top">
+                      <AdminAnswerCell liveId={liveId} detail={detail} block={adminBlock} onSaved={onAdminSaved} />
+                    </TableCell>
+                  );
+                }
                 const value = extractCellValue(detail.answers, column.path, column.type);
                 return (
                   <TableCell key={`${detail.id}-${column.id}`} className="min-w-[150px] whitespace-pre-line align-top text-sm">

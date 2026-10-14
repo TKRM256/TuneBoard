@@ -30,7 +30,27 @@ public record SettingSheetConfigResponse(
                         LayoutResponse layout,
                         OptionSourceResponse optionSource,
                         String duplicateDetectionRole,
-                        List<VariantResponse> variants) {
+                        List<VariantResponse> variants,
+                        Boolean adminOnly) {
+
+                /** adminOnly を持たない旧来の組み立て用。管理者入力ではないブロックになる。 */
+                public FormBlockResponse(String id, String type, String label, String description, Boolean hidden,
+                                Boolean publicVisible, Boolean adminVisible, Boolean required, Boolean collapsible,
+                                String appearance, String itemAppearance, List<String> options, Integer minItems,
+                                String addButtonLabel, String entryTitle, String titleSourceFieldId,
+                                List<FormBlockResponse> fields, LayoutResponse layout,
+                                OptionSourceResponse optionSource, String duplicateDetectionRole,
+                                List<VariantResponse> variants) {
+                        this(id, type, label, description, hidden, publicVisible, adminVisible, required, collapsible,
+                                        appearance, itemAppearance, options, minItems, addButtonLabel, entryTitle,
+                                        titleSourceFieldId, fields, layout, optionSource, duplicateDetectionRole,
+                                        variants, false);
+                }
+
+                /** 管理者だけが入力する項目（出演者の公開フォームには出さない）。 */
+                public boolean isAdminOnly() {
+                        return Boolean.TRUE.equals(adminOnly);
+                }
 
                 /**
                  * 繰り返しグループの 1 項目が使うフィールド。フロントの getGroupItemFields と同じ規則で、

@@ -78,10 +78,10 @@ function GroupItem({
   if (item.row) {
     const isConflict = item.row.changedBy === 'both';
     const actionLabel = item.row.kind === 'item-added'
-      ? '片方だけに追加された項目です'
+      ? '片方だけに追加'
       : item.row.kind === 'item-removed'
-        ? '片方で削除された項目です'
-        : '項目の種類が変わっています';
+        ? '片方で削除'
+        : '項目の種類が変更';
 
     return (
       <div

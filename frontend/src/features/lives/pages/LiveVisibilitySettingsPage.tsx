@@ -1,24 +1,20 @@
 /** 項目ごとの表示先（共有フォーム / 管理者画面 / 公開フォーム）を設定するページ。 */
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, Search } from 'lucide-react';
+import { Navigate, useParams } from 'react-router-dom';
+import { ChevronsDownUp, ChevronsUpDown, Eye, EyeOff, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+import { PageHeader } from '@/components/original/PageHeader';
+import { SaveBar } from '@/components/original/SaveBar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Toggle } from '@/components/ui/toggle';
 import { UnsavedChangesDialog } from '@/components/original/UnsavedChangesDialog';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { apiClient } from '@/lib/api/client';
+import { useIsTenantAdmin } from '@/features/tenants/hooks/use-tenant-role';
+import { saveErrorMessage, saveSettingSheetConfig } from '../helpers/setting-sheet-config-api';
 import { cn } from '@/lib/utils';
 
 import {
@@ -48,6 +44,9 @@ export const LiveVisibilitySettingsPage = () => {
   const [collapsedIds, setCollapsedIds] = useState<Record<string, boolean>>({});
   /** 最後に保存した内容。未保存の変更があるかの判定に使う。 */
   const [savedSignature, setSavedSignature] = useState<string | null>(null);
+  /** 読み込んだ（保存した）ときの版の印。他の人の保存と食い違えば保存を止める */
+  const [revision, setRevision] = useState<string | undefined>(undefined);
+  const isAdmin = useIsTenantAdmin(tenantId);
 
   useEffect(() => {
     if (!liveId) {
@@ -66,6 +65,7 @@ export const LiveVisibilitySettingsPage = () => {
           const normalized = normalizeSettingSheetConfig(configRes);
           setConfig(normalized);
           setSavedSignature(JSON.stringify(normalized));
+          setRevision(configRes.revision);
         }
       })
       .catch(() => {
@@ -114,23 +114,23 @@ export const LiveVisibilitySettingsPage = () => {
   };
 
   const saveVisibility = () => {
-    if (!config) {
+    if (!config || !liveId) {
       return;
     }
 
     setIsSaving(true);
-    apiClient
-      .post<SettingSheetConfigResponse>(`/lives/${liveId}/setting-sheet/config`, config)
+    saveSettingSheetConfig(liveId, config, revision)
       .then((response) => {
         if (response) {
           const normalized = normalizeSettingSheetConfig(response);
           setConfig(normalized);
           setSavedSignature(JSON.stringify(normalized));
+          setRevision(response.revision);
         }
         toast.success('表示設定を保存しました', { position: 'top-center' });
       })
-      .catch(() => {
-        toast.error('表示設定の保存に失敗しました', { position: 'top-center' });
+      .catch((error) => {
+        toast.error(saveErrorMessage(error, '表示設定の保存に失敗しました'), { position: 'top-center', duration: 8000 });
       })
       .finally(() => {
         setIsSaving(false);
@@ -139,6 +139,10 @@ export const LiveVisibilitySettingsPage = () => {
 
   if (!tenantId || !liveId) {
     return <Navigate to="/tenants" replace />;
+  }
+  // 変えられるのは管理者だけ。メンバーにはライブの画面を見せる
+  if (isAdmin === false) {
+    return <Navigate to={`/tenants/${tenantId}/lives/${liveId}`} replace />;
   }
 
   if (isLoading) {
@@ -153,48 +157,21 @@ export const LiveVisibilitySettingsPage = () => {
   const hasUnsavedChanges = savedSignature !== null && JSON.stringify(config) !== savedSignature;
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4">
       <UnsavedChangesDialog guard={leaveGuard} />
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/tenants">テナント一覧</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/tenants/${tenantId}/lives`}>{live.tenantName}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/tenants/${tenantId}/lives/${liveId}`}>{live.name}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>表示設定</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <PageHeader
+        crumbs={[
+          { label: 'テナント一覧', to: '/tenants' },
+          { label: live.tenantName, to: `/tenants/${tenantId}/lives` },
+          { label: live.name, to: `/tenants/${tenantId}/lives/${liveId}` },
+          { label: '表示設定' },
+        ]}
+        backTo={`/tenants/${tenantId}/lives/${liveId}`}
+        title="表示設定"
+        description={live.name}
+      />
 
       <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <div className="space-y-1">
-              <h1 className="text-lg font-semibold sm:text-2xl">表示設定</h1>
-            </div>
-            <Button asChild variant="outline" size="sm" className="shrink-0">
-              <Link to={`/tenants/${tenantId}/lives/${liveId}`}>
-                <ChevronLeft className="size-4" />戻る
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-
         <CardContent className="space-y-4 px-3 sm:px-6">
           <div className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 sm:px-4">
             <div className="min-w-0">
@@ -275,15 +252,7 @@ export const LiveVisibilitySettingsPage = () => {
         </CardContent>
       </Card>
 
-      {/* 項目数が多いので保存ボタンは常に手元に置く */}
-      <div className="sticky bottom-0 z-20 -mx-1 flex items-center justify-end gap-3 rounded-xl border bg-background/95 px-3 py-2 backdrop-blur">
-        {hasUnsavedChanges ? (
-          <p className="text-xs text-muted-foreground">未保存の変更があります</p>
-        ) : null}
-        <Button onClick={saveVisibility} disabled={isSaving || !hasUnsavedChanges} className="shrink-0">
-          {isSaving ? '保存中...' : '設定を保存する'}
-        </Button>
-      </div>
+      <SaveBar isDirty={hasUnsavedChanges} isSaving={isSaving} onSave={saveVisibility} />
     </div>
   );
 };

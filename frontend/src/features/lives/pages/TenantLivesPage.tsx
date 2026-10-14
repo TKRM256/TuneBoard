@@ -1,18 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { Navigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader } from '@/components/ui/card';
+import { PageHeader } from '@/components/original/PageHeader';
 import { TrashButton, TrashSheet } from '@/components/original/TrashSheet';
 import { CreateLiveCard } from '../components/CreateLiveCard';
 import { LiveListCard } from '../components/LiveListCard';
@@ -127,37 +117,11 @@ export const TenantLivesPage = () => {
 
   return (
     <div className="space-y-4">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/tenants">テナント一覧</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{tenant.name}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <div className="min-w-0">
-              <h1 className="wrap-break-word text-lg font-semibold sm:text-2xl">{tenant.name} のライブ</h1>
-            </div>
-            <div className="flex justify-end">
-              <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
-                <Link to="/tenants">
-                  <ChevronLeft className="size-4" />
-                  戻る
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        crumbs={[{ label: 'テナント一覧', to: '/tenants' }, { label: tenant.name }]}
+        backTo="/tenants"
+        title={`${tenant.name} のライブ`}
+      />
 
       {isAdmin && <CreateLiveCard tenantId={tenant.id} onCreateSuccess={handleCreateSuccess} />}
       <LiveListCard

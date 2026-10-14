@@ -4,13 +4,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import jp.tubeboard.features.lives.pdf.canvas.CanvasContext;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasContext.GroupRef;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasContext.ItemRef;
+import jp.tubeboard.features.lives.export.context.CanvasContext;
+import jp.tubeboard.features.lives.export.context.CanvasContext.GroupRef;
+import jp.tubeboard.features.lives.export.context.CanvasContext.ItemRef;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasElement;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableColumn;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableSource;
-import jp.tubeboard.features.lives.pdf.canvas.ExpressionEvaluator;
+import jp.tubeboard.features.lives.export.context.ExpressionEvaluator;
 
 /** Resolves the rows a table element expands into, and the text of each cell. */
 public final class TableRows {
@@ -25,19 +25,24 @@ public final class TableRows {
     public static List<RowData> collect(CanvasElement.TableElement table, Map<String, Object> namespace) {
         TableSource src = table.source();
         if (src instanceof TableSource.GroupSource g) {
-            Object groups = namespace.get("groups");
-            if (groups instanceof Map<?, ?> map && map.get(g.groupId()) instanceof GroupRef gr) {
-                return gr.getItems().stream()
-                        .map((ItemRef item) -> (RowData) new GroupRow(item))
-                        .toList();
-            }
-            return List.of();
+            return collectGroup(g.groupId(), namespace);
         }
         if (src instanceof TableSource.FieldsSource fs) {
             return fs.fields() == null ? List.of()
                     : fs.fields().stream()
                             .map(f -> (RowData) new FieldRow(f.fieldId(), f.fallbackLabel()))
                             .toList();
+        }
+        return List.of();
+    }
+
+    /** グループの回答 1 件を 1 行とした行の一覧。グループが無ければ空。 */
+    public static List<RowData> collectGroup(String groupId, Map<String, Object> namespace) {
+        Object groups = namespace.get("groups");
+        if (groups instanceof Map<?, ?> map && map.get(groupId) instanceof GroupRef gr) {
+            return gr.getItems().stream()
+                    .map((ItemRef item) -> (RowData) new GroupRow(item))
+                    .toList();
         }
         return List.of();
     }
