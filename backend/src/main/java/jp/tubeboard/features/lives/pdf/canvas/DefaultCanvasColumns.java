@@ -18,7 +18,7 @@ import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableColumn;
  * 「曲名 or MC／使うパート／使うマイク／各備考」で読めるようにする。
  * 既定フォームのブロックIDを手掛かりに組み立て、見つからない項目は列から落とす。
  */
-final class DefaultCanvasColumns {
+public final class DefaultCanvasColumns {
 
     private static final String MEMBERS = "members";
     private static final String MEMBER_NAME = "member-name";
@@ -35,12 +35,12 @@ final class DefaultCanvasColumns {
     private DefaultCanvasColumns() {
     }
 
-    static TableColumn indexColumn(float widthRatio) {
+    public static TableColumn indexColumn(float widthRatio) {
         return new TableColumn(uuid(), "No", "__index__", widthRatio, "center", null, null, null);
     }
 
     /** 既定フォームの構成に当てはまるときだけ、専用の列構成を返す。 */
-    static List<TableColumn> forGroup(FormBlockResponse group) {
+    public static List<TableColumn> forGroup(FormBlockResponse group) {
         if (MEMBERS.equals(group.id())) {
             return memberColumns(group);
         }

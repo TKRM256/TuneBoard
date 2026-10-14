@@ -20,22 +20,23 @@ import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.export.context.CanvasContext;
 import jp.tubeboard.features.lives.export.context.ExpressionEvaluator;
 import jp.tubeboard.features.lives.model.LiveStatus;
-import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasElement;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableColumn;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.TableSource;
 import jp.tubeboard.features.lives.service.config.FormBuilderHelper;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigService;
 import jp.tubeboard.features.lives.service.config.SettingSheetConfigServiceHelper;
+import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenueElement;
+import jp.tubeboard.features.lives.venueform.template.FormTemplateBuilder;
 
 /**
- * 既定フォームから組み立てた初期レイアウトが、実際の提出内容で意図した文字列になるかを見る。
+ * 既定フォームから組み立てたテンプレートが、実際の提出内容で意図した文字列になるかを見る。
  * 列の式は JEXL でその場評価されるので、式が壊れていればここで落ちる。
  */
-class DefaultCanvasFactoryTest {
+class DefaultFormTemplateTest {
 
     private final ExpressionEvaluator evaluator = new ExpressionEvaluator();
-    private final DefaultCanvasFactory factory = new DefaultCanvasFactory();
+    private final FormTemplateBuilder factory = new FormTemplateBuilder();
     private final SettingSheetConfigResponse config = defaultConfig();
     private final Map<String, Object> namespace = CanvasContext.build(live(), config, submission());
 
@@ -86,32 +87,31 @@ class DefaultCanvasFactoryTest {
 
     @Test
     void 単発項目はKV表にまとまる() {
-        CanvasDocument doc = factory.build(config);
-        CanvasElement.TableElement kv = doc.elements().stream()
-                .filter(CanvasElement.TableElement.class::isInstance)
-                .map(CanvasElement.TableElement.class::cast)
+        List<String> fieldIds = tables().stream()
                 .filter(table -> table.source() instanceof TableSource.FieldsSource)
-                .findFirst()
-                .orElseThrow();
-
-        TableSource.FieldsSource source = (TableSource.FieldsSource) kv.source();
-        assertEquals(List.of("band-name", "submission-status", "detail"),
-                source.fields().stream().map(TableSource.FieldRef::fieldId).toList());
+                .flatMap(table -> ((TableSource.FieldsSource) table.source()).fields().stream())
+                .map(TableSource.FieldRef::fieldId)
+                .toList();
+        assertEquals(List.of("band-name", "submission-status", "detail"), fieldIds);
     }
 
     // ───────── helpers ─────────
 
     private CanvasElement.TableElement tableFor(String groupId) {
-        CanvasDocument doc = factory.build(config);
-        CanvasElement.TableElement found = doc.elements().stream()
-                .filter(CanvasElement.TableElement.class::isInstance)
-                .map(CanvasElement.TableElement.class::cast)
+        CanvasElement.TableElement found = tables().stream()
                 .filter(table -> table.source() instanceof TableSource.GroupSource group
                         && groupId.equals(group.groupId()))
                 .findFirst()
                 .orElse(null);
         assertNotNull(found, groupId + " の表が見つからない");
         return found;
+    }
+
+    private List<CanvasElement.TableElement> tables() {
+        return factory.build(config, null, null).elements().stream()
+                .filter(VenueElement.GridElement.class::isInstance)
+                .map(element -> ((VenueElement.GridElement) element).toTable())
+                .toList();
     }
 
     private TableColumn column(CanvasElement.TableElement table, String header) {

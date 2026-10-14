@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { getPaperDimensions } from './paper';
-import { fitAllPages, resizePage } from './page-resize';
+import { resizePage } from './page-resize';
 import { createBlankPage, createElement } from './venue-element-factory';
 import type { VenueFormDocument } from './venue-form-schema';
 
@@ -34,12 +34,3 @@ describe('用紙の大きさを替える', () => {
   });
 });
 
-describe('テンプレートを今の用紙に合わせる', () => {
-  it('すべてのページとその要素を同じ用紙の大きさにそろえる', () => {
-    const a4 = getPaperDimensions('A4', 'PORTRAIT');
-    const doc = fitAllPages(b4Doc(), a4);
-    expect(doc.pages.every((page) => page.widthMm === a4.widthMm && page.heightMm === a4.heightMm)).toBe(true);
-    expect(doc.elements[0].xMm).toBeCloseTo(21, 0);
-    expect(doc.elements[1].xMm).toBeCloseTo(21, 0);
-  });
-});

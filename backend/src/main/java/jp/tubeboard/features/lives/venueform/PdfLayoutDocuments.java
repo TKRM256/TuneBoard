@@ -8,8 +8,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import jp.tubeboard.features.lives.dto.response.SettingSheetConfigResponse;
 import jp.tubeboard.features.lives.pdf.canvas.CanvasSchema.CanvasDocument;
-import jp.tubeboard.features.lives.pdf.canvas.DefaultCanvasFactory;
 import jp.tubeboard.features.lives.venueform.VenueFormSchema.VenueFormDocument;
+import jp.tubeboard.features.lives.venueform.template.FormTemplateBuilder;
 import lombok.RequiredArgsConstructor;
 
 /** PDF 書式の JSON の読み書き。統合前の形で保存されたものは、読むときに今の形へ直す。 */
@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PdfLayoutDocuments {
 
-    private final DefaultCanvasFactory defaultCanvasFactory;
+    private final FormTemplateBuilder formTemplateBuilder;
     private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
     /** 読めない JSON は null（呼び出し側で空の書式として扱う）。 */
@@ -42,8 +42,13 @@ public class PdfLayoutDocuments {
         }
     }
 
-    /** フォームの項目を順に並べた書式。書式を選ばずに出力するときと、フォームから書式を作るときに使う。 */
+    /** フォームの項目を順に並べた書式（B4 横）。書式を選ばずに出力するときと、フォームから書式を作るときに使う。 */
     public VenueFormDocument fromForm(SettingSheetConfigResponse config) {
-        return LegacyCanvasConverter.convert(defaultCanvasFactory.build(config));
+        return fromForm(config, null, null);
+    }
+
+    /** 用紙の大きさを指定して並べる。白紙の書式に流し込むときに使う。 */
+    public VenueFormDocument fromForm(SettingSheetConfigResponse config, Float widthMm, Float heightMm) {
+        return formTemplateBuilder.build(config, widthMm, heightMm);
     }
 }

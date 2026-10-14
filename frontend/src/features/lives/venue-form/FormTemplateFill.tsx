@@ -1,4 +1,4 @@
-/** 何も置いていない白紙の書式に、今のフォームの項目を順に並べる。用紙の大きさは今の書式に合わせる。 */
+/** 何も置いていない白紙の書式に、今のフォームの項目を順に並べる。今の用紙の大きさに合わせて並べ直したものを受け取る。 */
 import { Loader2, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { useSingleFlight } from '@/hooks/use-single-flight';
 import { ApiClientError } from '@/lib/api/type';
 
-import { fitAllPages } from './page-resize';
 import type { useVenueFormEditor } from './useVenueFormEditor';
 import { fetchFormTemplate } from './venue-form-api';
 
@@ -24,9 +23,8 @@ export function FormTemplateFill({ liveId, editor, onFilled }: Props) {
 
   const handleFill = () => void fill.run(async () => {
     try {
-      const template = await fetchFormTemplate(liveId);
-      const fitted = fitAllPages(template, { widthMm: paper.widthMm, heightMm: paper.heightMm });
-      editor.replaceAll({ ...fitted, pages: fitted.pages.map((page) => ({ ...page, marginMm: paper.marginMm ?? page.marginMm })) });
+      const template = await fetchFormTemplate(liveId, { widthMm: paper.widthMm, heightMm: paper.heightMm });
+      editor.replaceAll({ ...template, pages: template.pages.map((page) => ({ ...page, marginMm: paper.marginMm ?? page.marginMm })) });
       toast.success('フォームの項目を並べました', { position: 'top-center' });
       onFilled?.();
     } catch (error) {

@@ -1,9 +1,7 @@
 package jp.tubeboard.features.lives.pdf.canvas;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -116,18 +114,6 @@ class CanvasPipelineTest {
         assertEquals(2, groups.get("members").getItems().size());
         assertEquals("田中",
                 evaluator.interpolate("${groups['members'].items[0].field('member-name').value}", ns));
-    }
-
-    @Test
-    void defaultCanvasFromConfigIncludesGroupTable() {
-        DefaultCanvasFactory factory = new DefaultCanvasFactory();
-        CanvasSchema.CanvasDocument doc = factory.build(sampleConfig());
-        assertNotNull(doc);
-        assertNotNull(doc.page());
-        assertFalse(doc.elements().isEmpty());
-        boolean hasTable = doc.elements().stream()
-                .anyMatch(e -> e instanceof CanvasSchema.CanvasElement.TableElement);
-        assertTrue(hasTable, "default canvas should include at least one table element");
     }
 
     @Test

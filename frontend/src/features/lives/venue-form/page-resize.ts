@@ -16,11 +16,6 @@ export function resizePage(doc: VenueFormDocument, pageId: string, size: { width
   };
 }
 
-/** すべてのページを同じ用紙の大きさにそろえる（テンプレートを今の用紙に合わせるとき）。 */
-export function fitAllPages(doc: VenueFormDocument, size: { widthMm: number; heightMm: number }): VenueFormDocument {
-  return doc.pages.reduce((next, page) => resizePage(next, page.id, size), doc);
-}
-
 function scaleElement(element: VenueElement, scaleX: number, scaleY: number, fontScale: number): VenueElement {
   const box = {
     xMm: round2(element.xMm * scaleX),

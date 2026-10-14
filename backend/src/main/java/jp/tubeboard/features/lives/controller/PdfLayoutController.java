@@ -73,8 +73,10 @@ public class PdfLayoutController {
     }
 
     @GetMapping("/form-template")
-    public ResponseEntity<VenueFormDocument> formTemplate(@PathVariable(name = "id") UUID id) {
-        return ResponseEntity.ok(layoutService.formTemplate(id));
+    public ResponseEntity<VenueFormDocument> formTemplate(@PathVariable(name = "id") UUID id,
+            @RequestParam(name = "widthMm", required = false) Float widthMm,
+            @RequestParam(name = "heightMm", required = false) Float heightMm) {
+        return ResponseEntity.ok(layoutService.formTemplate(id, widthMm, heightMm));
     }
 
     @GetMapping("/{layoutId}")

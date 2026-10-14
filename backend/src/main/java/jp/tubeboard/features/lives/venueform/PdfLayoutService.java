@@ -61,9 +61,9 @@ public class PdfLayoutService {
     }
 
     /** 今のフォームの項目を順に並べた書式。白紙の書式に流し込むときに使う（保存はしない）。 */
-    public VenueFormDocument formTemplate(UUID liveId) {
+    public VenueFormDocument formTemplate(UUID liveId, Float widthMm, Float heightMm) {
         helper.findAdminLive(liveId);
-        return documents.fromForm(loader.loadLive(liveId).config());
+        return documents.fromForm(loader.loadLive(liveId).config(), widthMm, heightMm);
     }
 
     public LayoutResponse get(UUID liveId, UUID layoutId) {
